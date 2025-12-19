@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Setup - Prototipo de Página</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Righteous&family=ABeeZee:ital@0;1&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       CSS Variables (Design Tokens de Oraculo)
+       ========================================================================== */
+    :root {
+      /* Colores */
+      --turquesa-50: #ecfeff;
+      --turquesa-100: #cdfffb;
+      --turquesa-400: #18f8f6;
+      --turquesa-600: #00bec8;
+      --turquesa-700: #088b96;
+      --rosa-50: #fff1f2;
+      --rosa-100: #ffe4ea;
+      --rosa-400: #fb718f;
+      --rosa-600: #e11d48;
+      --tulip-tree-50: #fef9e8;
+      --tulip-tree-200: #fee28a;
+      --tulip-tree-500: #eab308;
+      --gris-50: #f9fafb;
+      --gris-100: #f3f4f6;
+      --gris-200: #e5e7eb;
+      --gris-300: #d1d5db;
+      --gris-400: #9ca3af;
+      --gris-500: #6b7280;
+      --gris-600: #4b5563;
+      --gris-700: #374151;
+      --gris-800: #1f2937;
+      --gris-900: #111827;
+
+      /* Colores semánticos */
+      --color-primary: var(--turquesa-600);
+      --color-primary-hover: var(--turquesa-700);
+
+      /* Tipografía */
+      --font-family-headings: 'Righteous', cursive;
+      --font-family-body: 'ABeeZee', sans-serif;
+      --font-size-2xl: 1.875rem;
+      --font-size-xl: 1.5rem;
+      --font-size-lg: 1.125rem;
+      --font-size-base: 1rem;
+      --font-size-sm: 0.875rem;
+      --font-size-xs: 0.75rem;
+
+      /* Espaciado (8px grid) */
+      --space-1: 8px;
+      --space-2: 16px;
+      --space-3: 24px;
+      --space-4: 32px;
+
+      /* Sombras */
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+
+      /* Bordes */
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-full: 9999px;
+
+      /* Transiciones */
+      --transition-fast: 150ms ease;
+    }
+
+    /* ==========================================================================
+       Reset & Base
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-base);
+      background: linear-gradient(180deg, var(--turquesa-50) 0%, var(--gris-50) 50%);
+      color: var(--gris-900);
+      margin: 0;
+      line-height: 1.5;
+      min-height: 100vh;
+      min-height: 100dvh; /* Dynamic viewport height para móvil */
+    }
+
+    /* Material Symbols */
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      vertical-align: middle;
+    }
+
+    .material-symbols-outlined.filled {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+
+    /* ==========================================================================
+       Daily Setup Page - Layout Principal
+       ========================================================================== */
+    .daily-setup {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      padding: var(--space-2);
+      max-width: 480px;
+      margin: 0 auto;
+      overflow: hidden; /* Evita scroll de página */
+    }
+
+    /* --------------------------------------------------------------------------
+       Header Compacto
+       -------------------------------------------------------------------------- */
+    .setup-page-header {
+      text-align: center;
+      padding: var(--space-2) 0;
+      flex-shrink: 0;
+    }
+
+    .setup-page-header__icon {
+      font-size: 36px;
+      color: var(--color-primary);
+      margin-bottom: var(--space-1);
+    }
+
+    .setup-page-header__title {
+      font-family: var(--font-family-headings);
+      font-size: var(--font-size-xl);
+      color: var(--gris-800);
+      margin: 0 0 4px 0;
+    }
+
+    .setup-page-header__subtitle {
+      color: var(--gris-500);
+      font-size: var(--font-size-sm);
+      margin: 0;
+    }
+
+    /* --------------------------------------------------------------------------
+       Selectores Compactos (Tiempo + Energia en UNA fila)
+       -------------------------------------------------------------------------- */
+    .setup-selectors {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-2);
+      padding: var(--space-2);
+      background: white;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: var(--space-2);
+      flex-shrink: 0;
+    }
+
+    .selector-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+    }
+
+    .selector-group__label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: var(--font-size-xs);
+      font-weight: 600;
+      color: var(--gris-600);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .selector-group__label .material-symbols-outlined {
+      font-size: 16px;
+      color: var(--color-primary);
+    }
+
+    /* Chips de selección - estilo segmentado */
+    .selector-chips {
+      display: flex;
+      gap: 4px;
+      background: var(--gris-100);
+      padding: 4px;
+      border-radius: var(--radius-md);
+    }
+
+    .selector-chip {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      padding: var(--space-1) 4px;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      font-family: var(--font-family-body);
+    }
+
+    .selector-chip:hover {
+      background: white;
+    }
+
+    .selector-chip[aria-pressed="true"] {
+      background: white;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .selector-chip__icon {
+      font-size: 20px;
+      color: var(--gris-400);
+      transition: color var(--transition-fast);
+    }
+
+    .selector-chip[aria-pressed="true"] .selector-chip__icon {
+      color: var(--color-primary);
+    }
+
+    /* Colores especiales para energía */
+    .selector-chip[data-energy="low"][aria-pressed="true"] .selector-chip__icon {
+      color: var(--rosa-400);
+    }
+
+    .selector-chip[data-energy="high"][aria-pressed="true"] .selector-chip__icon {
+      color: var(--turquesa-600);
+    }
+
+    .selector-chip__label {
+      font-size: 10px;
+      color: var(--gris-500);
+      font-weight: 500;
+    }
+
+    .selector-chip[aria-pressed="true"] .selector-chip__label {
+      color: var(--gris-800);
+      font-weight: 600;
+    }
+
+    /* --------------------------------------------------------------------------
+       Resultado Calculado (Compacto)
+       -------------------------------------------------------------------------- */
+    .setup-result {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-1);
+      padding: var(--space-2);
+      background: linear-gradient(135deg, var(--turquesa-100), var(--rosa-100));
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-2);
+      flex-shrink: 0;
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: all 0.3s ease;
+    }
+
+    .setup-result.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .setup-result__icon {
+      font-size: 24px;
+      color: var(--turquesa-700);
+    }
+
+    .setup-result__text {
+      font-size: var(--font-size-sm);
+      color: var(--gris-700);
+    }
+
+    .setup-result__limit {
+      font-family: var(--font-family-headings);
+      font-size: var(--font-size-lg);
+      color: var(--turquesa-600);
+    }
+
+    /* --------------------------------------------------------------------------
+       Lista de Tareas (Area scrollable)
+       -------------------------------------------------------------------------- */
+    .setup-tasks {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: white;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      min-height: 0; /* Permite shrink en flex */
+    }
+
+    .setup-tasks__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-2);
+      border-bottom: 1px solid var(--gris-200);
+      flex-shrink: 0;
+    }
+
+    .setup-tasks__title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      color: var(--gris-700);
+      margin: 0;
+    }
+
+    .setup-tasks__title .material-symbols-outlined {
+      font-size: 20px;
+      color: var(--color-primary);
+    }
+
+    .setup-tasks__counter {
+      font-size: var(--font-size-xs);
+      color: var(--gris-500);
+      background: var(--gris-100);
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+    }
+
+    .setup-tasks__counter--full {
+      background: var(--turquesa-100);
+      color: var(--turquesa-700);
+    }
+
+    /* Lista scrollable - ocupa espacio disponible */
+    .setup-tasks__list {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-1);
+      list-style: none;
+      margin: 0;
+      min-height: 0; /* Permite scroll en flex */
+    }
+
+    /* Scrollbar personalizada */
+    .setup-tasks__list::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .setup-tasks__list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .setup-tasks__list::-webkit-scrollbar-thumb {
+      background: var(--gris-300);
+      border-radius: 2px;
+    }
+
+    /* Task Item Compacto */
+    .task-item {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-1);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-md);
+      transition: background var(--transition-fast);
+      cursor: pointer;
+    }
+
+    .task-item:hover {
+      background: var(--gris-50);
+    }
+
+    .task-item--selected {
+      background: var(--turquesa-50);
+    }
+
+    .task-item--disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Checkbox custom accesible */
+    .task-item__checkbox {
+      position: relative;
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .task-item__checkbox input {
+      position: absolute;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .task-item__checkbox input:disabled {
+      cursor: not-allowed;
+    }
+
+    .task-item__check-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--gris-300);
+      border-radius: var(--radius-sm);
+      background: white;
+      transition: all var(--transition-fast);
+    }
+
+    .task-item__check-icon .material-symbols-outlined {
+      font-size: 14px;
+      color: transparent;
+    }
+
+    .task-item__checkbox input:checked + .task-item__check-icon {
+      background: var(--turquesa-600);
+      border-color: var(--turquesa-600);
+    }
+
+    .task-item__checkbox input:checked + .task-item__check-icon .material-symbols-outlined {
+      color: white;
+    }
+
+    .task-item__checkbox input:focus-visible + .task-item__check-icon {
+      outline: 2px solid var(--turquesa-400);
+      outline-offset: 2px;
+    }
+
+    /* Contenido de la tarea */
+    .task-item__content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .task-item__text {
+      font-size: var(--font-size-sm);
+      color: var(--gris-800);
+      margin: 0 0 4px 0;
+      line-height: 1.3;
+    }
+
+    .task-item__meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      flex-wrap: wrap;
+    }
+
+    .task-item__tag {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      background: var(--gris-100);
+      color: var(--gris-600);
+    }
+
+    .task-item__tag--project {
+      background: var(--project-color, var(--rosa-100));
+      color: var(--gris-800);
+    }
+
+    .task-item__tag--horizon {
+      background: var(--gris-100);
+    }
+
+    /* Estado vacío */
+    .setup-tasks__empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-4);
+      text-align: center;
+      color: var(--gris-500);
+    }
+
+    .setup-tasks__empty .material-symbols-outlined {
+      font-size: 48px;
+      color: var(--gris-300);
+      margin-bottom: var(--space-1);
+    }
+
+    .setup-tasks__empty p {
+      margin: 0;
+      font-size: var(--font-size-sm);
+    }
+
+    /* --------------------------------------------------------------------------
+       Botón de Acción (Footer fijo)
+       -------------------------------------------------------------------------- */
+    .setup-actions {
+      padding: var(--space-2) 0;
+      flex-shrink: 0;
+    }
+
+    .btn-start {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-1);
+      padding: var(--space-2) var(--space-3);
+      background: var(--color-primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-family: var(--font-family-body);
+      font-size: var(--font-size-base);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      box-shadow: 0 4px 12px rgba(0, 190, 200, 0.3);
+    }
+
+    .btn-start:hover {
+      background: var(--color-primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(0, 190, 200, 0.4);
+    }
+
+    .btn-start:active {
+      transform: translateY(0);
+    }
+
+    .btn-start:focus-visible {
+      outline: 2px solid var(--turquesa-400);
+      outline-offset: 2px;
+    }
+
+    .btn-start .material-symbols-outlined {
+      font-size: 20px;
+    }
+
+    /* Enlace para omitir */
+    .setup-skip {
+      display: block;
+      text-align: center;
+      margin-top: var(--space-1);
+      font-size: var(--font-size-sm);
+      color: var(--gris-500);
+      text-decoration: none;
+    }
+
+    .setup-skip:hover {
+      color: var(--gris-700);
+      text-decoration: underline;
+    }
+
+    /* --------------------------------------------------------------------------
+       Responsive - Desktop
+       -------------------------------------------------------------------------- */
+    @media (min-width: 768px) {
+      .daily-setup {
+        padding: var(--space-4);
+        justify-content: center;
+      }
+
+      .setup-page-header {
+        padding: var(--space-3) 0;
+      }
+
+      .setup-page-header__icon {
+        font-size: 48px;
+      }
+
+      .setup-page-header__title {
+        font-size: var(--font-size-2xl);
+      }
+
+      .setup-selectors {
+        padding: var(--space-3);
+      }
+
+      .selector-chip {
+        padding: var(--space-2) var(--space-1);
+      }
+
+      .selector-chip__icon {
+        font-size: 24px;
+      }
+
+      .selector-chip__label {
+        font-size: var(--font-size-xs);
+      }
+
+    }
+
+    /* --------------------------------------------------------------------------
+       Animaciones
+       -------------------------------------------------------------------------- */
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .task-item {
+      animation: slideIn 0.2s ease;
+      animation-fill-mode: backwards;
+    }
+
+    .task-item:nth-child(1) { animation-delay: 0.05s; }
+    .task-item:nth-child(2) { animation-delay: 0.1s; }
+    .task-item:nth-child(3) { animation-delay: 0.15s; }
+    .task-item:nth-child(4) { animation-delay: 0.2s; }
+    .task-item:nth-child(5) { animation-delay: 0.25s; }
+  </style>
+</head>
+<body>
+  <main class="daily-setup">
+    <!-- Header compacto -->
+    <header class="setup-page-header">
+      <span class="material-symbols-outlined setup-page-header__icon">wb_twilight</span>
+      <h1 class="setup-page-header__title">Buenos días</h1>
+      <p class="setup-page-header__subtitle">¿Cómo es tu día hoy?</p>
+    </header>
+
+    <!-- Selectores de Tiempo y Energía en UNA fila -->
+    <section class="setup-selectors" aria-label="Configuración del día">
+      <!-- Tiempo disponible -->
+      <div class="selector-group">
+        <span class="selector-group__label">
+          <span class="material-symbols-outlined">schedule</span>
+          Tiempo
+        </span>
+        <div class="selector-chips" role="radiogroup" aria-label="Tiempo disponible">
+          <button type="button" class="selector-chip" data-time="2h" role="radio" aria-pressed="false" aria-label="2 horas">
+            <span class="material-symbols-outlined selector-chip__icon">hourglass_empty</span>
+            <span class="selector-chip__label">2h</span>
+          </button>
+          <button type="button" class="selector-chip" data-time="4h" role="radio" aria-pressed="true" aria-label="4 horas">
+            <span class="material-symbols-outlined selector-chip__icon">hourglass_bottom</span>
+            <span class="selector-chip__label">4h</span>
+          </button>
+          <button type="button" class="selector-chip" data-time="6h" role="radio" aria-pressed="false" aria-label="6 horas">
+            <span class="material-symbols-outlined selector-chip__icon">hourglass_top</span>
+            <span class="selector-chip__label">6h</span>
+          </button>
+          <button type="button" class="selector-chip" data-time="full" role="radio" aria-pressed="false" aria-label="Día completo">
+            <span class="material-symbols-outlined selector-chip__icon">wb_sunny</span>
+            <span class="selector-chip__label">Full</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Nivel de energía -->
+      <div class="selector-group">
+        <span class="selector-group__label">
+          <span class="material-symbols-outlined">bolt</span>
+          Energía
+        </span>
+        <div class="selector-chips" role="radiogroup" aria-label="Nivel de energía">
+          <button type="button" class="selector-chip" data-energy="low" role="radio" aria-pressed="false" aria-label="Energía baja">
+            <span class="material-symbols-outlined selector-chip__icon">battery_1_bar</span>
+            <span class="selector-chip__label">Baja</span>
+          </button>
+          <button type="button" class="selector-chip" data-energy="medium" role="radio" aria-pressed="true" aria-label="Energía media">
+            <span class="material-symbols-outlined selector-chip__icon">battery_4_bar</span>
+            <span class="selector-chip__label">Media</span>
+          </button>
+          <button type="button" class="selector-chip" data-energy="high" role="radio" aria-pressed="false" aria-label="Energía alta">
+            <span class="material-symbols-outlined selector-chip__icon">battery_full</span>
+            <span class="selector-chip__label">Alta</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Resultado calculado -->
+    <div class="setup-result visible" aria-live="polite">
+      <span class="material-symbols-outlined setup-result__icon">tips_and_updates</span>
+      <span class="setup-result__text">Hoy puedes:</span>
+      <span class="setup-result__limit">2 tareas</span>
+    </div>
+
+    <!-- Lista de tareas -->
+    <section class="setup-tasks" aria-label="Selecciona tus prioridades">
+      <header class="setup-tasks__header">
+        <h2 class="setup-tasks__title">
+          <span class="material-symbols-outlined">checklist</span>
+          Elige tus prioridades
+        </h2>
+        <span class="setup-tasks__counter" aria-label="1 de 2 seleccionadas">1/2</span>
+      </header>
+
+      <ul class="setup-tasks__list" role="list">
+        <!-- Tarea seleccionada -->
+        <li class="task-item task-item--selected">
+          <label class="task-item__checkbox">
+            <input type="checkbox" checked aria-label="Seleccionar tarea">
+            <span class="task-item__check-icon">
+              <span class="material-symbols-outlined">check</span>
+            </span>
+          </label>
+          <div class="task-item__content">
+            <p class="task-item__text">Revisar propuesta de proyecto con el equipo</p>
+            <div class="task-item__meta">
+              <span class="task-item__tag task-item__tag--horizon">Semana</span>
+              <span class="task-item__tag task-item__tag--project" style="--project-color: #fce7f3;">Trabajo</span>
+            </div>
+          </div>
+        </li>
+
+        <!-- Tarea no seleccionada -->
+        <li class="task-item">
+          <label class="task-item__checkbox">
+            <input type="checkbox" aria-label="Seleccionar tarea">
+            <span class="task-item__check-icon">
+              <span class="material-symbols-outlined">check</span>
+            </span>
+          </label>
+          <div class="task-item__content">
+            <p class="task-item__text">Llamar al médico para cita</p>
+            <div class="task-item__meta">
+              <span class="task-item__tag task-item__tag--horizon">Mes</span>
+            </div>
+          </div>
+        </li>
+
+        <!-- Tarea con proyecto -->
+        <li class="task-item">
+          <label class="task-item__checkbox">
+            <input type="checkbox" aria-label="Seleccionar tarea">
+            <span class="task-item__check-icon">
+              <span class="material-symbols-outlined">check</span>
+            </span>
+          </label>
+          <div class="task-item__content">
+            <p class="task-item__text">Organizar armario de la habitación</p>
+            <div class="task-item__meta">
+              <span class="task-item__tag task-item__tag--horizon">Trimestre</span>
+              <span class="task-item__tag task-item__tag--project" style="--project-color: #dbeafe;">Casa</span>
+            </div>
+          </div>
+        </li>
+
+        <!-- Mas tareas de ejemplo -->
+        <li class="task-item">
+          <label class="task-item__checkbox">
+            <input type="checkbox" aria-label="Seleccionar tarea">
+            <span class="task-item__check-icon">
+              <span class="material-symbols-outlined">check</span>
+            </span>
+          </label>
+          <div class="task-item__content">
+            <p class="task-item__text">Preparar presentación para cliente</p>
+            <div class="task-item__meta">
+              <span class="task-item__tag task-item__tag--horizon">Semana</span>
+              <span class="task-item__tag task-item__tag--project" style="--project-color: #fce7f3;">Trabajo</span>
+            </div>
+          </div>
+        </li>
+
+        <li class="task-item">
+          <label class="task-item__checkbox">
+            <input type="checkbox" aria-label="Seleccionar tarea">
+            <span class="task-item__check-icon">
+              <span class="material-symbols-outlined">check</span>
+            </span>
+          </label>
+          <div class="task-item__content">
+            <p class="task-item__text">Leer capítulo del libro</p>
+            <div class="task-item__meta">
+              <span class="task-item__tag task-item__tag--horizon">Backlog</span>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Botón de acción -->
+    <footer class="setup-actions">
+      <button type="button" class="btn-start">
+        <span class="material-symbols-outlined">check_circle</span>
+        Empezar el día
+      </button>
+      <a href="#" class="setup-skip">Omitir por hoy</a>
+    </footer>
+  </main>
+
+  <!-- JavaScript minimo para interactividad del prototipo -->
+  <script>
+    // Selectores de tiempo
+    document.querySelectorAll('[data-time]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-time]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+        btn.setAttribute('aria-pressed', 'true');
+        updateResult();
+      });
+    });
+
+    // Selectores de energía
+    document.querySelectorAll('[data-energy]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-energy]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+        btn.setAttribute('aria-pressed', 'true');
+        updateResult();
+      });
+    });
+
+    // Lógica de límite
+    const TIME_LIMITS = { '2h': 1, '4h': 2, '6h': 3, 'full': 3 };
+    const ENERGY_MODIFIERS = { 'low': -1, 'medium': 0, 'high': 1 };
+
+    function updateResult() {
+      const time = document.querySelector('[data-time][aria-pressed="true"]')?.dataset.time || '4h';
+      const energy = document.querySelector('[data-energy][aria-pressed="true"]')?.dataset.energy || 'medium';
+
+      let limit = TIME_LIMITS[time] + ENERGY_MODIFIERS[energy];
+      limit = Math.max(1, Math.min(3, limit));
+
+      document.querySelector('.setup-result__limit').textContent = limit + ' tarea' + (limit > 1 ? 's' : '');
+
+      // Actualizar contador
+      const selected = document.querySelectorAll('.task-item input:checked').length;
+      document.querySelector('.setup-tasks__counter').textContent = selected + '/' + limit;
+    }
+
+    // Checkboxes de tareas
+    document.querySelectorAll('.task-item input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const item = cb.closest('.task-item');
+        item.classList.toggle('task-item--selected', cb.checked);
+        updateResult();
+      });
+    });
+
+    // Inicializar
+    updateResult();
+  </script>
+</body>
+</html>
