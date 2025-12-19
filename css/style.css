@@ -144,8 +144,8 @@ a:hover {
 }
 
 .app-header {
-  background: white;
-  border-bottom: 1px solid var(--gris-200);
+  background: var(--gris-900);
+  border-bottom: 1px solid var(--gris-800);
   padding: var(--space-2) var(--space-3);
   display: flex;
   align-items: center;
@@ -158,19 +158,27 @@ a:hover {
 .app-logo {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   text-decoration: none;
-  color: var(--gris-900);
+  color: white;
+}
+
+.app-logo .logo-img {
+  height: 36px;
+  width: auto;
 }
 
 .logo-icon {
   font-size: 1.5rem;
+  color: var(--turquesa-400);
 }
 
 .logo-text {
   font-family: var(--font-family-headings);
   font-size: var(--font-size-xl);
-  color: var(--color-primary);
+  color: #d4a017;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .app-nav {
@@ -184,20 +192,20 @@ a:hover {
   gap: 4px;
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-md);
-  color: var(--gris-600);
+  color: var(--gris-300);
   text-decoration: none;
   transition: all var(--transition-fast);
 }
 
 .nav-link:hover {
-  background: var(--gris-100);
-  color: var(--gris-900);
+  background: var(--gris-800);
+  color: white;
   text-decoration: none;
 }
 
 .nav-link.active {
-  background: var(--turquesa-100);
-  color: var(--color-primary);
+  background: var(--turquesa-600);
+  color: white;
 }
 
 .nav-icon {
@@ -307,6 +315,16 @@ a:hover {
 
 .btn--icon:hover {
   background: var(--gris-100);
+}
+
+/* Iconos del header sobre fondo oscuro */
+.app-header .btn--icon {
+  color: var(--gris-300);
+}
+
+.app-header .btn--icon:hover {
+  background: var(--gris-800);
+  color: white;
 }
 
 .btn--large {
@@ -6652,10 +6670,10 @@ body {
 
 /* Header con sombra mas pronunciada */
 .app-header {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
-/* Nav links con transicion mejorada */
+/* Nav links con transicion mejorada - tema oscuro */
 .nav-link {
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-md);
@@ -6663,16 +6681,17 @@ body {
   min-height: 44px;
   display: flex;
   align-items: center;
+  color: var(--gris-300);
 }
 
 .nav-link:hover {
-  background: var(--turquesa-50);
-  color: var(--turquesa-700);
+  background: var(--gris-800);
+  color: white;
 }
 
 .nav-link.active {
-  background: var(--turquesa-100);
-  color: var(--turquesa-700);
+  background: var(--turquesa-600);
+  color: white;
   font-weight: 600;
 }
 
