@@ -1,41 +1,373 @@
 /**
  * Oráculo - Kanban por Horizontes
- * Gestión de objetivos: Trimestre → Mes → Semana → Hoy
+ * Gestión de objetivos con layout de 3 secciones:
+ * - En Foco: Tareas del día con slots dinámicos (Volumen Fijo)
+ * - Horizontes: Trimestre → Mes → Semana
+ * - Backlog: Captura de ideas sin límite
  */
 
 import { generateId, showNotification } from '../app.js';
+import { getReflexionDelDia } from '../data/burkeman.js';
 
 let updateDataCallback = null;
 let draggedItem = null;
 let currentData = null;
 let activeFilter = null; // null = todos, '' = sin proyecto, 'id' = proyecto específico
 
-// Límites por columna
+// Tipos de tarea (para etiquetas y filtros)
+const TASK_TYPES = {
+  importante: { name: 'Importante', icon: 'priority_high', color: 'var(--rosa-600)' },
+  divertido: { name: 'Divertido', icon: 'mood', color: 'var(--tulip-tree-500)' },
+  atelico: { name: 'Atélico', icon: 'spa', color: 'var(--turquesa-600)' },
+  sincronia: { name: 'Sincronía', icon: 'group', color: 'var(--rosa-400)' }
+};
+
+// Límites por columna (null = sin límite)
 const LIMITS = {
+  backlog: null,  // Sin límite - lista abierta
   quarterly: 3,
   monthly: 6,
   weekly: 10,
-  daily: 3
+  daily: 3        // "En Foco" - lista cerrada (pero dinámico según Volumen Fijo)
+};
+
+/**
+ * Obtiene el límite diario dinámico según el Volumen Fijo configurado
+ * Si no hay setup del día, usa el límite por defecto (3)
+ */
+const getDailyLimit = (data) => {
+  const today = new Date().toISOString().split('T')[0];
+  if (data.dailySetup?.date === today && data.dailySetup?.dailyLimit) {
+    return data.dailySetup.dailyLimit;
+  }
+  return LIMITS.daily; // fallback a 3
+};
+
+/**
+ * Cuenta las tareas ACTIVAS (no completadas) en una columna
+ * El límite solo aplica a tareas pendientes, no al total
+ */
+const getActiveTasksCount = (items) => {
+  return items.filter(item => !item.completed).length;
 };
 
 // Nombres para mostrar
 const COLUMN_NAMES = {
+  backlog: 'Backlog',
   quarterly: 'Trimestre',
   monthly: 'Mes',
   weekly: 'Semana',
-  daily: 'Hoy'
+  daily: 'En Foco'
+};
+
+// Agrupación de columnas para el nuevo layout
+const SECTIONS = {
+  focus: ['daily'],
+  horizons: ['quarterly', 'monthly', 'weekly'],
+  backlog: ['backlog']
+};
+
+// Estado del backlog (colapsado por defecto)
+let isBacklogExpanded = false;
+
+/**
+ * SECCIÓN 1: EN FOCO
+ * Renderiza la sección principal del día con máxima prominencia
+ */
+const renderFocusSection = (items, projects, data) => {
+  const limit = getDailyLimit(data);
+  const activeCount = getActiveTasksCount(items);
+  const isFull = activeCount >= limit;
+  const slotsAvailable = limit - activeCount;
+
+  // Obtener roca principal si existe
+  const rocaPrincipal = data.dailySetup?.rocaPrincipal;
+  const rocaItem = rocaPrincipal ? items.find(i => i.id === rocaPrincipal) : null;
+  const otherItems = rocaItem ? items.filter(i => i.id !== rocaPrincipal) : items;
+
+  const getSlotMessage = () => {
+    if (slotsAvailable === 0) {
+      return `<span class="material-symbols-outlined icon-sm">block</span> Sin slots disponibles. ¡Completa algo primero!`;
+    } else if (slotsAvailable === 1) {
+      return `<span class="material-symbols-outlined icon-sm">looks_one</span> 1 slot disponible`;
+    } else {
+      return `<span class="material-symbols-outlined icon-sm">target</span> ${slotsAvailable} slots disponibles`;
+    }
+  };
+
+  return `
+    <section class="kanban-section kanban-section--focus" data-section="focus">
+      <header class="section-header section-header--focus">
+        <h2 class="section-title">
+          <span class="material-symbols-outlined">target</span>
+          En Foco
+        </h2>
+        <div class="section-meta">
+          <span class="slots-indicator ${isFull ? 'slots--full' : ''}">${activeCount}/${limit} activas</span>
+        </div>
+      </header>
+
+      <p class="section-hint ${isFull ? 'hint--full' : ''}">
+        ${getSlotMessage()}
+      </p>
+
+      ${rocaItem ? `
+        <div class="roca-principal">
+          <span class="roca-badge">
+            <span class="material-symbols-outlined icon-sm">diamond</span>
+            Roca Principal
+          </span>
+          ${renderFocusItem(rocaItem, projects, true)}
+        </div>
+      ` : ''}
+
+      <ul class="focus-items kanban-column__items" data-column="daily">
+        ${otherItems.map(item => renderFocusItem(item, projects, false)).join('')}
+      </ul>
+
+      ${!isFull ? `
+        <button class="kanban-add-btn kanban-add-btn--focus" data-column="daily">
+          <span class="material-symbols-outlined icon-sm">add</span>
+          Añadir al foco
+        </button>
+      ` : `
+        <p class="kanban-limit-msg">
+          ¡Completa algo para liberar un slot! La magia está en terminar.
+        </p>
+      `}
+    </section>
+  `;
 };
 
 /**
- * Renderiza el tablero Kanban
+ * Renderiza un item en la sección En Foco
+ * (versión más prominente con checkboxes grandes)
+ */
+const renderFocusItem = (item, projects, isRoca = false) => {
+  const project = item.projectId ? projects.find(p => p.id === item.projectId) : null;
+
+  return `
+    <li
+      class="kanban-item focus-item ${item.completed ? 'kanban-item--completed' : ''} ${isRoca ? 'focus-item--roca' : ''}"
+      data-id="${item.id}"
+      data-project="${item.projectId || ''}"
+      draggable="true"
+    >
+      <label class="focus-item__checkbox">
+        <input type="checkbox" ${item.completed ? 'checked' : ''} data-id="${item.id}">
+        <span class="focus-item__check-icon">
+          <span class="material-symbols-outlined">${item.completed ? 'check_circle' : 'radio_button_unchecked'}</span>
+        </span>
+      </label>
+
+      <div class="focus-item__content">
+        <span class="focus-item__text ${item.completed ? 'text--completed' : ''}">${item.text}</span>
+        ${item.notes ? `<p class="focus-item__notes">${item.notes}</p>` : ''}
+        ${project ? `
+          <span class="focus-item__project" style="--project-color: ${project.color}">
+            <span class="project-dot" style="background-color: ${project.color}"></span>
+            ${project.name}
+          </span>
+        ` : ''}
+      </div>
+
+      <div class="focus-item__actions">
+        <button class="btn btn--icon item-edit" data-id="${item.id}" title="Editar">
+          <span class="material-symbols-outlined icon-sm">edit</span>
+        </button>
+        <button class="btn btn--icon item-delete" data-id="${item.id}" title="Eliminar">
+          <span class="material-symbols-outlined icon-sm">close</span>
+        </button>
+      </div>
+    </li>
+  `;
+};
+
+/**
+ * SECCIÓN 2: HORIZONTES
+ * Renderiza las 3 columnas de planificación temporal en grid
+ */
+const renderHorizonsSection = (objectives, projects, data) => {
+  const horizons = [
+    { key: 'quarterly', name: 'Trimestre', icon: 'calendar_view_month' },
+    { key: 'monthly', name: 'Mes', icon: 'calendar_today' },
+    { key: 'weekly', name: 'Semana', icon: 'date_range' }
+  ];
+
+  return `
+    <section class="kanban-section kanban-section--horizons" data-section="horizons">
+      <header class="section-header section-header--horizons">
+        <h2 class="section-title">
+          <span class="material-symbols-outlined">leaderboard</span>
+          Horizontes
+        </h2>
+      </header>
+
+      <div class="horizons-grid">
+        ${horizons.map(h => renderHorizonColumn(h.key, objectives[h.key] || [], LIMITS[h.key], projects, h.icon)).join('')}
+      </div>
+    </section>
+  `;
+};
+
+/**
+ * Renderiza una columna de horizonte (trimestre/mes/semana)
+ */
+const renderHorizonColumn = (columnKey, items, limit, projects, icon) => {
+  const count = items.length;
+  const hasLimit = limit !== null;
+  const isFull = hasLimit && count >= limit;
+
+  return `
+    <div class="horizon-column" data-column="${columnKey}">
+      <header class="horizon-header">
+        <h3 class="horizon-title">
+          <span class="material-symbols-outlined icon-sm">${icon}</span>
+          ${COLUMN_NAMES[columnKey]}
+        </h3>
+        <span class="horizon-count ${isFull ? 'count--full' : ''}">${count}/${limit}</span>
+      </header>
+
+      <ul class="horizon-items kanban-column__items" data-column="${columnKey}">
+        ${items.map(item => renderHorizonItem(item, projects)).join('')}
+      </ul>
+
+      ${!isFull ? `
+        <button class="kanban-add-btn horizon-add-btn" data-column="${columnKey}">
+          <span class="material-symbols-outlined icon-sm">add</span>
+        </button>
+      ` : ''}
+    </div>
+  `;
+};
+
+/**
+ * Renderiza un item en una columna de horizonte
+ */
+const renderHorizonItem = (item, projects) => {
+  const project = item.projectId ? projects.find(p => p.id === item.projectId) : null;
+
+  return `
+    <li
+      class="kanban-item horizon-item ${item.completed ? 'kanban-item--completed' : ''}"
+      data-id="${item.id}"
+      data-project="${item.projectId || ''}"
+      draggable="true"
+    >
+      <div class="horizon-item__content">
+        <label class="horizon-item__checkbox">
+          <input type="checkbox" ${item.completed ? 'checked' : ''} data-id="${item.id}">
+          <span class="horizon-item__text">${item.text}</span>
+        </label>
+        ${project ? `
+          <span class="horizon-item__project" style="background-color: ${project.color}15; color: ${project.color}">
+            ${project.name}
+          </span>
+        ` : ''}
+      </div>
+
+      <div class="horizon-item__actions">
+        <button class="btn btn--icon item-edit" data-id="${item.id}" title="Editar">
+          <span class="material-symbols-outlined icon-sm">edit</span>
+        </button>
+        <button class="btn btn--icon item-delete" data-id="${item.id}" title="Eliminar">
+          <span class="material-symbols-outlined icon-sm">close</span>
+        </button>
+      </div>
+    </li>
+  `;
+};
+
+/**
+ * SECCIÓN 3: BACKLOG
+ * Renderiza el backlog colapsable para capturar ideas
+ */
+const renderBacklogSection = (items, projects, data) => {
+  const count = items.length;
+
+  return `
+    <section class="kanban-section kanban-section--backlog ${isBacklogExpanded ? 'expanded' : ''}" data-section="backlog">
+      <header class="section-header section-header--backlog" id="backlog-toggle">
+        <h2 class="section-title">
+          <span class="material-symbols-outlined">inbox</span>
+          Backlog
+          <span class="backlog-count">${count}</span>
+        </h2>
+        <button class="backlog-expand-btn" type="button">
+          <span class="material-symbols-outlined">
+            ${isBacklogExpanded ? 'expand_less' : 'expand_more'}
+          </span>
+        </button>
+      </header>
+
+      <div class="backlog-content ${isBacklogExpanded ? 'expanded' : ''}">
+        <p class="section-hint section-hint--backlog">
+          Captura aquí todas las ideas. Sin filtro, sin límite.
+        </p>
+
+        <ul class="backlog-items kanban-column__items" data-column="backlog">
+          ${items.map(item => renderBacklogItem(item, projects)).join('')}
+        </ul>
+
+        <button class="kanban-add-btn backlog-add-btn" data-column="backlog">
+          <span class="material-symbols-outlined icon-sm">add</span>
+          Capturar idea
+        </button>
+      </div>
+    </section>
+  `;
+};
+
+/**
+ * Renderiza un item del backlog
+ */
+const renderBacklogItem = (item, projects) => {
+  const project = item.projectId ? projects.find(p => p.id === item.projectId) : null;
+
+  return `
+    <li
+      class="kanban-item backlog-item"
+      data-id="${item.id}"
+      data-project="${item.projectId || ''}"
+      draggable="true"
+    >
+      <div class="backlog-item__content">
+        <span class="backlog-item__text">${item.text}</span>
+        ${project ? `
+          <span class="backlog-item__project" style="--project-color: ${project.color}">
+            ${project.name}
+          </span>
+        ` : ''}
+      </div>
+
+      <div class="backlog-item__actions">
+        <button class="btn btn--icon item-edit" data-id="${item.id}" title="Editar">
+          <span class="material-symbols-outlined icon-sm">edit</span>
+        </button>
+        <button class="btn btn--icon item-delete" data-id="${item.id}" title="Eliminar">
+          <span class="material-symbols-outlined icon-sm">close</span>
+        </button>
+      </div>
+    </li>
+  `;
+};
+
+/**
+ * Renderiza el tablero Kanban con 3 secciones verticales
  */
 export const render = (data) => {
   const objectives = data.objectives || {
+    backlog: [],
     quarterly: [],
     monthly: [],
     weekly: [],
     daily: []
   };
+
+  // Asegurar que backlog existe
+  if (!objectives.backlog) {
+    objectives.backlog = [];
+  }
 
   const projects = (data.projects || []).filter(p => p.status === 'active' || p.status === 'paused');
 
@@ -46,37 +378,49 @@ export const render = (data) => {
           <div>
             <h1 class="page-title">Horizontes</h1>
             <p class="page-description">
-              Fluye de lo grande a lo pequeño. Los objetivos trimestrales se convierten
-              en metas mensuales, que se traducen en tareas semanales, que definen tu foco diario.
+              Elige tu foco del día, planifica en los horizontes y captura ideas en el backlog.
             </p>
           </div>
 
           ${projects.length > 0 ? `
-            <div class="kanban-filter">
-              <label for="project-filter" class="filter-label">
-                <span class="material-symbols-outlined icon-sm">filter_list</span>
-                Filtrar:
-              </label>
-              <select id="project-filter" class="input input--small">
-                <option value="">Todas las tareas</option>
-                <option value="none">Sin proyecto</option>
-                ${projects.map(p => `
-                  <option value="${p.id}">${p.name}</option>
-                `).join('')}
-              </select>
+            <div class="kanban-controls">
+              <div class="kanban-filter">
+                <label for="project-filter" class="filter-label">
+                  <span class="material-symbols-outlined icon-sm">filter_list</span>
+                  Filtrar:
+                </label>
+                <select id="project-filter" class="input input--small">
+                  <option value="">Todas las tareas</option>
+                  <option value="none">Sin proyecto</option>
+                  ${projects.map(p => `
+                    <option value="${p.id}">${p.name}</option>
+                  `).join('')}
+                </select>
+              </div>
             </div>
           ` : ''}
         </div>
       </header>
 
-      <div class="kanban-board">
-        ${Object.keys(COLUMN_NAMES).map(column =>
-          renderColumn(column, objectives[column], LIMITS[column], data.projects || [])
-        ).join('')}
+      <!-- Vista Kanban: 3 Secciones Verticales -->
+      <div class="kanban-sections" id="kanban-view">
+
+        <!-- SECCIÓN 1: EN FOCO -->
+        ${renderFocusSection(objectives.daily || [], projects, data)}
+
+        <!-- SECCIÓN 2: HORIZONTES -->
+        ${renderHorizonsSection(objectives, projects, data)}
+
+        <!-- SECCIÓN 3: BACKLOG -->
+        ${renderBacklogSection(objectives.backlog || [], projects, data)}
+
       </div>
 
-      <div class="kanban-tips">
-        <p><strong>Tip:</strong> Arrastra elementos entre columnas para descomponer objetivos en tareas concretas.</p>
+      <div class="kanban-tips burkeman-reflexion">
+        <blockquote class="quote quote--inline">
+          <p>"${getReflexionDelDia('kanban')}"</p>
+          <cite>— Oliver Burkeman</cite>
+        </blockquote>
       </div>
 
       <!-- Modal para añadir/editar item -->
@@ -119,8 +463,25 @@ export const render = (data) => {
             </div>
           ` : ''}
 
+          <div class="form-group">
+            <label>Tipo de tarea (para Modo Menú)</label>
+            <div class="task-type-options" id="task-type-options">
+              <button type="button" class="task-type-btn" data-type="">
+                <span class="material-symbols-outlined">check_box_outline_blank</span>
+                Sin tipo
+              </button>
+              ${Object.entries(TASK_TYPES).map(([key, type]) => `
+                <button type="button" class="task-type-btn" data-type="${key}" style="--type-color: ${type.color}">
+                  <span class="material-symbols-outlined">${type.icon}</span>
+                  ${type.name}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
           <input type="hidden" id="item-id">
           <input type="hidden" id="item-column">
+          <input type="hidden" id="item-task-type" value="">
 
           <div class="modal-actions">
             <button type="button" class="btn btn--tertiary" id="cancel-item">Cancelar</button>
@@ -144,21 +505,110 @@ export const init = (data, updateData) => {
   setupItemActions(data);
   setupModal(data);
   setupProjectFilter(data);
+  setupBacklogToggle();
 };
 
 /**
- * Renderiza una columna del Kanban
+ * Configura el toggle de expandir/colapsar el backlog
  */
-const renderColumn = (columnKey, items, limit, projects = []) => {
-  const count = items.length;
-  const isFull = count >= limit;
+const setupBacklogToggle = () => {
+  const backlogToggle = document.getElementById('backlog-toggle');
+  const backlogSection = document.querySelector('.kanban-section--backlog');
+  const backlogContent = document.querySelector('.backlog-content');
+  const expandBtn = document.querySelector('.backlog-expand-btn');
+
+  backlogToggle?.addEventListener('click', () => {
+    isBacklogExpanded = !isBacklogExpanded;
+
+    backlogSection?.classList.toggle('expanded', isBacklogExpanded);
+    backlogContent?.classList.toggle('expanded', isBacklogExpanded);
+
+    // Actualizar icono
+    if (expandBtn) {
+      expandBtn.innerHTML = `
+        <span class="material-symbols-outlined">
+          ${isBacklogExpanded ? 'expand_less' : 'expand_more'}
+        </span>
+      `;
+    }
+  });
+};
+
+
+/**
+ * Renderiza una columna del Kanban
+ * Para "En Foco" (daily): el límite es dinámico y cuenta solo tareas activas
+ */
+const renderColumn = (columnKey, items, limit, projects = [], data = null) => {
+  // Para la columna daily, usamos límite dinámico y contamos solo activas
+  const isDaily = columnKey === 'daily';
+  const effectiveLimit = isDaily && data ? getDailyLimit(data) : limit;
+  const activeCount = getActiveTasksCount(items);
+  const totalCount = items.length;
+
+  const hasLimit = effectiveLimit !== null;
+  // Solo las tareas ACTIVAS cuentan para el límite
+  const isFull = hasLimit && activeCount >= effectiveLimit;
+  const slotsAvailable = hasLimit ? effectiveLimit - activeCount : null;
+
+  // Clases especiales para columnas
+  const columnClasses = [
+    'kanban-column',
+    columnKey === 'backlog' ? 'kanban-column--backlog' : '',
+    isDaily ? 'kanban-column--focus' : ''
+  ].filter(Boolean).join(' ');
+
+  // Formato del contador - para daily mostramos activas/límite
+  const countDisplay = hasLimit
+    ? (isDaily ? `${activeCount}/${effectiveLimit} activas` : `${totalCount}/${effectiveLimit}`)
+    : `${totalCount}`;
+  const countClasses = [
+    'kanban-column__count',
+    isFull ? 'count--full' : '',
+    !hasLimit ? 'count--unlimited' : ''
+  ].filter(Boolean).join(' ');
+
+  // Mensajes según el estado
+  const getLimitMessage = () => {
+    if (isDaily) {
+      return 'Completa algo para liberar un slot. ¡La magia está en terminar!';
+    }
+    return 'Límite alcanzado. Completa o mueve algo antes de añadir.';
+  };
+
+  // Hint dinámico para daily
+  const getDailyHint = () => {
+    if (slotsAvailable === 0) {
+      return `<span class="material-symbols-outlined icon-sm">block</span> Sin slots. Completa algo primero.`;
+    } else if (slotsAvailable === 1) {
+      return `<span class="material-symbols-outlined icon-sm">looks_one</span> 1 slot disponible`;
+    } else {
+      return `<span class="material-symbols-outlined icon-sm">target</span> ${slotsAvailable} slots disponibles`;
+    }
+  };
 
   return `
-    <section class="kanban-column" data-column="${columnKey}">
+    <section class="${columnClasses}" data-column="${columnKey}">
       <header class="kanban-column__header">
-        <h2 class="kanban-column__title">${COLUMN_NAMES[columnKey]}</h2>
-        <span class="kanban-column__count ${isFull ? 'count--full' : ''}">${count}/${limit}</span>
+        <h2 class="kanban-column__title">
+          ${columnKey === 'backlog' ? '<span class="material-symbols-outlined icon-sm">inbox</span>' : ''}
+          ${isDaily ? '<span class="material-symbols-outlined icon-sm">target</span>' : ''}
+          ${COLUMN_NAMES[columnKey]}
+        </h2>
+        <span class="${countClasses}">${countDisplay}</span>
       </header>
+
+      ${columnKey === 'backlog' ? `
+        <p class="kanban-column__hint">
+          Captura aquí todas las ideas. Sin filtro, sin límite.
+        </p>
+      ` : ''}
+
+      ${isDaily ? `
+        <p class="kanban-column__hint kanban-column__hint--focus ${isFull ? 'hint--full' : ''}">
+          ${getDailyHint()}
+        </p>
+      ` : ''}
 
       <ul class="kanban-column__items" data-column="${columnKey}">
         ${items.map(item => renderItem(item, columnKey, projects)).join('')}
@@ -167,13 +617,11 @@ const renderColumn = (columnKey, items, limit, projects = []) => {
       ${!isFull ? `
         <button class="kanban-add-btn" data-column="${columnKey}">
           <span class="material-symbols-outlined icon-sm">add</span>
-          Añadir
+          ${columnKey === 'backlog' ? 'Capturar idea' : 'Añadir'}
         </button>
       ` : `
         <p class="kanban-limit-msg">
-          ${columnKey === 'daily'
-            ? 'Máximo 3 prioridades. Completa alguna antes de añadir más.'
-            : 'Límite alcanzado. Completa o mueve algo antes de añadir.'}
+          ${getLimitMessage()}
         </p>
       `}
     </section>
@@ -218,6 +666,7 @@ const renderItem = (item, columnKey, projects = []) => {
     </li>
   `;
 };
+
 
 /**
  * Configura drag and drop
@@ -275,9 +724,26 @@ const handleDrop = (e, data) => {
 
   if (!sourceColumn || sourceColumn === targetColumn) return;
 
-  // Verificar límite de la columna destino
-  if (data.objectives[targetColumn].length >= LIMITS[targetColumn]) {
-    showNotification(`La columna "${COLUMN_NAMES[targetColumn]}" está llena.`, 'warning');
+  // Asegurar que existe la columna destino
+  if (!data.objectives[targetColumn]) {
+    data.objectives[targetColumn] = [];
+  }
+
+  // Para daily: usar límite dinámico y contar solo tareas activas
+  const isDaily = targetColumn === 'daily';
+  const limit = isDaily ? getDailyLimit(data) : LIMITS[targetColumn];
+  const activeCount = isDaily
+    ? getActiveTasksCount(data.objectives[targetColumn])
+    : data.objectives[targetColumn].length;
+
+  // Verificar límite (solo tareas activas para daily)
+  if (limit !== null && activeCount >= limit) {
+    if (isDaily) {
+      const slotsMsg = limit === 1 ? '1 tarea activa' : `${limit} tareas activas`;
+      showNotification(`Ya tienes ${slotsMsg}. ¡Completa algo para liberar un slot!`, 'warning');
+    } else {
+      showNotification(`La columna "${COLUMN_NAMES[targetColumn]}" está llena.`, 'warning');
+    }
     return;
   }
 
@@ -291,7 +757,18 @@ const handleDrop = (e, data) => {
   data.objectives[targetColumn].push(item);
 
   updateDataCallback('objectives', data.objectives);
-  showNotification(`Movido a ${COLUMN_NAMES[targetColumn]}`, 'success');
+
+  // Mensaje especial según destino
+  if (isDaily) {
+    const remaining = limit - activeCount - 1;
+    const remainingMsg = remaining > 0 ? ` (${remaining} slot${remaining > 1 ? 's' : ''} libre${remaining > 1 ? 's' : ''})` : '';
+    showNotification(`¡Añadido al foco!${remainingMsg}`, 'success');
+  } else if (targetColumn === 'backlog') {
+    showNotification('Guardado en el backlog', 'info');
+  } else {
+    showNotification(`Movido a ${COLUMN_NAMES[targetColumn]}`, 'success');
+  }
+
   location.reload(); // Temporal
 };
 
@@ -369,6 +846,19 @@ const setupModal = (data) => {
   modal?.addEventListener('click', (e) => {
     if (e.target === modal) modal.close();
   });
+
+  // Configurar botones de tipo de tarea
+  const taskTypeInput = document.getElementById('item-task-type');
+  document.querySelectorAll('.task-type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Quitar selección anterior
+      document.querySelectorAll('.task-type-btn').forEach(b => b.classList.remove('selected'));
+      // Marcar este como seleccionado
+      btn.classList.add('selected');
+      // Guardar valor
+      taskTypeInput.value = btn.dataset.type;
+    });
+  });
 };
 
 /**
@@ -378,6 +868,7 @@ const openItemModal = (item = null, column = 'weekly') => {
   const modal = document.getElementById('item-modal');
   const title = document.getElementById('item-modal-title');
   const projectSelect = document.getElementById('item-project');
+  const taskTypeInput = document.getElementById('item-task-type');
 
   document.getElementById('item-id').value = item?.id || '';
   document.getElementById('item-column').value = column;
@@ -389,6 +880,12 @@ const openItemModal = (item = null, column = 'weekly') => {
     projectSelect.value = item?.projectId || '';
   }
 
+  // Seleccionar tipo de tarea si existe
+  taskTypeInput.value = item?.taskType || '';
+  document.querySelectorAll('.task-type-btn').forEach(btn => {
+    btn.classList.toggle('selected', btn.dataset.type === (item?.taskType || ''));
+  });
+
   const columnName = COLUMN_NAMES[column];
   title.textContent = item ? `Editar (${columnName})` : `Nuevo en ${columnName}`;
 
@@ -397,6 +894,7 @@ const openItemModal = (item = null, column = 'weekly') => {
 
 /**
  * Guarda un item
+ * Para daily: usa límite dinámico y cuenta solo tareas activas
  */
 const saveItem = (data) => {
   const id = document.getElementById('item-id').value;
@@ -405,6 +903,7 @@ const saveItem = (data) => {
   const notes = document.getElementById('item-notes').value.trim();
   const projectSelect = document.getElementById('item-project');
   const projectId = projectSelect ? projectSelect.value || null : null;
+  const taskType = document.getElementById('item-task-type').value || null;
 
   if (!text) {
     showNotification('La descripción es obligatoria', 'warning');
@@ -419,12 +918,23 @@ const saveItem = (data) => {
       item.text = text;
       item.notes = notes;
       item.projectId = projectId;
+      item.taskType = taskType;
       item.updatedAt = new Date().toISOString();
     }
   } else {
-    // Nuevo item
-    if (data.objectives[column].length >= LIMITS[column]) {
-      showNotification(`Límite alcanzado en ${COLUMN_NAMES[column]}`, 'warning');
+    // Nuevo item - verificar límite
+    const isDaily = column === 'daily';
+    const limit = isDaily ? getDailyLimit(data) : LIMITS[column];
+    const count = isDaily
+      ? getActiveTasksCount(data.objectives[column])
+      : data.objectives[column].length;
+
+    if (limit !== null && count >= limit) {
+      if (isDaily) {
+        showNotification('¡Completa algo para liberar un slot!', 'warning');
+      } else {
+        showNotification(`Límite alcanzado en ${COLUMN_NAMES[column]}`, 'warning');
+      }
       return;
     }
 
@@ -433,6 +943,7 @@ const saveItem = (data) => {
       text,
       notes,
       projectId,
+      taskType,
       completed: false,
       createdAt: new Date().toISOString()
     });

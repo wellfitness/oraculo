@@ -4,6 +4,7 @@
  */
 
 import { generateId, showNotification } from '../app.js';
+import { getReflexionDelDia } from '../data/burkeman.js';
 
 let updateDataCallback = null;
 let currentWeekStart = getWeekStart(new Date());
@@ -23,6 +24,9 @@ export const render = (data) => {
         <p class="page-description">
           Si no está en el calendario, no existe. Bloquea tiempo para lo importante.
         </p>
+        <blockquote class="quote quote--header">
+          <p>"${getReflexionDelDia('calendar')}"</p>
+        </blockquote>
       </header>
 
       <div class="calendar-navigation">
@@ -89,6 +93,15 @@ export const render = (data) => {
             <textarea id="event-notes" class="input textarea" rows="2" maxlength="300"></textarea>
           </div>
 
+          <div class="form-group form-group--checkbox">
+            <label class="checkbox-label">
+              <input type="checkbox" id="event-sincronia" class="checkbox">
+              <span class="material-symbols-outlined icon-sm">group</span>
+              <span>Evento de sincronía (tiempo con otros)</span>
+            </label>
+            <p class="form-hint">El tiempo compartido tiene un valor especial.</p>
+          </div>
+
           <input type="hidden" id="event-id">
 
           <div class="modal-actions">
@@ -126,6 +139,14 @@ export const render = (data) => {
               <label><input type="checkbox" name="recurring-day" value="6"> S</label>
               <label><input type="checkbox" name="recurring-day" value="0"> D</label>
             </div>
+          </div>
+
+          <div class="form-group form-group--checkbox">
+            <label class="checkbox-label">
+              <input type="checkbox" id="recurring-sincronia" class="checkbox">
+              <span class="material-symbols-outlined icon-sm">group</span>
+              <span>Evento de sincronía</span>
+            </label>
           </div>
 
           <input type="hidden" id="recurring-id">
@@ -231,9 +252,10 @@ const renderDayColumn = (day, events, recurring) => {
       </div>
       <div class="day-events">
         ${dayEvents.map(event => `
-          <div class="event-item ${event.recurring ? 'event-item--recurring' : ''}"
+          <div class="event-item ${event.recurring ? 'event-item--recurring' : ''} ${event.isSincronia ? 'event-item--sincronia' : ''}"
                data-id="${event.id}" data-recurring="${event.recurring || false}">
             <div class="event-item__content">
+              ${event.isSincronia ? '<span class="material-symbols-outlined event-sincronia-icon" title="Evento de sincronía">group</span>' : ''}
               ${event.time ? `<span class="event-time">${event.time}</span>` : ''}
               <span class="event-name">${event.name}</span>
             </div>
@@ -335,6 +357,7 @@ const openEventModal = (event = null, defaultDate = null) => {
   document.getElementById('event-time').value = event?.time || '';
   document.getElementById('event-duration').value = event?.duration || 60;
   document.getElementById('event-notes').value = event?.notes || '';
+  document.getElementById('event-sincronia').checked = event?.isSincronia || false;
 
   title.textContent = event ? 'Editar Evento' : 'Nuevo Evento';
   deleteBtn.style.display = event ? 'block' : 'none';
@@ -376,7 +399,8 @@ const saveEvent = (data) => {
     date: document.getElementById('event-date').value,
     time: document.getElementById('event-time').value,
     duration: parseInt(document.getElementById('event-duration').value) || 60,
-    notes: document.getElementById('event-notes').value.trim()
+    notes: document.getElementById('event-notes').value.trim(),
+    isSincronia: document.getElementById('event-sincronia').checked
   };
 
   if (!eventData.name || !eventData.date) {
@@ -411,6 +435,9 @@ const openRecurringModal = (recurring = null) => {
   document.querySelectorAll('input[name="recurring-day"]').forEach(cb => {
     cb.checked = recurring?.days?.includes(parseInt(cb.value)) || false;
   });
+
+  // Sincronía
+  document.getElementById('recurring-sincronia').checked = recurring?.isSincronia || false;
 
   deleteBtn.style.display = recurring ? 'block' : 'none';
   modal.showModal();
@@ -451,7 +478,8 @@ const saveRecurring = (data) => {
     id: id || generateId(),
     name: document.getElementById('recurring-name').value.trim(),
     time: document.getElementById('recurring-time').value,
-    days
+    days,
+    isSincronia: document.getElementById('recurring-sincronia').checked
   };
 
   if (!recurringData.name || days.length === 0) {

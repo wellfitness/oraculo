@@ -3,93 +3,858 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Oráculo - Sistema de gestión personal consciente para mujeres +40. Basado en la filosofía de Oliver Burkeman. No puedes hacerlo todo, y está bien.">
+  <meta name="keywords" content="productividad consciente, gestión personal, mujeres 40, Oliver Burkeman, 4000 semanas, hábitos, organización">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Oráculo - Gestión Personal Consciente">
+  <meta property="og:description" content="Para mujeres +40 que quieren organizarse para cuidarse. No puedes hacerlo todo, y está bien.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="images/og-image.png">
+
   <title>Oráculo - Gestión Personal Consciente</title>
-  <meta name="description" content="Sistema de gestión personal que te ayuda a priorizar lo importante. Basado en Hábitos Atómicos y filosofía Burkeman.">
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=ABeeZee&family=Righteous&display=swap" rel="stylesheet">
-
-  <!-- Material Symbols -->
+  <link href="https://fonts.googleapis.com/css2?family=Righteous&family=ABeeZee:ital@0;1&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="landing.css">
 
   <!-- Favicon -->
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
 </head>
 <body>
-  <a href="#app-content" class="skip-link">Saltar al contenido principal</a>
-  <div class="app-container">
-    <!-- Header con navegación -->
-    <header class="app-header">
-      <a href="#dashboard" data-view="dashboard" class="app-logo">
-        <span class="logo-icon material-symbols-outlined">auto_awesome</span>
+  <!-- Skip link para accesibilidad -->
+  <a href="#main" class="skip-link">Saltar al contenido principal</a>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <a href="#" class="logo">
+        <span class="material-symbols-outlined">auto_awesome</span>
         <span class="logo-text">Oráculo</span>
       </a>
-
-      <nav class="app-nav">
-        <a href="#dashboard" data-view="dashboard" class="nav-link active" title="Dashboard">
-          <span class="nav-icon material-symbols-outlined">home</span>
-          <span class="nav-text">Inicio</span>
-        </a>
-        <a href="#values" data-view="values" class="nav-link" title="Brújula de Valores">
-          <span class="nav-icon material-symbols-outlined">explore</span>
-          <span class="nav-text">Valores</span>
-        </a>
-        <a href="#kanban" data-view="kanban" class="nav-link" title="Horizontes">
-          <span class="nav-icon material-symbols-outlined">view_kanban</span>
-          <span class="nav-text">Horizontes</span>
-        </a>
-        <a href="#projects" data-view="projects" class="nav-link" title="Proyectos">
-          <span class="nav-icon material-symbols-outlined">folder_open</span>
-          <span class="nav-text">Proyectos</span>
-        </a>
-        <a href="#habits" data-view="habits" class="nav-link" title="Laboratorio de Hábitos">
-          <span class="nav-icon material-symbols-outlined">science</span>
-          <span class="nav-text">Hábitos</span>
-        </a>
-        <a href="#calendar" data-view="calendar" class="nav-link" title="Calendario">
-          <span class="nav-icon material-symbols-outlined">calendar_month</span>
-          <span class="nav-text">Calendario</span>
-        </a>
-        <a href="#journal" data-view="journal" class="nav-link" title="Diario">
-          <span class="nav-icon material-symbols-outlined">auto_stories</span>
-          <span class="nav-text">Diario</span>
-        </a>
-        <a href="#achievements" data-view="achievements" class="nav-link" title="Logros">
-          <span class="nav-icon material-symbols-outlined">emoji_events</span>
-          <span class="nav-text">Logros</span>
-        </a>
+      <nav class="nav">
+        <a href="#filosofia">Filosofía</a>
+        <a href="#semanas">4000 Semanas</a>
+        <a href="#caracteristicas">Características</a>
+        <a href="#modulos">Módulos</a>
+        <a href="app.html" class="btn btn-primary">Abrir App</a>
       </nav>
+      <button class="nav-toggle" aria-label="Abrir menú">
+        <span class="material-symbols-outlined">menu</span>
+      </button>
+    </div>
+  </header>
 
-      <div class="app-actions">
-        <a href="#settings" data-view="settings" class="btn btn--icon" title="Configuración">
-          <span class="material-symbols-outlined">settings</span>
-        </a>
+  <main id="main">
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="container hero-content">
+        <div class="hero-text">
+          <h1>Gestión Personal <span class="highlight">Consciente</span></h1>
+          <p class="hero-subtitle">Para mujeres +40 que quieren organizarse para cuidarse</p>
+          <p class="hero-tagline">No puedes hacerlo todo. Y está bien.</p>
+          <div class="hero-cta">
+            <a href="app.html" class="btn btn-primary btn-large">
+              <span class="material-symbols-outlined">rocket_launch</span>
+              Empezar ahora
+            </a>
+            <a href="#filosofia" class="btn btn-secondary btn-large">
+              <span class="material-symbols-outlined">explore</span>
+              Conocer más
+            </a>
+          </div>
+          <p class="hero-note">
+            <span class="material-symbols-outlined">check_circle</span>
+            Gratis, sin registro, 100% privado
+          </p>
+        </div>
+        <div class="hero-image">
+          <div class="image-placeholder" data-aspect="4/3">
+            <span class="material-symbols-outlined placeholder-icon">self_improvement</span>
+            <span class="placeholder-text">Ilustración: Mujer serena organizando su día con calma</span>
+            <span class="placeholder-note">Estilo: minimalista, colores turquesa y rosa, sensación de paz</span>
+          </div>
+        </div>
       </div>
-    </header>
+      <div class="hero-wave">
+        <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
+          <path d="M0,60 C360,120 720,0 1080,60 C1260,90 1380,30 1440,60 L1440,120 L0,120 Z" fill="currentColor"/>
+        </svg>
+      </div>
+    </section>
 
-    <!-- Contenido principal -->
-    <main class="app-main" id="app-content">
-      <div class="loading">Cargando...</div>
-    </main>
+    <!-- Problema Section -->
+    <section class="problema" id="problema">
+      <div class="container">
+        <div class="problema-content">
+          <div class="problema-image">
+            <div class="image-placeholder" data-aspect="1/1">
+              <span class="material-symbols-outlined placeholder-icon">sentiment_stressed</span>
+              <span class="placeholder-text">Ilustración: Mujer abrumada por listas infinitas</span>
+              <span class="placeholder-note">Estilo: expresivo, sensación de agobio que se transforma</span>
+            </div>
+          </div>
+          <div class="problema-text">
+            <h2>¿Te suena familiar?</h2>
+            <ul class="problema-lista">
+              <li>
+                <span class="material-symbols-outlined">close</span>
+                Terminas el día sintiéndote culpable por todo lo que NO hiciste
+              </li>
+              <li>
+                <span class="material-symbols-outlined">close</span>
+                Las apps de productividad te generan más ansiedad que soluciones
+              </li>
+              <li>
+                <span class="material-symbols-outlined">close</span>
+                Tu lista de tareas crece más rápido de lo que puedes tachar
+              </li>
+              <li>
+                <span class="material-symbols-outlined">close</span>
+                Sientes que "deberías" poder hacerlo todo, pero nunca alcanza
+              </li>
+            </ul>
+            <div class="problema-transicion">
+              <p class="problema-insight">
+                Las apps de productividad prometen ayudarte a <strong>"hacer más"</strong>.<br>
+                Pero más no es mejor. Más es agotamiento. Más es ansiedad.
+              </p>
+              <p class="problema-solucion">
+                <span class="material-symbols-outlined">auto_awesome</span>
+                <strong>Oráculo es diferente.</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-    <!-- Footer -->
-    <footer class="app-footer">
-      <p>
-        <strong>Oráculo</strong> — Herramienta de
-        <a href="https://movimientofuncional.com" target="_blank" rel="noopener">Movimiento Funcional</a>
-      </p>
-      <p class="footer-small">
-        No puedes hacerlo todo. Y está bien.
-      </p>
-    </footer>
-  </div>
+    <!-- Filosofía Section -->
+    <section class="filosofia" id="filosofia">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-badge">La filosofía</span>
+          <h2>Basado en <span class="highlight">"4000 Semanas"</span> de Oliver Burkeman</h2>
+          <p class="section-intro">
+            Solo tienes unas 4000 semanas de vida. No puedes hacerlo todo.
+            Y eso no es un problema a resolver, es una verdad a abrazar.
+          </p>
+        </div>
 
-  <!-- Scripts -->
-  <script type="module" src="js/app.js"></script>
+        <div class="pilares-grid">
+          <article class="pilar-card">
+            <div class="pilar-icon">
+              <span class="material-symbols-outlined">hourglass_top</span>
+            </div>
+            <h3>Finitud</h3>
+            <p>Solo tienes ~4000 semanas de vida. Aceptar esto te libera de la presión de "hacerlo todo".</p>
+          </article>
+
+          <article class="pilar-card">
+            <div class="pilar-icon">
+              <span class="material-symbols-outlined">psychology</span>
+            </div>
+            <h3>Incomodidad</h3>
+            <p>El crecimiento se siente incómodo. Si algo te cuesta, es señal de que estás avanzando.</p>
+          </article>
+
+          <article class="pilar-card">
+            <div class="pilar-icon">
+              <span class="material-symbols-outlined">help</span>
+            </div>
+            <h3>Cuestionamiento</h3>
+            <p>Vivir las preguntas, no buscar respuestas rápidas. La incertidumbre es parte del camino.</p>
+          </article>
+
+          <article class="pilar-card">
+            <div class="pilar-icon">
+              <span class="material-symbols-outlined">public</span>
+            </div>
+            <h3>Insignificancia Cósmica</h3>
+            <p>Soltar la presión de "dejar huella". Tu valor no depende de cuánto produces.</p>
+          </article>
+        </div>
+
+        <blockquote class="cita-burkeman">
+          <p>"La productividad es una trampa. Hacer más rápido solo te llevará a la siguiente tarea más rápido."</p>
+          <cite>— Oliver Burkeman</cite>
+        </blockquote>
+      </div>
+    </section>
+
+    <!-- 4000 Semanas - Visualización Interactiva -->
+    <section class="semanas-section" id="semanas">
+      <div class="container semanas-container">
+
+        <!-- Paso 1: Input -->
+        <div class="semanas-input-step" id="semanasInput">
+          <h2 class="semanas-title">¿cuántas semanas te quedan?</h2>
+          <p class="semanas-subtitle">la vida promedio son unas 4000 semanas. descubre las tuyas.</p>
+
+          <form class="semanas-form" id="semanasForm">
+            <input
+              type="date"
+              id="fechaNacimiento"
+              class="semanas-input"
+              required
+              max=""
+              aria-label="tu fecha de nacimiento"
+            >
+            <button type="submit" class="semanas-btn">
+              ver mis semanas
+            </button>
+          </form>
+        </div>
+
+        <!-- Paso 2: Resultado -->
+        <div class="semanas-result" id="semanasResult">
+
+          <!-- Estadísticas -->
+          <div class="semanas-stats">
+            <div class="semanas-stat">
+              <div class="stat-number" id="semanasVividas">0</div>
+              <div class="stat-label">semanas vividas</div>
+              <div class="stat-sublabel" id="porcentajeVivido">0% de tu vida</div>
+            </div>
+
+            <div class="semanas-stat">
+              <div class="stat-number" id="semanaActual">0</div>
+              <div class="stat-label">semana actual</div>
+              <div class="stat-sublabel">de 4160 posibles</div>
+            </div>
+
+            <div class="semanas-stat">
+              <div class="stat-number" id="semanasRestantes">0</div>
+              <div class="stat-label">semanas por vivir</div>
+              <div class="stat-sublabel" id="aniosRestantes">~0 años</div>
+            </div>
+          </div>
+
+          <!-- Grid visual de semanas -->
+          <div class="semanas-grid-container">
+            <p class="semanas-grid-title">cada cuadro es una semana de tu vida</p>
+            <div class="semanas-grid" id="semanasGrid">
+              <!-- Se genera con JavaScript -->
+            </div>
+            <div class="semanas-legend">
+              <div class="legend-item">
+                <span class="legend-dot vivida"></span>
+                <span>vividas</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot actual"></span>
+                <span>esta semana</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot restante"></span>
+                <span>por vivir</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reflexión -->
+          <div class="semanas-reflexion">
+            <p id="reflexionTexto">"no tienes que hacerlo todo. solo tienes que elegir bien qué vale la pena hacer."</p>
+            <cite>— oliver burkeman</cite>
+          </div>
+
+          <button class="semanas-reset" id="semanasReset">
+            calcular de nuevo
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Características Section -->
+    <section class="caracteristicas" id="caracteristicas">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-badge">Lo que te hace diferente</span>
+          <h2>Características <span class="highlight">únicas</span></h2>
+          <p class="section-intro">
+            Oráculo no te ayuda a hacer más. Te ayuda a elegir mejor.
+          </p>
+        </div>
+
+        <div class="features-grid">
+          <article class="feature-card feature-highlight">
+            <div class="feature-icon">
+              <span class="material-symbols-outlined">timer</span>
+            </div>
+            <div class="feature-content">
+              <h3>Volumen Fijo</h3>
+              <p>Antes de elegir qué hacer, defines cuánto tiempo y energía tienes HOY. No ayer, no mañana. Hoy.</p>
+              <div class="feature-detail">
+                <span class="material-symbols-outlined">schedule</span> Tiempo disponible
+                <span class="material-symbols-outlined">bolt</span> Nivel de energía
+              </div>
+            </div>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">
+              <span class="material-symbols-outlined">science</span>
+            </div>
+            <div class="feature-content">
+              <h3>Un Solo Hábito</h3>
+              <p>La ciencia es clara: los hábitos compiten por recursos cognitivos. Un hábito a la vez = mayor éxito.</p>
+            </div>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">
+              <span class="material-symbols-outlined">block</span>
+            </div>
+            <div class="feature-content">
+              <h3>Límites Obligatorios</h3>
+              <p>No puedes añadir más si está lleno. Eso te obliga a preguntarte: "¿A qué digo NO para decir SÍ a esto?"</p>
+            </div>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">
+              <span class="material-symbols-outlined">diamond</span>
+            </div>
+            <div class="feature-content">
+              <h3>Roca Principal</h3>
+              <p>Una sola tarea puede ser la "roca" del día. Se hace PRIMERO, antes que nada.</p>
+            </div>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">
+              <span class="material-symbols-outlined">celebration</span>
+            </div>
+            <div class="feature-content">
+              <h3>Done List</h3>
+              <p>Celebra lo que lograste sin planearlo. Los logros espontáneos también cuentan.</p>
+            </div>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon">
+              <span class="material-symbols-outlined">auto_stories</span>
+            </div>
+            <div class="feature-content">
+              <h3>Cuadernos Anuales</h3>
+              <p>Como Bullet Journal: al terminar el año, archivas y empiezas limpia. Tu historia queda guardada.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Comparación Section -->
+    <section class="comparacion">
+      <div class="container">
+        <div class="section-header">
+          <h2>Oráculo vs Otras Apps</h2>
+        </div>
+
+        <div class="comparacion-tabla">
+          <div class="comparacion-col otras">
+            <div class="comparacion-header">
+              <span class="material-symbols-outlined">trending_up</span>
+              <span>Otras Apps</span>
+            </div>
+            <ul>
+              <li>Listas infinitas</li>
+              <li>"Haz más, más rápido"</li>
+              <li>Productividad tóxica</li>
+              <li>Múltiples hábitos a la vez</li>
+              <li>Culpa por lo no hecho</li>
+              <li>Gamificación adictiva</li>
+            </ul>
+          </div>
+
+          <div class="comparacion-vs">VS</div>
+
+          <div class="comparacion-col oraculo">
+            <div class="comparacion-header">
+              <span class="material-symbols-outlined">auto_awesome</span>
+              <span>Oráculo</span>
+            </div>
+            <ul>
+              <li>
+                <span class="material-symbols-outlined">check</span>
+                Límites obligatorios
+              </li>
+              <li>
+                <span class="material-symbols-outlined">check</span>
+                "Haz lo esencial"
+              </li>
+              <li>
+                <span class="material-symbols-outlined">check</span>
+                Productividad consciente
+              </li>
+              <li>
+                <span class="material-symbols-outlined">check</span>
+                Un hábito a la vez
+              </li>
+              <li>
+                <span class="material-symbols-outlined">check</span>
+                Celebración de lo logrado
+              </li>
+              <li>
+                <span class="material-symbols-outlined">check</span>
+                Reflexión sin presión
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Módulos Section -->
+    <section class="modulos" id="modulos">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-badge">Todo lo que necesitas</span>
+          <h2>9 Módulos <span class="highlight">integrados</span></h2>
+          <p class="section-intro">
+            Un sistema completo para organizarte sin agobiarte.
+          </p>
+        </div>
+
+        <div class="modulos-grid">
+          <article class="modulo-card">
+            <div class="modulo-icon">
+              <span class="material-symbols-outlined">home</span>
+            </div>
+            <h3>Dashboard</h3>
+            <p>Tu foco del día con máximo 3 tareas. Hábito activo, eventos y logros de hoy.</p>
+            <div class="modulo-image">
+              <div class="image-placeholder" data-aspect="16/10">
+                <span class="placeholder-text">Screenshot: Vista Dashboard con foco del día</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="modulo-card">
+            <div class="modulo-icon">
+              <span class="material-symbols-outlined">explore</span>
+            </div>
+            <h3>Brújula de Valores</h3>
+            <p>Tus 3-5 valores guía. Referencia para tomar decisiones alineadas contigo.</p>
+            <div class="modulo-image">
+              <div class="image-placeholder" data-aspect="16/10">
+                <span class="placeholder-text">Screenshot: Brújula con valores personales</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="modulo-card">
+            <div class="modulo-icon">
+              <span class="material-symbols-outlined">view_kanban</span>
+            </div>
+            <h3>Kanban por Horizontes</h3>
+            <p>Del trimestre al hoy. Backlog ilimitado, horizontes con límites estrictos.</p>
+            <div class="modulo-image">
+              <div class="image-placeholder" data-aspect="16/10">
+                <span class="placeholder-text">Screenshot: Tablero Kanban con horizontes</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="modulo-card">
+            <div class="modulo-icon">
+              <span class="material-symbols-outlined">folder_open</span>
+            </div>
+            <h3>Proyectos</h3>
+            <p>Máximo 4 activos. Agrupa tareas bajo contextos con colores y progreso visual.</p>
+            <div class="modulo-image">
+              <div class="image-placeholder" data-aspect="16/10">
+                <span class="placeholder-text">Screenshot: Vista de proyectos con progreso</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="modulo-card">
+            <div class="modulo-icon">
+              <span class="material-symbols-outlined">science</span>
+            </div>
+            <h3>Laboratorio de Hábitos</h3>
+            <p>Un hábito a la vez. Identidad, micro-versión, las 4 leyes. Racha visual.</p>
+            <div class="modulo-image">
+              <div class="image-placeholder" data-aspect="16/10">
+                <span class="placeholder-text">Screenshot: Hábito activo con racha</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="modulo-card">
+            <div class="modulo-icon">
+              <span class="material-symbols-outlined">calendar_month</span>
+            </div>
+            <h3>Calendario</h3>
+            <p>Vista semanal. Eventos puntuales y recurrentes. Exporta a Google Calendar.</p>
+            <div class="modulo-image">
+              <div class="image-placeholder" data-aspect="16/10">
+                <span class="placeholder-text">Screenshot: Calendario semanal</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="modulo-card">
+            <div class="modulo-icon">
+              <span class="material-symbols-outlined">auto_stories</span>
+            </div>
+            <h3>Diario Reflexivo</h3>
+            <p>6 tipos de entrada: check-ins, revisiones, meditación. Prompts guiados opcionales.</p>
+            <div class="modulo-image">
+              <div class="image-placeholder" data-aspect="16/10">
+                <span class="placeholder-text">Screenshot: Entrada de diario</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="modulo-card">
+            <div class="modulo-icon">
+              <span class="material-symbols-outlined">emoji_events</span>
+            </div>
+            <h3>Logros</h3>
+            <p>Estadísticas por período. Heatmap de actividad. Celebra cada pequeño paso.</p>
+            <div class="modulo-image">
+              <div class="image-placeholder" data-aspect="16/10">
+                <span class="placeholder-text">Screenshot: Estadísticas y heatmap</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="modulo-card">
+            <div class="modulo-icon">
+              <span class="material-symbols-outlined">settings</span>
+            </div>
+            <h3>Configuración</h3>
+            <p>Cuadernos anuales, backup, preferencias Burkeman. Tus datos son tuyos.</p>
+            <div class="modulo-image">
+              <div class="image-placeholder" data-aspect="16/10">
+                <span class="placeholder-text">Screenshot: Panel de configuración</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Privacidad Section -->
+    <section class="privacidad">
+      <div class="container">
+        <div class="privacidad-content">
+          <div class="privacidad-icon">
+            <span class="material-symbols-outlined">shield</span>
+          </div>
+          <div class="privacidad-text">
+            <h2>100% Privado</h2>
+            <p class="privacidad-tagline">Tus datos son tuyos. Siempre.</p>
+            <ul class="privacidad-lista">
+              <li>
+                <span class="material-symbols-outlined">check_circle</span>
+                <span><strong>Sin registro</strong> - No necesitas crear cuenta</span>
+              </li>
+              <li>
+                <span class="material-symbols-outlined">check_circle</span>
+                <span><strong>Sin servidores</strong> - Todo en tu navegador (localStorage)</span>
+              </li>
+              <li>
+                <span class="material-symbols-outlined">check_circle</span>
+                <span><strong>Sin rastreo</strong> - No hay analytics ni cookies</span>
+              </li>
+              <li>
+                <span class="material-symbols-outlined">check_circle</span>
+                <span><strong>Exportable</strong> - Descarga tus datos cuando quieras</span>
+              </li>
+              <li>
+                <span class="material-symbols-outlined">check_circle</span>
+                <span><strong>Funciona offline</strong> - Una vez cargado, no necesita internet</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonios / Citas Section -->
+    <section class="testimonios">
+      <div class="container">
+        <div class="section-header">
+          <h2>Palabras que inspiran</h2>
+        </div>
+
+        <div class="citas-grid">
+          <blockquote class="cita-card">
+            <p>"El problema no es que tengas demasiadas cosas que hacer. Es que crees que deberías poder hacerlas todas."</p>
+            <cite>— Oliver Burkeman</cite>
+          </blockquote>
+
+          <blockquote class="cita-card">
+            <p>"Cada pequeño paso cuenta. No necesitas correr maratones. Solo dar el siguiente paso."</p>
+            <cite>— Filosofía Oráculo</cite>
+          </blockquote>
+
+          <blockquote class="cita-card">
+            <p>"También está permitido simplemente ser. El ocio sin objetivo es tan valioso como la productividad."</p>
+            <cite>— Actividades Atélicas</cite>
+          </blockquote>
+        </div>
+
+        <div class="testimonios-placeholder">
+          <div class="image-placeholder" data-aspect="3/1">
+            <span class="material-symbols-outlined placeholder-icon">groups</span>
+            <span class="placeholder-text">Espacio para testimonios de usuarias reales</span>
+            <span class="placeholder-note">Se añadirán cuando la comunidad crezca</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Final Section -->
+    <section class="cta-final">
+      <div class="container">
+        <div class="cta-content">
+          <h2>Empieza hoy. <span class="highlight">Sin presión.</span></h2>
+          <p class="cta-subtitle">Sin registro. Sin cuenta. Sin suscripción.</p>
+          <p class="cta-tagline">Tus datos son tuyos, en tu navegador.<br>Gratis. Siempre.</p>
+
+          <a href="app.html" class="btn btn-primary btn-xlarge">
+            <span class="material-symbols-outlined">auto_awesome</span>
+            Abrir Oráculo
+          </a>
+
+          <p class="cta-note">
+            Funciona en cualquier navegador moderno.<br>
+            Chrome, Firefox, Safari, Edge.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <a href="#" class="logo">
+            <span class="material-symbols-outlined">auto_awesome</span>
+            <span class="logo-text">Oráculo</span>
+          </a>
+          <p>Gestión personal consciente.<br>No puedes hacerlo todo. Y está bien.</p>
+        </div>
+
+        <div class="footer-links">
+          <div class="footer-col">
+            <h4>Inspiración</h4>
+            <ul>
+              <li><a href="https://www.oliverburkeman.com/" target="_blank" rel="noopener">Oliver Burkeman</a></li>
+              <li><a href="#filosofia">Filosofía 4000 Semanas</a></li>
+              <li><a href="#caracteristicas">Características</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-col">
+            <h4>La App</h4>
+            <ul>
+              <li><a href="app.html">Abrir Oráculo</a></li>
+              <li><a href="#modulos">Módulos</a></li>
+              <li><a href="#privacidad">Privacidad</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2025 Oráculo. Hecho con <span class="material-symbols-outlined">favorite</span> para quienes quieren organizarse para cuidarse.</p>
+        <p class="footer-credits">Inspirado en "4000 Semanas" de Oliver Burkeman y "Hábitos Atómicos" de James Clear.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Toggle navegación móvil
+    const navToggle = document.querySelector('.nav-toggle');
+    const nav = document.querySelector('.nav');
+
+    navToggle?.addEventListener('click', () => {
+      nav.classList.toggle('nav-open');
+      const isOpen = nav.classList.contains('nav-open');
+      navToggle.setAttribute('aria-expanded', isOpen);
+      navToggle.querySelector('.material-symbols-outlined').textContent = isOpen ? 'close' : 'menu';
+    });
+
+    // Cerrar nav al hacer click en un enlace
+    nav?.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        nav.classList.remove('nav-open');
+        navToggle.querySelector('.material-symbols-outlined').textContent = 'menu';
+      });
+    });
+
+    // Smooth scroll para enlaces internos
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    // Header scroll effect
+    const header = document.querySelector('.header');
+    let lastScroll = 0;
+
+    window.addEventListener('scroll', () => {
+      const currentScroll = window.pageYOffset;
+
+      if (currentScroll > 100) {
+        header.classList.add('header-scrolled');
+      } else {
+        header.classList.remove('header-scrolled');
+      }
+
+      lastScroll = currentScroll;
+    });
+
+    // Intersection Observer para animaciones al scroll
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-in');
+        }
+      });
+    }, observerOptions);
+
+    // Observar elementos animables
+    document.querySelectorAll('.pilar-card, .feature-card, .modulo-card, .cita-card').forEach(el => {
+      observer.observe(el);
+    });
+
+    // ===================================
+    // 4000 SEMANAS - Visualización Interactiva
+    // ===================================
+
+    const SEMANAS_VIDA = 4160; // 80 años * 52 semanas
+    const SEMANAS_POR_ANIO = 52;
+
+    const reflexiones = [
+      '"no tienes que hacerlo todo. solo tienes que elegir bien qué vale la pena hacer."',
+      '"la finitud no es un problema a resolver, es una realidad a abrazar."',
+      '"cada semana que eliges conscientemente es una semana bien vivida."',
+      '"la presión de hacerlo todo desaparece cuando aceptas que no puedes."',
+      '"tu tiempo es limitado. eso es lo que lo hace valioso."',
+      '"no se trata de tener más tiempo, sino de usar mejor el que tienes."',
+      '"la productividad real es hacer menos cosas, pero las correctas."'
+    ];
+
+    // Configurar fecha máxima del input
+    const fechaInput = document.getElementById('fechaNacimiento');
+    const hoy = new Date().toISOString().split('T')[0];
+    fechaInput.max = hoy;
+
+    // Form submit
+    document.getElementById('semanasForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      calcularSemanas();
+    });
+
+    // Reset button
+    document.getElementById('semanasReset').addEventListener('click', () => {
+      document.getElementById('semanasInput').style.display = 'block';
+      document.getElementById('semanasResult').classList.remove('active');
+      document.getElementById('fechaNacimiento').value = '';
+    });
+
+    function calcularSemanas() {
+      const fechaNacimiento = new Date(document.getElementById('fechaNacimiento').value);
+      const ahora = new Date();
+
+      // Calcular semanas vividas
+      const msVividos = ahora - fechaNacimiento;
+      const semanasVividas = Math.floor(msVividos / (7 * 24 * 60 * 60 * 1000));
+
+      // Calcular edad en años
+      const edadAnios = Math.floor(semanasVividas / SEMANAS_POR_ANIO);
+
+      // Calcular semanas restantes (asumiendo 80 años de vida)
+      const semanasRestantes = Math.max(0, SEMANAS_VIDA - semanasVividas);
+      const aniosRestantes = Math.floor(semanasRestantes / SEMANAS_POR_ANIO);
+
+      // Porcentaje de vida
+      const porcentaje = Math.min(100, ((semanasVividas / SEMANAS_VIDA) * 100)).toFixed(1);
+
+      // Actualizar UI
+      document.getElementById('semanasVividas').textContent = semanasVividas.toLocaleString();
+      document.getElementById('porcentajeVivido').textContent = `${porcentaje}% de tu vida`;
+      document.getElementById('semanaActual').textContent = (semanasVividas + 1).toLocaleString();
+      document.getElementById('semanasRestantes').textContent = semanasRestantes.toLocaleString();
+      document.getElementById('aniosRestantes').textContent = `~${aniosRestantes} años`;
+
+      // Generar grid
+      generarGrid(semanasVividas);
+
+      // Reflexión aleatoria
+      const reflexion = reflexiones[Math.floor(Math.random() * reflexiones.length)];
+      document.getElementById('reflexionTexto').textContent = reflexion;
+
+      // Mostrar resultado
+      document.getElementById('semanasInput').style.display = 'none';
+      document.getElementById('semanasResult').classList.add('active');
+
+      // Scroll suave al resultado
+      document.getElementById('semanas').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function generarGrid(semanasVividas) {
+      const grid = document.getElementById('semanasGrid');
+      grid.innerHTML = '';
+
+      // Limitar a un número manejable para el grid visual
+      const semanasAMostrar = Math.min(SEMANAS_VIDA, 4160);
+      const fragmento = document.createDocumentFragment();
+
+      for (let i = 0; i < semanasAMostrar; i++) {
+        const celda = document.createElement('div');
+        celda.className = 'semana-cell';
+
+        if (i < semanasVividas) {
+          celda.classList.add('vivida');
+        } else if (i === semanasVividas) {
+          celda.classList.add('actual');
+        } else {
+          celda.classList.add('restante');
+        }
+
+        // Tooltip con información
+        celda.title = `semana ${i + 1}`;
+
+        fragmento.appendChild(celda);
+      }
+
+      grid.appendChild(fragmento);
+    }
+
+    // Animación gradual del grid
+    function animarGrid() {
+      const celdas = document.querySelectorAll('.semana-cell.vivida');
+      celdas.forEach((celda, index) => {
+        setTimeout(() => {
+          celda.style.opacity = '1';
+        }, index * 2);
+      });
+    }
+  </script>
 </body>
 </html>

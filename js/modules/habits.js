@@ -4,6 +4,23 @@
  */
 
 import { generateId, showNotification } from '../app.js';
+import { getReflexionDelDia, getReflexionPorPilar } from '../data/burkeman.js';
+
+// Iconos disponibles para actividades atélicas
+const ATELIC_ICONS = [
+  { icon: 'palette', name: 'Arte' },
+  { icon: 'music_note', name: 'Música' },
+  { icon: 'menu_book', name: 'Lectura' },
+  { icon: 'park', name: 'Naturaleza' },
+  { icon: 'sports_tennis', name: 'Deportes' },
+  { icon: 'local_florist', name: 'Jardinería' },
+  { icon: 'videogame_asset', name: 'Juegos' },
+  { icon: 'camera', name: 'Fotografía' },
+  { icon: 'restaurant', name: 'Cocina' },
+  { icon: 'handyman', name: 'Manualidades' },
+  { icon: 'pets', name: 'Mascotas' },
+  { icon: 'directions_walk', name: 'Pasear' }
+];
 
 let updateDataCallback = null;
 
@@ -23,6 +40,9 @@ export const render = (data) => {
           Un hábito a la vez. Los hábitos compiten por recursos cognitivos.
           Instala uno completamente antes de empezar otro.
         </p>
+        <blockquote class="quote quote--header">
+          <p>"${getReflexionDelDia('habits')}"</p>
+        </blockquote>
       </header>
 
       <section class="habits-active">
@@ -81,6 +101,8 @@ export const render = (data) => {
           </div>
         </div>
       </section>
+
+      ${renderAtelicSection(data.atelicActivities || [])}
 
       <!-- Modal para crear/editar hábito -->
       <dialog id="habit-modal" class="modal modal--large">
@@ -208,7 +230,137 @@ export const render = (data) => {
           </div>
         </form>
       </dialog>
+
+      <!-- Modal para actividades atélicas -->
+      <dialog id="atelic-modal" class="modal">
+        <form method="dialog" class="modal-content" id="atelic-form">
+          <h2 class="modal-title">
+            <span class="material-symbols-outlined icon-primary">spa</span>
+            Registrar Descanso Atélico
+          </h2>
+
+          <p class="modal-subtitle">
+            Ocio sin objetivo. Está permitido "ser malo" en esto.
+          </p>
+
+          <div class="form-group">
+            <label for="atelic-name">¿Qué hiciste?</label>
+            <input
+              type="text"
+              id="atelic-name"
+              class="input"
+              placeholder="Pintar sin presión, tocar la guitarra mal..."
+              maxlength="100"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label>Elige un icono</label>
+            <div class="atelic-icons" id="atelic-icons">
+              ${ATELIC_ICONS.map((item, i) => `
+                <button type="button" class="atelic-icon-btn ${i === 0 ? 'selected' : ''}" data-icon="${item.icon}" title="${item.name}">
+                  <span class="material-symbols-outlined">${item.icon}</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="atelic-duration">Duración aproximada (opcional)</label>
+            <select id="atelic-duration" class="input">
+              <option value="">No quiero medir</option>
+              <option value="15">15 minutos</option>
+              <option value="30">30 minutos</option>
+              <option value="60">1 hora</option>
+              <option value="120">2+ horas</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="atelic-note">¿Cómo te sentiste? (opcional)</label>
+            <textarea
+              id="atelic-note"
+              class="input textarea"
+              placeholder="Simplemente disfruté, sin pensar en el resultado..."
+              rows="2"
+              maxlength="200"
+            ></textarea>
+          </div>
+
+          <input type="hidden" id="atelic-id">
+          <input type="hidden" id="atelic-icon" value="palette">
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn--tertiary" id="cancel-atelic">Cancelar</button>
+            <button type="submit" class="btn btn--primary">Guardar</button>
+          </div>
+        </form>
+      </dialog>
     </div>
+  `;
+};
+
+/**
+ * Renderiza la sección de Descanso Atélico
+ */
+const renderAtelicSection = (activities) => {
+  const recentActivities = activities
+    .slice()
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 5);
+
+  return `
+    <section class="habits-atelic">
+      <div class="atelic-header">
+        <div>
+          <h2>
+            <span class="material-symbols-outlined icon-primary">spa</span>
+            Descanso Atélico
+          </h2>
+          <p class="section-description">
+            Ocio sin objetivo productivo. Aquí no hay racha, ni metas, ni "mejorar".
+          </p>
+        </div>
+        <button class="btn btn--secondary" id="add-atelic-btn">
+          <span class="material-symbols-outlined icon-sm">add</span>
+          Registrar
+        </button>
+      </div>
+
+      <blockquote class="quote quote--secondary">
+        <p>"${getReflexionPorPilar('imperfeccion')}"</p>
+      </blockquote>
+
+      ${recentActivities.length > 0 ? `
+        <div class="atelic-list">
+          ${recentActivities.map(activity => `
+            <div class="atelic-item" data-id="${activity.id}">
+              <span class="material-symbols-outlined atelic-item__icon">${activity.icon || 'spa'}</span>
+              <div class="atelic-item__content">
+                <span class="atelic-item__name">${activity.name}</span>
+                <span class="atelic-item__date">${formatShortDate(activity.date)}</span>
+                ${activity.note ? `<p class="atelic-item__note">${activity.note}</p>` : ''}
+              </div>
+              ${activity.duration ? `
+                <span class="atelic-item__duration">${activity.duration} min</span>
+              ` : ''}
+              <button class="btn btn--icon atelic-item__delete" data-id="${activity.id}" title="Eliminar">
+                <span class="material-symbols-outlined icon-sm">close</span>
+              </button>
+            </div>
+          `).join('')}
+        </div>
+      ` : `
+        <div class="empty-state atelic-empty">
+          <span class="material-symbols-outlined icon-xl icon-muted">self_improvement</span>
+          <p>
+            ¿Cuándo fue la última vez que hiciste algo solo por el placer de hacerlo?<br>
+            Sin presión, sin metas, sin "ser buena" en ello.
+          </p>
+        </div>
+      `}
+    </section>
   `;
 };
 
@@ -243,8 +395,23 @@ export const init = (data, updateData) => {
     abandonHabit(data);
   });
 
-  // Modal
+  // Modal de hábitos
   setupModal(data);
+
+  // Modal de actividades atélicas
+  setupAtelicModal(data);
+
+  // Botón añadir actividad atélica
+  document.getElementById('add-atelic-btn')?.addEventListener('click', () => {
+    openAtelicModal();
+  });
+
+  // Eliminar actividades atélicas
+  document.querySelectorAll('.atelic-item__delete').forEach(btn => {
+    btn.addEventListener('click', () => {
+      deleteAtelicActivity(btn.dataset.id, data);
+    });
+  });
 };
 
 /**
@@ -539,4 +706,105 @@ const generateCalendarDays = (habit, history) => {
 const formatShortDate = (isoDate) => {
   const date = new Date(isoDate);
   return date.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+};
+
+// ============================================================
+// FUNCIONES PARA DESCANSO ATÉLICO
+// ============================================================
+
+/**
+ * Configura el modal de actividades atélicas
+ */
+const setupAtelicModal = (data) => {
+  const modal = document.getElementById('atelic-modal');
+  const form = document.getElementById('atelic-form');
+
+  document.getElementById('cancel-atelic')?.addEventListener('click', () => {
+    modal.close();
+  });
+
+  form?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    saveAtelicActivity(data);
+  });
+
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) modal.close();
+  });
+
+  // Configurar selección de iconos
+  document.querySelectorAll('.atelic-icon-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.atelic-icon-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      document.getElementById('atelic-icon').value = btn.dataset.icon;
+    });
+  });
+};
+
+/**
+ * Abre el modal de actividades atélicas
+ */
+const openAtelicModal = () => {
+  const modal = document.getElementById('atelic-modal');
+
+  // Resetear formulario
+  document.getElementById('atelic-id').value = '';
+  document.getElementById('atelic-name').value = '';
+  document.getElementById('atelic-duration').value = '';
+  document.getElementById('atelic-note').value = '';
+  document.getElementById('atelic-icon').value = 'palette';
+
+  // Resetear selección de iconos
+  document.querySelectorAll('.atelic-icon-btn').forEach((btn, i) => {
+    btn.classList.toggle('selected', i === 0);
+  });
+
+  modal.showModal();
+};
+
+/**
+ * Guarda una actividad atélica
+ */
+const saveAtelicActivity = (data) => {
+  const name = document.getElementById('atelic-name').value.trim();
+
+  if (!name) {
+    showNotification('Describe qué hiciste', 'warning');
+    return;
+  }
+
+  // Asegurar que existe el array
+  if (!data.atelicActivities) {
+    data.atelicActivities = [];
+  }
+
+  const activity = {
+    id: document.getElementById('atelic-id').value || generateId(),
+    name,
+    icon: document.getElementById('atelic-icon').value,
+    duration: document.getElementById('atelic-duration').value || null,
+    note: document.getElementById('atelic-note').value.trim() || null,
+    date: new Date().toISOString()
+  };
+
+  data.atelicActivities.push(activity);
+  updateDataCallback('atelicActivities', data.atelicActivities);
+
+  document.getElementById('atelic-modal').close();
+  showNotification('¡Descanso atélico registrado! El ocio es un fin en sí mismo.', 'success');
+  location.reload();
+};
+
+/**
+ * Elimina una actividad atélica
+ */
+const deleteAtelicActivity = (activityId, data) => {
+  if (!confirm('¿Eliminar esta actividad?')) return;
+
+  data.atelicActivities = data.atelicActivities.filter(a => a.id !== activityId);
+  updateDataCallback('atelicActivities', data.atelicActivities);
+
+  showNotification('Actividad eliminada', 'info');
+  location.reload();
 };
