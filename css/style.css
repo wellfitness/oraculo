@@ -6323,3 +6323,1780 @@ a:hover {
     font-size: var(--font-size-xs);
   }
 }
+
+/* ==========================================================================
+   UI/UX IMPROVEMENTS v2.0
+   Mejoras de accesibilidad, usabilidad y experiencia visual
+   Para mujeres 40+ que quieren organizarse para cuidarse
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. ACCESIBILIDAD GLOBAL
+   WCAG 2.1 AA: Mejor contraste, focus visible, touch targets
+   -------------------------------------------------------------------------- */
+
+/* Focus visible mejorado para todos los elementos interactivos */
+:focus-visible {
+  outline: 3px solid var(--turquesa-400);
+  outline-offset: 2px;
+}
+
+/* Animacion de focus suave */
+*:focus-visible {
+  transition: outline-offset 0.1s ease;
+}
+
+/* Skip link para navegacion por teclado */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--gris-900);
+  color: white;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  z-index: 9999;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.skip-link:focus {
+  top: var(--space-2);
+}
+
+/* Touch targets minimos de 44px para mobile */
+@media (max-width: 768px) {
+  .btn,
+  .nav-link,
+  .focus-checkbox,
+  .color-option,
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Checkboxes mas grandes en mobile */
+  .focus-checkbox,
+  .menu-item__checkbox,
+  input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* Mejor contraste de texto para personas con vision reducida */
+.page-description,
+.section-description,
+.form-group small,
+.empty-state {
+  color: var(--gris-600);
+}
+
+/* --------------------------------------------------------------------------
+   2. TIPOGRAFIA MEJORADA
+   Legibilidad optimizada para 40+
+   -------------------------------------------------------------------------- */
+
+/* Incrementar line-height para mejor legibilidad */
+body {
+  line-height: 1.6;
+}
+
+/* Texto mas grande en contenido principal */
+.dashboard__section p,
+.journal-page p,
+.habits-page p,
+.settings-page p {
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+/* Headers con mejor espaciado */
+.page-title {
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-2);
+}
+
+.section-title {
+  letter-spacing: -0.01em;
+}
+
+/* Texto de botones con mejor peso visual */
+.btn {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* --------------------------------------------------------------------------
+   3. MEJORAS DEL DASHBOARD
+   Centro de calma y claridad
+   -------------------------------------------------------------------------- */
+
+/* Header del dashboard con gradiente sutil */
+.dashboard__header {
+  position: relative;
+  padding: var(--space-3);
+  margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-4)) var(--space-3);
+  background: linear-gradient(135deg, var(--turquesa-100) 0%, var(--gris-50) 100%);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+/* Titulo mas impactante */
+.dashboard__title {
+  font-size: clamp(2rem, 5vw, 2.5rem);
+  background: linear-gradient(135deg, var(--turquesa-600), var(--turquesa-700));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Fecha con estilo mas elegante */
+.dashboard__date {
+  font-size: var(--font-size-lg);
+  color: var(--gris-700);
+  font-weight: 500;
+}
+
+/* Secciones del dashboard con hover sutil */
+.dashboard__section {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dashboard__section:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Seccion de foco con enfasis visual */
+.dashboard__focus {
+  border-left: 4px solid var(--turquesa-500);
+  background: linear-gradient(135deg, white 0%, var(--turquesa-50) 100%);
+}
+
+/* Seccion de habito con fondo calido */
+.dashboard__habit {
+  background: linear-gradient(135deg, white 0%, var(--tulip-tree-50) 100%);
+}
+
+/* Seccion de eventos con indicador visual */
+.dashboard__events {
+  border-top: 3px solid var(--gris-200);
+}
+
+/* Seccion de logros con celebracion */
+.dashboard__achievements {
+  background: linear-gradient(135deg, var(--tulip-tree-50) 0%, white 100%);
+  border-left: 4px solid var(--tulip-tree-500);
+}
+
+/* Seccion de quote con estilo zen */
+.dashboard__quote {
+  background: var(--gris-800);
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard__quote::before {
+  content: '"';
+  position: absolute;
+  top: -20px;
+  left: 10px;
+  font-size: 8rem;
+  font-family: Georgia, serif;
+  color: rgba(255, 255, 255, 0.08);
+  line-height: 1;
+}
+
+.dashboard__quote .quote {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard__quote .quote p {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: var(--font-size-lg);
+  font-style: italic;
+  line-height: 1.7;
+}
+
+.dashboard__quote .quote cite {
+  color: var(--turquesa-400);
+  font-style: normal;
+  display: block;
+  margin-top: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+/* FAB mejorado con animacion */
+.fab {
+  position: fixed;
+  bottom: var(--space-3);
+  right: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  background: linear-gradient(135deg, var(--tulip-tree-500), var(--tulip-tree-400));
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(234, 179, 8, 0.4);
+  transition: all 0.3s ease;
+  z-index: 50;
+}
+
+.fab:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(234, 179, 8, 0.5);
+}
+
+.fab .material-symbols-outlined {
+  font-size: 20px;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+/* Focus item mejorado */
+.focus-item {
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+  margin-bottom: var(--space-1);
+  border: 1px solid transparent;
+}
+
+.focus-item:hover {
+  background: var(--gris-50);
+  border-color: var(--gris-200);
+}
+
+.focus-item--completed {
+  background: var(--gris-50);
+}
+
+/* Checkbox estilizado */
+.focus-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--gris-400);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.focus-checkbox:hover {
+  border-color: var(--turquesa-500);
+  background: var(--turquesa-50);
+}
+
+.focus-checkbox:checked {
+  background: var(--turquesa-500);
+  border-color: var(--turquesa-500);
+}
+
+.focus-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 7px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* --------------------------------------------------------------------------
+   4. MEJORAS DE NAVEGACION
+   Claridad y accesibilidad
+   -------------------------------------------------------------------------- */
+
+/* Header con sombra mas pronunciada */
+.app-header {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* Nav links con transicion mejorada */
+.nav-link {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.nav-link:hover {
+  background: var(--turquesa-50);
+  color: var(--turquesa-700);
+}
+
+.nav-link.active {
+  background: var(--turquesa-100);
+  color: var(--turquesa-700);
+  font-weight: 600;
+}
+
+/* Iconos de navegacion con mejor alineacion */
+.nav-icon {
+  font-size: 22px;
+}
+
+/* Ocultar texto en mobile, solo iconos */
+@media (max-width: 768px) {
+  .nav-text {
+    display: none;
+  }
+
+  .nav-link {
+    padding: var(--space-2);
+  }
+
+  .nav-icon {
+    font-size: 24px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   5. MEJORAS DE FORMULARIOS
+   Usabilidad y claridad visual
+   -------------------------------------------------------------------------- */
+
+/* Inputs con estado visual mejorado */
+.input {
+  padding: var(--space-2);
+  font-size: var(--font-size-base);
+  border: 2px solid var(--gris-300);
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
+.input:hover {
+  border-color: var(--gris-400);
+}
+
+.input:focus {
+  border-color: var(--turquesa-500);
+  box-shadow: 0 0 0 4px var(--turquesa-100);
+}
+
+/* Labels mas visibles */
+.form-group label {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--gris-800);
+  margin-bottom: var(--space-1);
+}
+
+/* Placeholder con mejor contraste */
+.input::placeholder {
+  color: var(--gris-500);
+}
+
+/* Textarea con mejor redimensionamiento */
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.6;
+}
+
+/* --------------------------------------------------------------------------
+   6. MEJORAS DE MODALES
+   Experiencia de dialogo mejorada
+   -------------------------------------------------------------------------- */
+
+/* Modal con backdrop mas oscuro */
+.modal::backdrop {
+  background: rgba(17, 24, 39, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+/* Modal con animacion de entrada */
+.modal {
+  animation: modalFadeIn 0.2s ease;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Modal content con padding generoso */
+.modal-content {
+  padding: var(--space-4);
+}
+
+/* Modal title con mejor jerarquia */
+.modal-title {
+  font-size: var(--font-size-xl);
+  color: var(--gris-900);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--gris-100);
+  margin-bottom: var(--space-3);
+}
+
+/* Modal actions con mejor espaciado */
+.modal-actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  padding-top: var(--space-3);
+  margin-top: var(--space-3);
+  border-top: 1px solid var(--gris-200);
+}
+
+/* --------------------------------------------------------------------------
+   7. MEJORAS DEL HABITO CARD
+   Visualizacion motivacional
+   -------------------------------------------------------------------------- */
+
+/* Habit card con mejor estructura visual */
+.habit-card {
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--turquesa-100) 0%, white 60%);
+  border: 2px solid var(--turquesa-200);
+  transition: all 0.3s ease;
+}
+
+.habit-card:hover {
+  border-color: var(--turquesa-400);
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.15);
+}
+
+/* Identidad con estilo destacado */
+.habit-identity {
+  font-style: italic;
+  color: var(--turquesa-700);
+  font-size: var(--font-size-base);
+  margin-bottom: var(--space-1);
+  padding-left: var(--space-2);
+  border-left: 3px solid var(--turquesa-400);
+}
+
+/* Nombre del habito mas prominente */
+.habit-name {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--gris-900);
+  margin-bottom: var(--space-1);
+}
+
+/* Trigger con estilo sutil */
+.habit-trigger {
+  color: var(--gris-600);
+  font-size: var(--font-size-sm);
+}
+
+/* Streak con animacion de fuego */
+.habit-streak {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.streak-icon {
+  color: var(--tulip-tree-500);
+  animation: flicker 1.5s ease-in-out infinite;
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.05); }
+}
+
+.streak-count {
+  font-weight: 700;
+  font-size: var(--font-size-lg);
+  color: var(--tulip-tree-700);
+}
+
+/* Estado completado */
+.habit-done {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   8. MEJORAS DE CITAS/QUOTES
+   Estilo zen y reflexivo
+   -------------------------------------------------------------------------- */
+
+/* Quote base mejorado */
+.quote {
+  position: relative;
+  padding: var(--space-3);
+  padding-left: var(--space-4);
+  margin: 0;
+}
+
+.quote p {
+  font-size: var(--font-size-base);
+  line-height: 1.8;
+  color: var(--gris-700);
+  margin: 0;
+}
+
+.quote cite {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--gris-500);
+  font-style: normal;
+}
+
+/* Quote en header de pagina */
+.quote--header {
+  background: linear-gradient(135deg, var(--gris-50), white);
+  border-radius: var(--radius-md);
+  border-left: 4px solid var(--turquesa-400);
+  margin-top: var(--space-2);
+}
+
+.quote--header p {
+  font-style: italic;
+}
+
+/* --------------------------------------------------------------------------
+   9. MEJORAS DE ESTADOS VACIOS
+   Mensajes motivadores y claros
+   -------------------------------------------------------------------------- */
+
+/* Empty state con ilustracion */
+.empty-state {
+  padding: var(--space-4);
+  text-align: center;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--gris-50), white);
+}
+
+.empty-state .material-symbols-outlined {
+  font-size: 48px;
+  color: var(--gris-300);
+  margin-bottom: var(--space-2);
+}
+
+.empty-state p {
+  color: var(--gris-600);
+  font-size: var(--font-size-base);
+  line-height: 1.7;
+  max-width: 400px;
+  margin: 0 auto var(--space-2);
+}
+
+.empty-state .btn {
+  margin-top: var(--space-2);
+}
+
+/* --------------------------------------------------------------------------
+   10. MEJORAS DE CALENDARIO
+   Claridad y legibilidad
+   -------------------------------------------------------------------------- */
+
+/* Vista semanal con mejor espaciado */
+.week-view {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: var(--gris-200);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-top: var(--space-3);
+}
+
+/* Columna de dia con fondo limpio */
+.day-column {
+  background: white;
+  padding: var(--space-2);
+  min-height: 150px;
+}
+
+/* Dia actual destacado */
+.day-column--today {
+  background: linear-gradient(180deg, var(--turquesa-50) 0%, white 30%);
+}
+
+.day-column--today .day-header {
+  color: var(--turquesa-700);
+}
+
+/* Header de dia */
+.day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--gris-100);
+  margin-bottom: var(--space-1);
+}
+
+.day-name {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--gris-500);
+}
+
+.day-number {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--gris-800);
+}
+
+.day-column--today .day-number {
+  background: var(--turquesa-500);
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Eventos en el calendario */
+.event-item {
+  padding: var(--space-1);
+  margin-bottom: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--turquesa-100);
+  border-left: 3px solid var(--turquesa-500);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.event-item:hover {
+  background: var(--turquesa-200);
+  transform: translateX(2px);
+}
+
+/* Evento de sincronia (tiempo con otros) */
+.event-item--sincronia {
+  background: var(--rosa-100);
+  border-left-color: var(--rosa-500);
+}
+
+.event-item--sincronia:hover {
+  background: var(--rosa-200);
+}
+
+/* Responsive calendario */
+@media (max-width: 768px) {
+  .week-view {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+    background: transparent;
+  }
+
+  .day-column {
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    min-height: auto;
+  }
+
+  .day-header {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   11. MEJORAS DEL DIARIO
+   Espacio de reflexion calmo
+   -------------------------------------------------------------------------- */
+
+/* Botones de tipo de entrada */
+.entry-type-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.entry-type-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  background: white;
+  border: 2px solid var(--gris-200);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.entry-type-btn:hover {
+  border-color: var(--turquesa-400);
+  background: var(--turquesa-50);
+  transform: translateY(-2px);
+}
+
+.entry-type-icon {
+  font-size: 32px;
+}
+
+.entry-type-name {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--gris-700);
+}
+
+/* Tarjetas de entrada del diario */
+.entry-card {
+  padding: var(--space-3);
+  background: white;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--gris-200);
+  margin-bottom: var(--space-2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.entry-card:hover {
+  border-color: var(--turquesa-300);
+  box-shadow: var(--shadow-sm);
+}
+
+.entry-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-1);
+}
+
+.entry-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: var(--radius-full);
+  background: var(--gris-100);
+  color: var(--gris-700);
+}
+
+.entry-date {
+  font-size: var(--font-size-xs);
+  color: var(--gris-500);
+}
+
+.entry-preview {
+  color: var(--gris-600);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Prompts del diario */
+.prompts-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.prompt-item {
+  padding: var(--space-1) var(--space-2);
+  background: var(--turquesa-50);
+  border: 1px solid var(--turquesa-200);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  color: var(--turquesa-700);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.prompt-item:hover {
+  background: var(--turquesa-100);
+  border-color: var(--turquesa-300);
+}
+
+/* --------------------------------------------------------------------------
+   12. MEJORAS DE LOGROS
+   Celebracion y motivacion
+   -------------------------------------------------------------------------- */
+
+/* Stat cards con efecto hover */
+.stat-card {
+  background: white;
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+  border: 1px solid var(--gris-100);
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--turquesa-200);
+}
+
+.stat-card .stat-icon {
+  font-size: 32px;
+  margin-bottom: var(--space-1);
+}
+
+.stat-card .stat-value {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--gris-900);
+  font-family: var(--font-family-headings);
+}
+
+.stat-card .stat-label {
+  font-size: var(--font-size-sm);
+  color: var(--gris-600);
+  margin-top: 4px;
+}
+
+/* Heatmap mejorado */
+.heatmap-day {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  transition: transform 0.1s ease;
+}
+
+.heatmap-day:hover {
+  transform: scale(1.3);
+}
+
+/* Badges de habitos graduados */
+.graduated-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  background: linear-gradient(135deg, var(--turquesa-100), var(--turquesa-50));
+  border: 2px solid var(--turquesa-300);
+  border-radius: var(--radius-full);
+  transition: all 0.2s ease;
+}
+
+.graduated-badge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+}
+
+.graduated-badge .badge-icon {
+  color: var(--turquesa-600);
+}
+
+.graduated-badge .badge-name {
+  font-weight: 600;
+  color: var(--gris-800);
+}
+
+/* --------------------------------------------------------------------------
+   13. MEJORAS DE CONFIGURACION
+   Claridad y organizacion
+   -------------------------------------------------------------------------- */
+
+/* Secciones de configuracion */
+.settings-section {
+  background: white;
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-3);
+  border: 1px solid var(--gris-200);
+  transition: all 0.2s ease;
+}
+
+.settings-section:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.settings-section h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-lg);
+  color: var(--gris-800);
+  margin-bottom: var(--space-2);
+}
+
+/* Seccion de cuadernos con estilo especial */
+.settings-section--notebooks {
+  background: linear-gradient(135deg, white, var(--turquesa-50));
+  border: 2px solid var(--turquesa-200);
+}
+
+/* Seccion de peligro */
+.settings-section--danger {
+  border: 2px solid var(--rosa-200);
+  background: linear-gradient(135deg, white, var(--rosa-50));
+}
+
+.settings-section--danger h2 {
+  color: var(--rosa-600);
+}
+
+/* Storage bar mejorada */
+.storage-bar {
+  height: 8px;
+  background: var(--gris-200);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-top: var(--space-1);
+}
+
+.storage-bar__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--turquesa-400), var(--turquesa-600));
+  border-radius: var(--radius-full);
+  transition: width 0.5s ease;
+}
+
+.storage-bar__fill.warning {
+  background: linear-gradient(90deg, var(--tulip-tree-400), var(--rosa-500));
+}
+
+/* --------------------------------------------------------------------------
+   14. ANIMACIONES Y TRANSICIONES GLOBALES
+   Experiencia suave y calma
+   -------------------------------------------------------------------------- */
+
+/* Transicion suave para todos los elementos interactivos */
+button,
+a,
+input,
+textarea,
+select,
+.card,
+.btn {
+  transition: all 0.2s ease;
+}
+
+/* Animacion de entrada para elementos de lista */
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Aplicar animacion a items nuevos */
+.focus-item,
+.entry-card,
+.project-card,
+.event-item {
+  animation: slideInFromRight 0.3s ease;
+}
+
+/* Animacion de pulso para elementos importantes */
+@keyframes gentle-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(6, 182, 212, 0); }
+}
+
+/* Aplicar pulso a elementos que necesitan atencion */
+.focus-item--rock,
+.habit-card--needs-attention {
+  animation: gentle-pulse 2s ease-in-out infinite;
+}
+
+/* --------------------------------------------------------------------------
+   15. MEJORAS RESPONSIVE AVANZADAS
+   Optimizado para diferentes dispositivos
+   -------------------------------------------------------------------------- */
+
+/* Tablet */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .dashboard {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard__header,
+  .dashboard__quote {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Desktop grande */
+@media (min-width: 1200px) {
+  .dashboard {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .dashboard__header,
+  .dashboard__focus,
+  .dashboard__quote {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Reducir movimiento para usuarios que lo prefieren */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Modo oscuro automatico (preparacion futura) */
+@media (prefers-color-scheme: dark) {
+  /* Placeholder para dark mode - no activado aun */
+}
+
+/* --------------------------------------------------------------------------
+   16. UTILIDADES
+   Clases de ayuda reutilizables
+   -------------------------------------------------------------------------- */
+
+/* Visualmente oculto pero accesible para screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Texto truncado */
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Flex center */
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Gap utilities */
+.gap-1 { gap: var(--space-1); }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+
+/* Margin utilities */
+.mt-1 { margin-top: var(--space-1); }
+.mt-2 { margin-top: var(--space-2); }
+.mt-3 { margin-top: var(--space-3); }
+.mb-1 { margin-bottom: var(--space-1); }
+.mb-2 { margin-bottom: var(--space-2); }
+.mb-3 { margin-bottom: var(--space-3); }
+
+/* Link sutil mejorado */
+.link-subtle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--gris-500);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  margin-top: var(--space-2);
+}
+
+.link-subtle:hover {
+  color: var(--turquesa-600);
+  text-decoration: none;
+}
+
+/* ==========================================================================
+   MEJORAS ESPECIFICAS POR MODULO v2.0
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   VALORES - Brujula interior
+   -------------------------------------------------------------------------- */
+
+.values-page {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Grid de valores con mejor adaptabilidad */
+.values-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+/* Tarjeta de valor mejorada */
+.value-card {
+  position: relative;
+  background: white;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--gris-200);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.value-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--turquesa-400), var(--rosa-400));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.value-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--turquesa-300);
+}
+
+.value-card:hover::before {
+  opacity: 1;
+}
+
+/* Icono de valor mas grande y decorativo */
+.value-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+/* Nombre del valor con gradiente sutil */
+.value-name {
+  font-size: var(--font-size-xl);
+  color: var(--gris-900);
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--gris-900), var(--gris-700));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Descripcion con mejor legibilidad */
+.value-description {
+  color: var(--gris-600);
+  font-size: var(--font-size-base);
+  line-height: 1.7;
+  margin-top: var(--space-2);
+}
+
+/* Boton de agregar valor mejorado */
+.value-card--add {
+  border: 2px dashed var(--gris-300);
+  background: linear-gradient(135deg, var(--gris-50), white);
+  min-height: 200px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.value-card--add:hover {
+  border-color: var(--turquesa-400);
+  background: linear-gradient(135deg, var(--turquesa-50), white);
+  transform: translateY(-4px);
+}
+
+.value-card--add:hover .material-symbols-outlined {
+  color: var(--turquesa-500);
+  transform: scale(1.1);
+}
+
+.value-card--add .material-symbols-outlined {
+  transition: all 0.3s ease;
+}
+
+/* Seccion de reflexion mejorada */
+.values-reflection {
+  background: linear-gradient(135deg, white, var(--turquesa-50));
+  border: 2px solid var(--turquesa-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.values-reflection h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--turquesa-700);
+}
+
+.values-reflection h2::before {
+  content: '';
+  width: 4px;
+  height: 24px;
+  background: var(--turquesa-500);
+  border-radius: 2px;
+}
+
+.reflection-prompt {
+  font-size: var(--font-size-lg);
+  color: var(--gris-800);
+  background: white;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border-left: 4px solid var(--turquesa-500);
+  margin: var(--space-2) 0;
+  line-height: 1.7;
+}
+
+.reflection-prompt strong {
+  color: var(--turquesa-700);
+}
+
+/* Ejemplos de valores con estilo de lista */
+.value-examples {
+  list-style: none;
+  padding: 0;
+  margin-top: var(--space-3);
+}
+
+.value-examples li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  margin-bottom: var(--space-1);
+  background: white;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
+.value-examples li:hover {
+  background: var(--turquesa-50);
+  transform: translateX(4px);
+}
+
+.value-examples li strong {
+  color: var(--turquesa-700);
+  min-width: 100px;
+}
+
+/* --------------------------------------------------------------------------
+   PROYECTOS - Gestion de iniciativas
+   -------------------------------------------------------------------------- */
+
+.projects-page {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* Grid de proyectos */
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+/* Tarjeta de proyecto mejorada */
+.project-card {
+  position: relative;
+  background: white;
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--gris-200);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+}
+
+.project-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--project-color, var(--gris-300));
+}
+
+.project-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--project-color, var(--gris-400));
+}
+
+/* Estado del proyecto */
+.project-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 8px;
+  border-radius: var(--radius-full);
+}
+
+.project-status--active {
+  background: var(--turquesa-100);
+  color: var(--turquesa-700);
+}
+
+.project-status--paused {
+  background: var(--tulip-tree-100);
+  color: var(--tulip-tree-700);
+}
+
+.project-status--completed {
+  background: var(--gris-100);
+  color: var(--gris-600);
+}
+
+/* Barra de progreso del proyecto */
+.project-progress {
+  margin-top: var(--space-2);
+}
+
+.project-progress__bar {
+  height: 8px;
+  background: var(--gris-200);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.project-progress__fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--project-color, var(--turquesa-400)), var(--turquesa-500));
+  transition: width 0.5s ease;
+}
+
+.project-progress__text {
+  font-size: var(--font-size-xs);
+  color: var(--gris-500);
+  margin-top: 4px;
+  text-align: right;
+}
+
+/* --------------------------------------------------------------------------
+   HABITOS - Laboratorio de cambio
+   -------------------------------------------------------------------------- */
+
+.habits-page {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Tarjeta de habito activo mejorada */
+.habit-active-card {
+  background: linear-gradient(135deg, var(--turquesa-100), white);
+  border: 2px solid var(--turquesa-300);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  position: relative;
+  overflow: hidden;
+}
+
+.habit-active-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--turquesa-400), var(--tulip-tree-400));
+}
+
+/* Identidad del habito */
+.habit-active-card .habit-identity {
+  font-style: italic;
+  font-size: var(--font-size-lg);
+  color: var(--turquesa-700);
+  margin-bottom: var(--space-2);
+  padding-left: var(--space-2);
+  border-left: 4px solid var(--turquesa-400);
+  background: white;
+  padding: var(--space-2);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+/* Las 4 leyes visualizadas */
+.habit-laws {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.habit-law {
+  background: white;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--gris-300);
+}
+
+.habit-law--obvio { border-left-color: var(--turquesa-500); }
+.habit-law--atractivo { border-left-color: var(--rosa-500); }
+.habit-law--facil { border-left-color: var(--tulip-tree-500); }
+.habit-law--satisfactorio { border-left-color: var(--color-success); }
+
+.habit-law__title {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--gris-500);
+  margin-bottom: 4px;
+}
+
+.habit-law__content {
+  font-size: var(--font-size-sm);
+  color: var(--gris-700);
+}
+
+/* Calendario de habito (tracking) */
+.habit-calendar {
+  margin-top: var(--space-3);
+}
+
+.habit-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.habit-calendar__day {
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  background: var(--gris-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xs);
+  color: var(--gris-500);
+  transition: all 0.2s ease;
+}
+
+.habit-calendar__day--completed {
+  background: var(--turquesa-400);
+  color: white;
+}
+
+.habit-calendar__day--today {
+  border: 2px solid var(--turquesa-600);
+}
+
+/* Actividades atelicas */
+.atelic-activities {
+  background: linear-gradient(135deg, var(--tulip-tree-50), white);
+  border: 1px solid var(--tulip-tree-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.atelic-activities h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--tulip-tree-700);
+  margin-bottom: var(--space-2);
+}
+
+.atelic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: var(--space-2);
+}
+
+.atelic-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-2);
+  background: white;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--gris-200);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.atelic-item:hover {
+  border-color: var(--tulip-tree-400);
+  background: var(--tulip-tree-50);
+  transform: translateY(-2px);
+}
+
+.atelic-item__icon {
+  font-size: 24px;
+}
+
+.atelic-item__name {
+  font-size: var(--font-size-xs);
+  color: var(--gris-600);
+  text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   LOGROS - Celebracion y recapitulacion
+   -------------------------------------------------------------------------- */
+
+.achievements-page {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* Selector de periodo mejorado */
+.period-selector {
+  display: flex;
+  gap: 4px;
+  background: var(--gris-100);
+  padding: 4px;
+  border-radius: var(--radius-full);
+  width: fit-content;
+  margin: var(--space-3) auto;
+}
+
+.period-btn {
+  padding: var(--space-1) var(--space-3);
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-full);
+  font-weight: 500;
+  color: var(--gris-600);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.period-btn:hover {
+  color: var(--gris-800);
+}
+
+.period-btn.active {
+  background: white;
+  color: var(--turquesa-700);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Grid de estadisticas mejorado */
+.achievements-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+/* Card de recapitulacion */
+.recap-card {
+  background: linear-gradient(135deg, white, var(--turquesa-50));
+  border: 1px solid var(--turquesa-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  font-size: var(--font-size-lg);
+  line-height: 1.8;
+  color: var(--gris-700);
+}
+
+.recap-highlight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  background: var(--tulip-tree-100);
+  border-radius: var(--radius-md);
+  color: var(--tulip-tree-800);
+  font-weight: 500;
+}
+
+/* Heatmap contenedor */
+.heatmap-container {
+  background: white;
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  overflow-x: auto;
+}
+
+.heatmap-wrapper {
+  min-width: 700px;
+}
+
+/* Estilos de intensidad del heatmap */
+.heatmap-day--level-0 { background: var(--gris-100); }
+.heatmap-day--level-1 { background: var(--turquesa-200); }
+.heatmap-day--level-2 { background: var(--turquesa-400); }
+.heatmap-day--level-3 { background: var(--turquesa-500); }
+.heatmap-day--level-4 { background: var(--turquesa-600); }
+
+/* Seccion de logros espontaneos */
+.achievements-spontaneous {
+  background: linear-gradient(135deg, var(--tulip-tree-50), white);
+  border: 1px solid var(--tulip-tree-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.spontaneous-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.spontaneous-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: white;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-1);
+  transition: all 0.2s ease;
+}
+
+.spontaneous-item:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.spontaneous-item__mood {
+  font-size: 24px;
+}
+
+.spontaneous-item__text {
+  flex: 1;
+  color: var(--gris-800);
+}
+
+.spontaneous-item__date {
+  font-size: var(--font-size-xs);
+  color: var(--gris-500);
+}
+
+/* --------------------------------------------------------------------------
+   KANBAN - Horizontes temporales
+   -------------------------------------------------------------------------- */
+
+.kanban-page {
+  max-width: 100%;
+}
+
+/* Header del kanban con controles */
+.kanban-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+/* Tarjeta de tarea en kanban */
+.kanban-item {
+  background: white;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--gris-200);
+  margin-bottom: var(--space-1);
+  cursor: grab;
+  transition: all 0.2s ease;
+}
+
+.kanban-item:hover {
+  border-color: var(--turquesa-300);
+  box-shadow: var(--shadow-sm);
+}
+
+.kanban-item:active {
+  cursor: grabbing;
+  box-shadow: var(--shadow-md);
+}
+
+.kanban-item--dragging {
+  opacity: 0.5;
+  transform: rotate(2deg);
+}
+
+.kanban-item__text {
+  font-size: var(--font-size-sm);
+  color: var(--gris-800);
+  line-height: 1.5;
+}
+
+.kanban-item__project {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  color: var(--project-color, var(--gris-600));
+  margin-top: var(--space-1);
+  padding: 2px 6px;
+  background: rgba(0,0,0,0.05);
+  border-radius: var(--radius-sm);
+}
+
+/* Columnas de kanban */
+.kanban-column {
+  background: var(--gris-50);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2);
+  min-height: 300px;
+}
+
+.kanban-column__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-2);
+  border-bottom: 1px solid var(--gris-200);
+}
+
+.kanban-column__title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--gris-700);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.kanban-column__count {
+  font-size: var(--font-size-xs);
+  color: var(--gris-500);
+  background: var(--gris-200);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+/* --------------------------------------------------------------------------
+   FIN DE MEJORAS UI/UX v2.0
+   -------------------------------------------------------------------------- */
