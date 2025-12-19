@@ -386,8 +386,18 @@ export const initDailySetupModal = (data, updateData) => {
     }
   };
 
-  // Omitir setup
+  // Omitir setup - guardar la fecha para no volver a mostrar hoy
   document.getElementById('skip-setup')?.addEventListener('click', () => {
+    const today = new Date().toISOString().split('T')[0];
+
+    // Guardar solo la fecha (sin tiempo/energía) para evitar que vuelva a aparecer
+    data.dailySetup = {
+      ...data.dailySetup,
+      date: today,
+      skippedAt: new Date().toISOString()
+    };
+
+    updateData('dailySetup', data.dailySetup);
     modal.close();
   });
 

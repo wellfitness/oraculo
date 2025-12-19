@@ -4,11 +4,7 @@
  */
 
 import { loadData, saveData, getStorageUsage } from './storage.js';
-import {
-  needsDailySetup,
-  renderDailySetupModal,
-  initDailySetupModal
-} from './components/daily-setup-modal.js';
+import { needsDailySetup } from './components/daily-setup-modal.js';
 import {
   renderCalmTimerModal,
   initCalmTimer,
@@ -32,6 +28,7 @@ const state = {
 
 // Vistas disponibles
 const VIEWS = {
+  'daily-setup': 'Configurar Día',
   dashboard: 'Dashboard',
   values: 'Brújula de Valores',
   kanban: 'Horizontes',
@@ -59,19 +56,22 @@ export const init = () => {
   // Configurar eventos globales
   setupGlobalEvents();
 
-  // Inyectar modal de Volumen Fijo si está habilitado
-  if (state.data.burkemanSettings?.dailySetupEnabled !== false) {
-    injectDailySetupModal();
-  }
-
   // Inyectar temporizador de calma
   injectCalmTimerModal();
 
   // Inyectar modal de logros espontáneos
   injectSpontaneousModal();
 
+  // Verificar si necesita Daily Setup (página en lugar de modal)
+  const setupEnabled = state.data.burkemanSettings?.dailySetupEnabled !== false;
+  const needsSetup = setupEnabled && needsDailySetup(state.data);
+
   // Renderizar vista inicial
-  navigateTo('dashboard');
+  if (needsSetup) {
+    navigateTo('daily-setup');
+  } else {
+    navigateTo('dashboard');
+  }
 
   state.initialized = true;
   console.log('Oráculo inicializado');
@@ -117,22 +117,6 @@ const setupGlobalEvents = () => {
       saveData(state.data);
     }
   });
-};
-
-/**
- * Inyecta e inicializa el modal de Volumen Fijo
- */
-const injectDailySetupModal = () => {
-  // Crear contenedor para el modal
-  const modalContainer = document.createElement('div');
-  modalContainer.id = 'daily-setup-container';
-  modalContainer.innerHTML = renderDailySetupModal();
-
-  // Añadir al body
-  document.body.appendChild(modalContainer);
-
-  // Inicializar el modal
-  initDailySetupModal(state.data, updateData);
 };
 
 /**
