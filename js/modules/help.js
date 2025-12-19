@@ -163,7 +163,7 @@ export const render = (data) => {
             <p>Cuando el hábito está consolidado, "gradúalo" → se convierte en badge permanente.</p>
           `, 'No existen los "21 días mágicos". Cada hábito tiene su tiempo.')}
 
-          ${renderHelpCard('atelic', 'spa', 'Actividades Atélicas', 'Ocio SIN Objetivo', `
+          ${renderHelpCard('atelic', 'spa', 'Actividades de Ocio', 'Ocio SIN Objetivo', `
             <p>Actividades que haces por el placer de hacerlas, no por su resultado.</p>
             <h4>12 categorías:</h4>
             <p>Arte, música, lectura, naturaleza, movimiento, cocinar, jardinería, manualidades, juegos, socializar, contemplar, descansar.</p>

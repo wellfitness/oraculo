@@ -17,7 +17,7 @@ import { getReflexionDelDia } from '../data/burkeman.js';
 const TASK_TYPES = {
   importante: { name: 'Importante', icon: 'priority_high', color: 'var(--rosa-600)' },
   divertido: { name: 'Divertido', icon: 'mood', color: 'var(--tulip-tree-500)' },
-  atelico: { name: 'Atélico', icon: 'spa', color: 'var(--turquesa-600)' },
+  atelico: { name: 'Ocio', icon: 'spa', color: 'var(--turquesa-600)' },
   sincronia: { name: 'Sincronía', icon: 'group', color: 'var(--rosa-400)' }
 };
 

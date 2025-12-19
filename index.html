@@ -23,8 +23,13 @@
   <!-- Styles -->
   <link rel="stylesheet" href="landing.css">
 
-  <!-- Favicon -->
+  <!-- Favicon & PWA -->
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#06b6d4">
 </head>
 <body>
   <!-- Skip link para accesibilidad -->
@@ -74,11 +79,7 @@
           </p>
         </div>
         <div class="hero-image">
-          <div class="image-placeholder" data-aspect="4/3">
-            <span class="material-symbols-outlined placeholder-icon">self_improvement</span>
-            <span class="placeholder-text">Ilustración: Mujer serena organizando su día con calma</span>
-            <span class="placeholder-note">Estilo: minimalista, colores turquesa y rosa, sensación de paz</span>
-          </div>
+<img src="landing/images/hero_oraculo.png" alt="Mujer serena organizando su día con calma" class="hero-img" style="width: 100%; height: auto; border-radius: 1rem; box-shadow: var(--shadow-xl);">
         </div>
       </div>
       <div class="hero-wave">
@@ -93,11 +94,7 @@
       <div class="container">
         <div class="problema-content">
           <div class="problema-image">
-            <div class="image-placeholder" data-aspect="1/1">
-              <span class="material-symbols-outlined placeholder-icon">sentiment_stressed</span>
-              <span class="placeholder-text">Ilustración: Mujer abrumada por listas infinitas</span>
-              <span class="placeholder-note">Estilo: expresivo, sensación de agobio que se transforma</span>
-            </div>
+<img src="landing/images/problema_agobio.png" alt="Mujer abrumada por listas infinitas" class="problema-img" style="width: 100%; height: auto; border-radius: 1rem; box-shadow: var(--shadow-lg);">
           </div>
           <div class="problema-text">
             <h2>¿Te suena familiar?</h2>
@@ -430,9 +427,7 @@
             <h3>Dashboard</h3>
             <p>Tu foco del día con máximo 3 tareas. Hábito activo, eventos y logros de hoy.</p>
             <div class="modulo-image">
-              <div class="image-placeholder" data-aspect="16/10">
-                <span class="placeholder-text">Screenshot: Vista Dashboard con foco del día</span>
-              </div>
+<img src="landing/images/modulo_dashboard.png" alt="Dashboard con foco del día" class="modulo-img" style="width: 100%; height: auto; border-radius: 0.5rem;">
             </div>
           </article>
 
@@ -443,9 +438,7 @@
             <h3>Brújula de Valores</h3>
             <p>Tus 3-5 valores guía. Referencia para tomar decisiones alineadas contigo.</p>
             <div class="modulo-image">
-              <div class="image-placeholder" data-aspect="16/10">
-                <span class="placeholder-text">Screenshot: Brújula con valores personales</span>
-              </div>
+<img src="landing/images/modulo_brujula.png" alt="Brújula con valores personales" class="modulo-img" style="width: 100%; height: auto; border-radius: 0.5rem;">
             </div>
           </article>
 
@@ -456,9 +449,7 @@
             <h3>Kanban por Horizontes</h3>
             <p>Del trimestre al hoy. Backlog ilimitado, horizontes con límites estrictos.</p>
             <div class="modulo-image">
-              <div class="image-placeholder" data-aspect="16/10">
-                <span class="placeholder-text">Screenshot: Tablero Kanban con horizontes</span>
-              </div>
+<img src="landing/images/modulo_kanban.png" alt="Tablero Kanban con horizontes" class="modulo-img" style="width: 100%; height: auto; border-radius: 0.5rem;">
             </div>
           </article>
 
@@ -469,9 +460,7 @@
             <h3>Proyectos</h3>
             <p>Máximo 4 activos. Agrupa tareas bajo contextos con colores y progreso visual.</p>
             <div class="modulo-image">
-              <div class="image-placeholder" data-aspect="16/10">
-                <span class="placeholder-text">Screenshot: Vista de proyectos con progreso</span>
-              </div>
+<img src="landing/images/modulo_proyectos.png" alt="Vista de proyectos con progreso" class="modulo-img" style="width: 100%; height: auto; border-radius: 0.5rem;">
             </div>
           </article>
 
@@ -482,9 +471,7 @@
             <h3>Laboratorio de Hábitos</h3>
             <p>Un hábito a la vez. Identidad, micro-versión, las 4 leyes. Racha visual.</p>
             <div class="modulo-image">
-              <div class="image-placeholder" data-aspect="16/10">
-                <span class="placeholder-text">Screenshot: Hábito activo con racha</span>
-              </div>
+<img src="landing/images/modulo_lab.png" alt="Hábito activo con racha" class="modulo-img" style="width: 100%; height: auto; border-radius: 0.5rem;">
             </div>
           </article>
 
@@ -495,9 +482,7 @@
             <h3>Calendario</h3>
             <p>Vista semanal. Eventos puntuales y recurrentes. Exporta a Google Calendar.</p>
             <div class="modulo-image">
-              <div class="image-placeholder" data-aspect="16/10">
-                <span class="placeholder-text">Screenshot: Calendario semanal</span>
-              </div>
+<img src="landing/images/modulo_calendario.png" alt="Calendario semanal" class="modulo-img" style="width: 100%; height: auto; border-radius: 0.5rem;">
             </div>
           </article>
 
@@ -508,9 +493,7 @@
             <h3>Diario Reflexivo</h3>
             <p>6 tipos de entrada: check-ins, revisiones, meditación. Prompts guiados opcionales.</p>
             <div class="modulo-image">
-              <div class="image-placeholder" data-aspect="16/10">
-                <span class="placeholder-text">Screenshot: Entrada de diario</span>
-              </div>
+<img src="landing/images/modulo_diario.png" alt="Entrada de diario" class="modulo-img" style="width: 100%; height: auto; border-radius: 0.5rem;">
             </div>
           </article>
 
@@ -521,9 +504,7 @@
             <h3>Logros</h3>
             <p>Estadísticas por período. Heatmap de actividad. Celebra cada pequeño paso.</p>
             <div class="modulo-image">
-              <div class="image-placeholder" data-aspect="16/10">
-                <span class="placeholder-text">Screenshot: Estadísticas y heatmap</span>
-              </div>
+<img src="landing/images/modulo_logros.png" alt="Estadísticas y heatmap" class="modulo-img" style="width: 100%; height: auto; border-radius: 0.5rem;">
             </div>
           </article>
 
@@ -534,9 +515,7 @@
             <h3>Configuración</h3>
             <p>Cuadernos anuales, backup, preferencias Burkeman. Tus datos son tuyos.</p>
             <div class="modulo-image">
-              <div class="image-placeholder" data-aspect="16/10">
-                <span class="placeholder-text">Screenshot: Panel de configuración</span>
-              </div>
+<img src="landing/images/modulo_config.png" alt="Panel de configuración" class="modulo-img" style="width: 100%; height: auto; border-radius: 0.5rem;">
             </div>
           </article>
         </div>
@@ -600,17 +579,10 @@
 
           <blockquote class="cita-card">
             <p>"También está permitido simplemente ser. El ocio sin objetivo es tan valioso como la productividad."</p>
-            <cite>— Actividades Atélicas</cite>
+            <cite>— Actividades de ocio</cite>
           </blockquote>
         </div>
 
-        <div class="testimonios-placeholder">
-          <div class="image-placeholder" data-aspect="3/1">
-            <span class="material-symbols-outlined placeholder-icon">groups</span>
-            <span class="placeholder-text">Espacio para testimonios de usuarias reales</span>
-            <span class="placeholder-note">Se añadirán cuando la comunidad crezca</span>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -672,6 +644,9 @@
       <div class="footer-bottom">
         <p>&copy; 2025 Oráculo. Hecho con <span class="material-symbols-outlined">favorite</span> para quienes quieren organizarse para cuidarse.</p>
         <p class="footer-credits">Inspirado en "4000 Semanas" de Oliver Burkeman y "Hábitos Atómicos" de James Clear.</p>
+        <p class="footer-legal">
+          <a href="aviso-legal.html">Aviso Legal</a> · <a href="privacidad.html">Privacidad</a>
+        </p>
       </div>
     </div>
   </footer>
