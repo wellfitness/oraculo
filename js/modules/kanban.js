@@ -380,6 +380,10 @@ export const render = (data) => {
             <p class="page-description">
               Elige tu foco del día, planifica en los horizontes y captura ideas en el backlog.
             </p>
+            <a href="#daily-setup" data-view="daily-setup" class="dashboard__reconfigure" title="Reconfigurar mi día">
+              <span class="material-symbols-outlined">tune</span>
+              <span>Reconfigurar día</span>
+            </a>
           </div>
 
           ${projects.length > 0 ? `
