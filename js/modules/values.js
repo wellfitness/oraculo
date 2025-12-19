@@ -4,6 +4,7 @@
  */
 
 import { generateId, showNotification } from '../app.js';
+import { getReflexionDelDia } from '../data/burkeman.js';
 
 let updateDataCallback = null;
 const MAX_VALUES = 5;
@@ -59,6 +60,10 @@ export const render = (data) => {
           <blockquote class="reflection-prompt">
             "¿Esto me acerca a vivir según mis valores de
             <strong>${values.map(v => v.name).join(', ')}</strong>?"
+          </blockquote>
+          <blockquote class="quote quote--secondary">
+            <p>"${getReflexionDelDia('values')}"</p>
+            <cite>— Oliver Burkeman</cite>
           </blockquote>
         </section>
       ` : ''}

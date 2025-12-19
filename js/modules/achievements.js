@@ -9,6 +9,13 @@ import {
   generateHeatmapGrid,
   getCompletedCountByHorizon
 } from '../utils/achievements-calculator.js';
+import { getReflexionDelDia } from '../data/burkeman.js';
+import {
+  getSpontaneousAchievements,
+  getMoodIcon,
+  getMoodName,
+  deleteSpontaneousAchievement
+} from '../components/spontaneous-achievement.js';
 
 let currentPeriod = 'week';
 
@@ -33,6 +40,7 @@ export const render = (data) => {
   const stats = getAchievementsStats(data, currentPeriod);
   const recapText = generateRecapText(data, currentPeriod);
   const graduatedHabits = data.habits?.graduated || [];
+  const spontaneous = getSpontaneousAchievements(data, currentPeriod);
 
   return `
     <div class="achievements-page">
@@ -44,6 +52,10 @@ export const render = (data) => {
         <p class="page-description">
           Celebra lo que has conseguido. Cada pequeño paso cuenta.
         </p>
+        <blockquote class="quote quote--header">
+          <p>"${getReflexionDelDia('achievements')}"</p>
+          <cite>— Oliver Burkeman</cite>
+        </blockquote>
       </header>
 
       <!-- Selector de período -->
@@ -76,6 +88,11 @@ export const render = (data) => {
           <span class="material-symbols-outlined stat-icon">edit_note</span>
           <span class="stat-value">${stats.journalEntries}</span>
           <span class="stat-label">Entradas de diario</span>
+        </div>
+        <div class="stat-card stat-card--spontaneous">
+          <span class="material-symbols-outlined stat-icon icon-warning">celebration</span>
+          <span class="stat-value">${spontaneous.length}</span>
+          <span class="stat-label">Logros espontáneos</span>
         </div>
       </section>
 
@@ -118,6 +135,9 @@ export const render = (data) => {
         </div>
       </section>
 
+      <!-- Logros espontáneos -->
+      ${renderSpontaneousSection(spontaneous)}
+
       <!-- Hábitos graduados -->
       ${graduatedHabits.length > 0 ? `
         <section class="achievements-graduated">
@@ -153,8 +173,19 @@ export const init = (data, updateData) => {
       document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
 
-      // Re-renderizar estadísticas
+      // Re-renderizar estadísticas y logros espontáneos
       updateStats(data);
+      updateSpontaneousList(data);
+    });
+  });
+
+  // Botones de eliminar logros espontáneos
+  document.querySelectorAll('.spontaneous-item__delete').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.target.closest('[data-id]').dataset.id;
+      deleteSpontaneousAchievement(id, data, updateData);
+      // Re-renderizar la lista
+      updateSpontaneousList(data);
     });
   });
 };
@@ -165,14 +196,16 @@ export const init = (data, updateData) => {
 const updateStats = (data) => {
   const stats = getAchievementsStats(data, currentPeriod);
   const recapText = generateRecapText(data, currentPeriod);
+  const spontaneous = getSpontaneousAchievements(data, currentPeriod);
 
   // Actualizar contadores
   const statCards = document.querySelectorAll('.stat-card .stat-value');
-  if (statCards.length >= 4) {
+  if (statCards.length >= 5) {
     statCards[0].textContent = stats.totalTasks;
     statCards[1].textContent = stats.habitDays;
     statCards[2].textContent = stats.projectsCompleted;
     statCards[3].textContent = stats.journalEntries;
+    statCards[4].textContent = spontaneous.length;
   }
 
   // Actualizar recapitulación
@@ -193,6 +226,31 @@ const updateStats = (data) => {
   const progressList = document.querySelector('.progress-list');
   if (progressList) {
     progressList.innerHTML = renderProgressBars(data.objectives || {});
+  }
+};
+
+/**
+ * Actualiza la lista de logros espontáneos
+ */
+const updateSpontaneousList = (data) => {
+  const spontaneous = getSpontaneousAchievements(data, currentPeriod);
+  const section = document.querySelector('.achievements-spontaneous');
+
+  if (section) {
+    section.outerHTML = renderSpontaneousSection(spontaneous);
+
+    // Re-añadir event listeners para los nuevos botones de eliminar
+    document.querySelectorAll('.spontaneous-item__delete').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.target.closest('[data-id]').dataset.id;
+        deleteSpontaneousAchievement(id, data, () => {
+          // Actualizar datos en memoria
+          data.spontaneousAchievements = data.spontaneousAchievements.filter(a => a.id !== id);
+          updateSpontaneousList(data);
+          updateStats(data);
+        });
+      });
+    });
   }
 };
 
@@ -283,4 +341,70 @@ const formatShortDate = (isoDate) => {
   if (!isoDate) return '';
   const date = new Date(isoDate);
   return date.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+};
+
+/**
+ * Renderiza la sección de logros espontáneos
+ */
+const renderSpontaneousSection = (achievements) => {
+  if (!achievements || achievements.length === 0) {
+    return `
+      <section class="achievements-spontaneous">
+        <h2>
+          <span class="material-symbols-outlined icon-sm icon-warning">celebration</span>
+          Logros espontáneos
+        </h2>
+        <div class="spontaneous-empty">
+          <p class="empty-state">
+            Aún no has registrado logros espontáneos en este período.
+          </p>
+          <p class="hint">
+            Los logros espontáneos son cosas que conseguiste sin haberlas planificado:
+            una buena conversación, un problema resuelto creativamente, un momento de alegría inesperado...
+          </p>
+        </div>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="achievements-spontaneous">
+      <h2>
+        <span class="material-symbols-outlined icon-sm icon-warning">celebration</span>
+        Logros espontáneos
+      </h2>
+      <ul class="spontaneous-list">
+        ${achievements.map(a => renderSpontaneousItem(a)).join('')}
+      </ul>
+    </section>
+  `;
+};
+
+/**
+ * Renderiza un item de logro espontáneo
+ */
+const renderSpontaneousItem = (achievement) => {
+  const date = new Date(achievement.createdAt);
+  const formattedDate = date.toLocaleDateString('es-ES', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short'
+  });
+
+  return `
+    <li class="spontaneous-item" data-id="${achievement.id}">
+      <div class="spontaneous-item__mood">
+        <span class="material-symbols-outlined">${getMoodIcon(achievement.mood)}</span>
+      </div>
+      <div class="spontaneous-item__content">
+        <p class="spontaneous-item__text">${achievement.text}</p>
+        <span class="spontaneous-item__meta">
+          ${formattedDate} · ${getMoodName(achievement.mood)}
+        </span>
+      </div>
+      <button class="spontaneous-item__delete btn--icon" data-id="${achievement.id}" title="Eliminar">
+        <span class="material-symbols-outlined icon-sm">close</span>
+      </button>
+    </li>
+  `;
 };

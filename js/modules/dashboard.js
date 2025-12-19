@@ -3,8 +3,9 @@
  * Vista principal con resumen del día
  */
 
-import { generateId, formatDate, showNotification } from '../app.js';
+import { generateId, formatDate, showNotification, openCalmTimer, openSpontaneousModal } from '../app.js';
 import { getAchievementsStats, isHabitCompletedToday } from '../utils/achievements-calculator.js';
+import { getReflexionDelDia } from '../data/burkeman.js';
 
 let updateDataCallback = null;
 
@@ -90,12 +91,28 @@ export const render = (data) => {
 
       ${renderTodayAchievements(data)}
 
+      <section class="dashboard__section dashboard__calm">
+        <button class="calm-trigger" id="open-calm-timer">
+          <span class="material-symbols-outlined">self_improvement</span>
+          <div class="calm-trigger__content">
+            <span class="calm-trigger__title">5 minutos de calma</span>
+            <span class="calm-trigger__subtitle">Práctica de presencia</span>
+          </div>
+        </button>
+      </section>
+
       <section class="dashboard__section dashboard__quote">
         <blockquote class="quote">
-          <p>"${getRandomQuote()}"</p>
+          <p>"${getReflexionDelDia('dashboard')}"</p>
           <cite>— Oliver Burkeman</cite>
         </blockquote>
       </section>
+
+      <!-- Botón flotante para logros espontáneos -->
+      <button class="fab fab--achievement" id="fab-achievement" title="Registrar un logro espontáneo">
+        <span class="material-symbols-outlined">celebration</span>
+        <span class="fab-label">+ Logro</span>
+      </button>
     </div>
   `;
 };
@@ -129,6 +146,15 @@ export const init = (data, updateData) => {
     });
   });
 
+  // Botón de Roca Principal
+  document.querySelectorAll('.focus-rock').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      handleToggleRock(e.target.closest('[data-id]').dataset.id, data);
+    });
+  });
+
   // Marcar hábito como completado hoy
   const habitCheckBtn = document.getElementById('habit-check-today');
   if (habitCheckBtn) {
@@ -136,27 +162,56 @@ export const init = (data, updateData) => {
       handleHabitCheckToday(data);
     });
   }
+
+  // Botón de temporizador de calma
+  const calmTimerBtn = document.getElementById('open-calm-timer');
+  if (calmTimerBtn) {
+    calmTimerBtn.addEventListener('click', () => {
+      openCalmTimer();
+    });
+  }
+
+  // Botón flotante de logros espontáneos
+  const fabAchievement = document.getElementById('fab-achievement');
+  if (fabAchievement) {
+    fabAchievement.addEventListener('click', () => {
+      openSpontaneousModal();
+    });
+  }
 };
 
 /**
  * Renderiza una tarea del foco diario
  */
-const renderFocusTask = (task) => `
-  <li class="focus-item ${task.completed ? 'focus-item--completed' : ''}">
-    <label class="focus-label">
-      <input
-        type="checkbox"
-        class="focus-checkbox"
-        data-id="${task.id}"
-        ${task.completed ? 'checked' : ''}
-      >
-      <span class="focus-text">${task.text}</span>
-    </label>
-    <button class="focus-delete btn--icon" data-id="${task.id}" title="Eliminar">
-      <span class="material-symbols-outlined icon-sm">close</span>
-    </button>
-  </li>
-`;
+const renderFocusTask = (task) => {
+  const isRock = task.isRocaPrincipal;
+  return `
+    <li class="focus-item ${task.completed ? 'focus-item--completed' : ''} ${isRock ? 'focus-item--rock' : ''}" data-id="${task.id}">
+      <label class="focus-label">
+        <input
+          type="checkbox"
+          class="focus-checkbox"
+          data-id="${task.id}"
+          ${task.completed ? 'checked' : ''}
+        >
+        ${isRock ? '<span class="material-symbols-outlined icon-rock filled">diamond</span>' : ''}
+        <span class="focus-text">${task.text}</span>
+      </label>
+      <div class="focus-actions">
+        <button
+          class="focus-rock btn--icon ${isRock ? 'active' : ''}"
+          data-id="${task.id}"
+          title="${isRock ? 'Quitar como Roca Principal' : 'Marcar como Roca Principal'}"
+        >
+          <span class="material-symbols-outlined icon-sm">${isRock ? 'diamond' : 'workspaces'}</span>
+        </button>
+        <button class="focus-delete btn--icon" data-id="${task.id}" title="Eliminar">
+          <span class="material-symbols-outlined icon-sm">close</span>
+        </button>
+      </div>
+    </li>
+  `;
+};
 
 /**
  * Renderiza el hábito activo
@@ -215,6 +270,7 @@ const handleAddFocus = (data) => {
     id: generateId(),
     text,
     completed: false,
+    isRocaPrincipal: false,
     createdAt: new Date().toISOString()
   };
 
@@ -247,6 +303,32 @@ const handleToggleTask = (taskId, completed, data) => {
  */
 const handleDeleteTask = (taskId, data) => {
   data.objectives.daily = data.objectives.daily.filter(t => t.id !== taskId);
+  updateDataCallback('objectives.daily', data.objectives.daily);
+  location.reload(); // Temporal
+};
+
+/**
+ * Marca/desmarca una tarea como Roca Principal
+ * Solo puede haber UNA Roca Principal a la vez
+ */
+const handleToggleRock = (taskId, data) => {
+  const task = data.objectives.daily.find(t => t.id === taskId);
+  if (!task) return;
+
+  if (task.isRocaPrincipal) {
+    // Quitar como Roca Principal
+    task.isRocaPrincipal = false;
+    showNotification('Roca Principal quitada', 'info');
+  } else {
+    // Quitar cualquier otra Roca Principal existente
+    data.objectives.daily.forEach(t => {
+      t.isRocaPrincipal = false;
+    });
+    // Marcar esta como Roca Principal
+    task.isRocaPrincipal = true;
+    showNotification('🪨 Esta es tu Roca Principal de hoy. ¡Hazla primero!', 'success');
+  }
+
   updateDataCallback('objectives.daily', data.objectives.daily);
   location.reload(); // Temporal
 };
@@ -414,20 +496,5 @@ const renderTodayAchievements = (data) => {
   `;
 };
 
-/**
- * Citas de Burkeman para mostrar aleatoriamente
- */
-const getRandomQuote = () => {
-  const quotes = [
-    "No puedes hacerlo todo. Y eso está bien.",
-    "El problema no es que tengamos poco tiempo, es que intentamos meter demasiado.",
-    "Cada vez que dices 'sí' a algo, estás diciendo 'no' a todo lo demás.",
-    "La productividad no consiste en hacer más, sino en elegir mejor.",
-    "Aceptar tus límites es el primer paso hacia la libertad.",
-    "No tienes que ganarte el derecho a existir siendo productiva.",
-    "El tiempo que tienes es el tiempo que tienes. Úsalo en lo que importa.",
-    "Priorizar significa decepcionar algunas expectativas, incluidas las tuyas."
-  ];
-
-  return quotes[Math.floor(Math.random() * quotes.length)];
-};
+// Las reflexiones de Burkeman ahora se importan de ../data/burkeman.js
+// Usamos getReflexionDelDia('dashboard') que rota según el día del año

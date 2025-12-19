@@ -4,6 +4,12 @@
  */
 
 import { generateId, showNotification, formatDate } from '../app.js';
+import {
+  getReflexionDelDia,
+  getPromptsIncomodidad,
+  getPreguntasJung,
+  getZoomingOut
+} from '../data/burkeman.js';
 
 let updateDataCallback = null;
 
@@ -12,6 +18,8 @@ const ENTRY_TYPES = {
   daily: { name: 'Check-in diario', icon: 'wb_sunny', iconClass: 'icon-warning' },
   weekly: { name: 'Revisión semanal', icon: 'date_range', iconClass: 'icon-primary' },
   quarterly: { name: 'Revisión trimestral', icon: 'flag', iconClass: 'icon-secondary' },
+  discomfort: { name: 'Registro de incomodidad', icon: 'psychology', iconClass: 'icon-secondary' },
+  meditation: { name: 'Meditación', icon: 'self_improvement', iconClass: 'icon-primary' },
   free: { name: 'Escritura libre', icon: 'edit_note', iconClass: 'icon-muted' }
 };
 
@@ -37,6 +45,14 @@ const PROMPTS = {
     '¿Qué quiero hacer diferente el próximo trimestre?',
     '¿Estoy cuidando de mi salud física y mental?'
   ],
+  discomfort: getPromptsIncomodidad(),
+  meditation: [
+    '¿Qué surgió durante la práctica?',
+    '¿Qué pensamientos o sensaciones notaste?',
+    '¿Hubo algún momento de resistencia?',
+    '¿Cómo te sientes ahora comparado con antes?'
+  ],
+  jung: getPreguntasJung(),
   free: []
 };
 
@@ -56,6 +72,10 @@ export const render = (data) => {
           Reflexionar te ayuda a tomar mejores decisiones. No tiene que ser perfecto,
           solo tiene que ser honesto.
         </p>
+        <blockquote class="quote quote--header">
+          <p>"${getReflexionDelDia('journal')}"</p>
+          <cite>— Oliver Burkeman</cite>
+        </blockquote>
       </header>
 
       <section class="journal-new">

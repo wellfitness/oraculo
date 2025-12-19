@@ -4,7 +4,7 @@
  */
 
 const STORAGE_KEY = 'oraculo_data';
-const STORAGE_VERSION = '1.2';
+const STORAGE_VERSION = '1.3';
 const MAX_ACTIVE_PROJECTS = 4;
 
 // Estructura inicial de datos
@@ -16,12 +16,13 @@ const getDefaultData = () => ({
   // Brújula de valores
   values: [],
 
-  // Objetivos por horizonte temporal
+  // Objetivos por horizonte temporal (Listas Duales Burkeman)
   objectives: {
+    backlog: [],    // Lista abierta - sin límite (captura de ideas)
     quarterly: [],  // Máx 3 objetivos trimestrales
     monthly: [],    // Hitos mensuales
     weekly: [],     // Tareas de la semana
-    daily: []       // Foco del día (máx 3)
+    daily: []       // En Foco - lista cerrada (máx 3)
   },
 
   // Laboratorio de hábitos
@@ -58,7 +59,39 @@ const getDefaultData = () => ({
   },
 
   // Metadatos de cuadernos archivados
-  archivedNotebooks: []
+  archivedNotebooks: [],
+
+  // ============================================================
+  // SISTEMA BURKEMAN (v1.3)
+  // ============================================================
+
+  // Setup diario - Volumen Fijo
+  // Define tiempo/energía disponible ANTES de elegir tareas
+  dailySetup: {
+    date: null,                    // YYYY-MM-DD del setup
+    availableTime: null,           // '2h' | '4h' | '6h' | 'full'
+    energyLevel: null,             // 'low' | 'medium' | 'high'
+    dailyLimit: 3,                 // Límite dinámico para tareas diarias
+    rocaPrincipal: null,           // ID de la tarea prioritaria del día
+    setupAt: null                  // Timestamp del setup
+  },
+
+  // Logros espontáneos - Done List
+  // Registro de logros que no estaban planificados
+  spontaneousAchievements: [],     // { id, text, createdAt, mood }
+
+  // Actividades atélicas - Descanso sin objetivo
+  // Ocio donde está permitido "ser malo"
+  atelicActivities: [],            // { id, name, date, duration?, note?, icon }
+
+  // Preferencias del Sistema Burkeman
+  burkemanSettings: {
+    showReflexiones: true,         // Mostrar reflexiones rotativas
+    menuModeDefault: false,        // Kanban en modo menú por defecto
+    dailySetupEnabled: true,       // Mostrar modal de setup diario
+    atelicReminder: true,          // Recordar tomar descansos atélicos
+    askValueOnPriority: true       // Preguntar valor al marcar roca principal
+  }
 });
 
 /**
@@ -222,6 +255,36 @@ const migrateData = (oldData) => {
   // Migrar notebook y archivedNotebooks si existen
   if (oldData.notebook) newData.notebook = oldData.notebook;
   if (oldData.archivedNotebooks) newData.archivedNotebooks = oldData.archivedNotebooks;
+
+  // ============================================================
+  // Migración v1.2 → v1.3 (Sistema Burkeman)
+  // ============================================================
+
+  // Migrar campos Burkeman si existen (en caso de migración parcial)
+  if (oldData.dailySetup) newData.dailySetup = { ...newData.dailySetup, ...oldData.dailySetup };
+  if (oldData.spontaneousAchievements) newData.spontaneousAchievements = oldData.spontaneousAchievements;
+  if (oldData.atelicActivities) newData.atelicActivities = oldData.atelicActivities;
+  if (oldData.burkemanSettings) {
+    newData.burkemanSettings = { ...newData.burkemanSettings, ...oldData.burkemanSettings };
+  }
+
+  // Migrar tareas diarias: añadir campos Burkeman si no existen
+  if (newData.objectives.daily) {
+    newData.objectives.daily = newData.objectives.daily.map(task => ({
+      ...task,
+      isRocaPrincipal: task.isRocaPrincipal || false,
+      taskType: task.taskType || null,
+      valueId: task.valueId || null
+    }));
+  }
+
+  // Migrar eventos: añadir campo isSincronia si no existe
+  if (newData.calendar.events) {
+    newData.calendar.events = newData.calendar.events.map(event => ({
+      ...event,
+      isSincronia: event.isSincronia || false
+    }));
+  }
 
   saveData(newData);
   console.log('Datos migrados a versión', STORAGE_VERSION);

@@ -4,6 +4,24 @@
  */
 
 import { loadData, saveData, getStorageUsage } from './storage.js';
+import {
+  needsDailySetup,
+  renderDailySetupModal,
+  initDailySetupModal
+} from './components/daily-setup-modal.js';
+import {
+  renderCalmTimerModal,
+  initCalmTimer,
+  openCalmTimer
+} from './components/calm-timer.js';
+import {
+  renderSpontaneousModal,
+  initSpontaneousModal,
+  openSpontaneousModal
+} from './components/spontaneous-achievement.js';
+
+// Exportar funciones para uso en otros módulos
+export { openCalmTimer, openSpontaneousModal };
 
 // Estado global de la aplicación
 const state = {
@@ -22,7 +40,8 @@ const VIEWS = {
   calendar: 'Calendario',
   journal: 'Diario',
   achievements: 'Logros',
-  settings: 'Configuración'
+  settings: 'Configuración',
+  help: 'Ayuda'
 };
 
 /**
@@ -39,6 +58,17 @@ export const init = () => {
 
   // Configurar eventos globales
   setupGlobalEvents();
+
+  // Inyectar modal de Volumen Fijo si está habilitado
+  if (state.data.burkemanSettings?.dailySetupEnabled !== false) {
+    injectDailySetupModal();
+  }
+
+  // Inyectar temporizador de calma
+  injectCalmTimerModal();
+
+  // Inyectar modal de logros espontáneos
+  injectSpontaneousModal();
 
   // Renderizar vista inicial
   navigateTo('dashboard');
@@ -87,6 +117,46 @@ const setupGlobalEvents = () => {
       saveData(state.data);
     }
   });
+};
+
+/**
+ * Inyecta e inicializa el modal de Volumen Fijo
+ */
+const injectDailySetupModal = () => {
+  // Crear contenedor para el modal
+  const modalContainer = document.createElement('div');
+  modalContainer.id = 'daily-setup-container';
+  modalContainer.innerHTML = renderDailySetupModal();
+
+  // Añadir al body
+  document.body.appendChild(modalContainer);
+
+  // Inicializar el modal
+  initDailySetupModal(state.data, updateData);
+};
+
+/**
+ * Inyecta e inicializa el temporizador de calma
+ */
+const injectCalmTimerModal = () => {
+  const modalContainer = document.createElement('div');
+  modalContainer.id = 'calm-timer-container';
+  modalContainer.innerHTML = renderCalmTimerModal();
+
+  document.body.appendChild(modalContainer);
+  initCalmTimer(state.data, updateData);
+};
+
+/**
+ * Inyecta e inicializa el modal de logros espontáneos
+ */
+const injectSpontaneousModal = () => {
+  const modalContainer = document.createElement('div');
+  modalContainer.id = 'spontaneous-container';
+  modalContainer.innerHTML = renderSpontaneousModal();
+
+  document.body.appendChild(modalContainer);
+  initSpontaneousModal(state.data, updateData);
 };
 
 /**
