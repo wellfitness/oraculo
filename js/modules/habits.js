@@ -236,7 +236,7 @@ export const render = (data) => {
         <form method="dialog" class="modal-content" id="atelic-form">
           <h2 class="modal-title">
             <span class="material-symbols-outlined icon-primary">spa</span>
-            Registrar Descanso Atélico
+            Registrar Actividad de Ocio
           </h2>
 
           <p class="modal-subtitle">
@@ -316,10 +316,10 @@ const renderAtelicSection = (activities) => {
         <div>
           <h2>
             <span class="material-symbols-outlined icon-primary">spa</span>
-            Descanso Atélico
+            Actividades de Ocio
           </h2>
           <p class="section-description">
-            Ocio sin objetivo productivo. Aquí no hay racha, ni metas, ni "mejorar".
+            Ocio sin objetivo. Aquí no hay racha, ni metas, ni "mejorar".
           </p>
         </div>
         <button class="btn btn--secondary" id="add-atelic-btn">
@@ -792,7 +792,7 @@ const saveAtelicActivity = (data) => {
   updateDataCallback('atelicActivities', data.atelicActivities);
 
   document.getElementById('atelic-modal').close();
-  showNotification('¡Descanso atélico registrado! El ocio es un fin en sí mismo.', 'success');
+  showNotification('¡Actividad de ocio registrada! El ocio es un fin en sí mismo.', 'success');
   location.reload();
 };
 

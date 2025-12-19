@@ -1141,6 +1141,21 @@ section {
   font-size: var(--text-xs);
 }
 
+.footer-legal {
+  margin-top: var(--space-4);
+  font-size: var(--text-xs);
+}
+
+.footer-legal a {
+  color: var(--color-gray-500);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footer-legal a:hover {
+  color: var(--color-primary);
+}
+
 /* ===================================
    4000 SEMANAS - VISUALIZACIÓN INTERACTIVA
    Estilo minimalista Dieter Rams
