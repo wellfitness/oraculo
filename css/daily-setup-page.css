@@ -1,0 +1,579 @@
+/* ==========================================================================
+   Oraculo - Daily Setup Page
+   Pagina dedicada de configuracion diaria (Volumen Fijo)
+   Mobile-first, compacta, todo en una vista
+
+   Este archivo contiene los estilos para la pagina de Daily Setup.
+   Para integrarlo al proyecto, copiar estos estilos a style.css
+   o importar este archivo.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Daily Setup Page - Layout Principal
+   -------------------------------------------------------------------------- */
+.daily-setup-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height para movil */
+  padding: var(--space-2);
+  max-width: 480px;
+  margin: 0 auto;
+  background: linear-gradient(180deg, var(--turquesa-50) 0%, var(--gris-50) 50%);
+}
+
+/* --------------------------------------------------------------------------
+   Header Compacto
+   -------------------------------------------------------------------------- */
+.setup-page__header {
+  text-align: center;
+  padding: var(--space-2) 0;
+  flex-shrink: 0;
+}
+
+.setup-page__icon {
+  font-size: 36px;
+  color: var(--color-primary);
+  margin-bottom: var(--space-1);
+}
+
+.setup-page__title {
+  font-family: var(--font-family-headings);
+  font-size: var(--font-size-xl);
+  color: var(--gris-800);
+  margin: 0 0 4px 0;
+}
+
+.setup-page__subtitle {
+  color: var(--gris-500);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Selectores Compactos (Tiempo + Energia en UNA fila)
+   Usa display grid 1fr 1fr para dividir el espacio
+   -------------------------------------------------------------------------- */
+.setup-page__selectors {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-2);
+  flex-shrink: 0;
+}
+
+.selector-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.selector-group__label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--gris-600);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.selector-group__label .material-symbols-outlined {
+  font-size: 16px;
+  color: var(--color-primary);
+}
+
+/* --------------------------------------------------------------------------
+   Chips de Seleccion - Estilo Segmentado
+   Similar a iOS segmented control pero con iconos
+   -------------------------------------------------------------------------- */
+.selector-chips {
+  display: flex;
+  gap: 4px;
+  background: var(--gris-100);
+  padding: 4px;
+  border-radius: var(--radius-md);
+}
+
+.selector-chip {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--space-1) 4px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: var(--font-family-body);
+  min-height: 48px; /* Touch target minimo */
+}
+
+.selector-chip:hover {
+  background: white;
+}
+
+.selector-chip:focus-visible {
+  outline: 2px solid var(--turquesa-400);
+  outline-offset: 2px;
+}
+
+.selector-chip[aria-pressed="true"],
+.selector-chip.selected {
+  background: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.selector-chip__icon {
+  font-size: 20px;
+  color: var(--gris-400);
+  transition: color var(--transition-fast);
+}
+
+.selector-chip[aria-pressed="true"] .selector-chip__icon,
+.selector-chip.selected .selector-chip__icon {
+  color: var(--color-primary);
+}
+
+/* Colores especiales para energia */
+.selector-chip[data-energy="low"][aria-pressed="true"] .selector-chip__icon,
+.selector-chip[data-energy="low"].selected .selector-chip__icon {
+  color: var(--rosa-400);
+}
+
+.selector-chip[data-energy="high"][aria-pressed="true"] .selector-chip__icon,
+.selector-chip[data-energy="high"].selected .selector-chip__icon {
+  color: var(--turquesa-600);
+}
+
+.selector-chip__label {
+  font-size: 10px;
+  color: var(--gris-500);
+  font-weight: 500;
+}
+
+.selector-chip[aria-pressed="true"] .selector-chip__label,
+.selector-chip.selected .selector-chip__label {
+  color: var(--gris-800);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   Resultado Calculado (Compacto, animado)
+   -------------------------------------------------------------------------- */
+.setup-page__result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  background: linear-gradient(135deg, var(--turquesa-100), var(--rosa-100));
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
+  flex-shrink: 0;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.setup-page__result.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.setup-page__result-icon {
+  font-size: 24px;
+  color: var(--turquesa-700);
+}
+
+.setup-page__result-text {
+  font-size: var(--font-size-sm);
+  color: var(--gris-700);
+}
+
+.setup-page__result-limit {
+  font-family: var(--font-family-headings);
+  font-size: var(--font-size-lg);
+  color: var(--turquesa-600);
+}
+
+/* --------------------------------------------------------------------------
+   Lista de Tareas (Area scrollable)
+   Usa flex: 1 para ocupar espacio disponible
+   -------------------------------------------------------------------------- */
+.setup-page__tasks {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  min-height: 0; /* Importante para flex scroll */
+}
+
+.setup-page__tasks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--gris-200);
+  flex-shrink: 0;
+}
+
+.setup-page__tasks-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--gris-700);
+  margin: 0;
+}
+
+.setup-page__tasks-title .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--color-primary);
+}
+
+.setup-page__tasks-counter {
+  font-size: var(--font-size-xs);
+  color: var(--gris-500);
+  background: var(--gris-100);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  transition: all var(--transition-fast);
+}
+
+.setup-page__tasks-counter--full {
+  background: var(--turquesa-100);
+  color: var(--turquesa-700);
+}
+
+/* Lista scrollable */
+.setup-page__tasks-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-1);
+  list-style: none;
+  margin: 0;
+}
+
+/* Scrollbar personalizada */
+.setup-page__tasks-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.setup-page__tasks-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.setup-page__tasks-list::-webkit-scrollbar-thumb {
+  background: var(--gris-300);
+  border-radius: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Task Item Compacto
+   -------------------------------------------------------------------------- */
+.setup-task {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+  cursor: pointer;
+  animation: slideInTask 0.2s ease backwards;
+}
+
+.setup-task:hover {
+  background: var(--gris-50);
+}
+
+.setup-task--selected {
+  background: var(--turquesa-50);
+}
+
+.setup-task--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Animacion escalonada */
+.setup-task:nth-child(1) { animation-delay: 0.05s; }
+.setup-task:nth-child(2) { animation-delay: 0.1s; }
+.setup-task:nth-child(3) { animation-delay: 0.15s; }
+.setup-task:nth-child(4) { animation-delay: 0.2s; }
+.setup-task:nth-child(5) { animation-delay: 0.25s; }
+.setup-task:nth-child(6) { animation-delay: 0.3s; }
+.setup-task:nth-child(7) { animation-delay: 0.35s; }
+.setup-task:nth-child(8) { animation-delay: 0.4s; }
+
+@keyframes slideInTask {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Checkbox custom accesible */
+.setup-task__checkbox {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.setup-task__checkbox input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  margin: 0;
+}
+
+.setup-task__checkbox input:disabled {
+  cursor: not-allowed;
+}
+
+.setup-task__check-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--gris-300);
+  border-radius: var(--radius-sm);
+  background: white;
+  transition: all var(--transition-fast);
+  pointer-events: none;
+}
+
+.setup-task__check-icon .material-symbols-outlined {
+  font-size: 14px;
+  color: transparent;
+  transition: color var(--transition-fast);
+}
+
+.setup-task__checkbox input:checked + .setup-task__check-icon {
+  background: var(--turquesa-600);
+  border-color: var(--turquesa-600);
+}
+
+.setup-task__checkbox input:checked + .setup-task__check-icon .material-symbols-outlined {
+  color: white;
+}
+
+.setup-task__checkbox input:focus-visible + .setup-task__check-icon {
+  outline: 2px solid var(--turquesa-400);
+  outline-offset: 2px;
+}
+
+/* Contenido de la tarea */
+.setup-task__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.setup-task__text {
+  font-size: var(--font-size-sm);
+  color: var(--gris-800);
+  margin: 0 0 4px 0;
+  line-height: 1.3;
+}
+
+.setup-task__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.setup-task__tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--gris-100);
+  color: var(--gris-600);
+}
+
+.setup-task__tag--project {
+  background: var(--project-color, var(--rosa-100));
+  color: var(--gris-800);
+}
+
+/* Estado vacio */
+.setup-page__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  text-align: center;
+  color: var(--gris-500);
+}
+
+.setup-page__empty .material-symbols-outlined {
+  font-size: 48px;
+  color: var(--gris-300);
+  margin-bottom: var(--space-1);
+}
+
+.setup-page__empty p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+/* --------------------------------------------------------------------------
+   Boton de Accion (Footer)
+   -------------------------------------------------------------------------- */
+.setup-page__actions {
+  padding: var(--space-2) 0;
+  flex-shrink: 0;
+}
+
+.setup-page__btn-start {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 4px 12px rgba(0, 190, 200, 0.3);
+  min-height: 48px; /* Touch target minimo */
+}
+
+.setup-page__btn-start:hover {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 190, 200, 0.4);
+}
+
+.setup-page__btn-start:active {
+  transform: translateY(0);
+}
+
+.setup-page__btn-start:focus-visible {
+  outline: 2px solid var(--turquesa-400);
+  outline-offset: 2px;
+}
+
+.setup-page__btn-start .material-symbols-outlined {
+  font-size: 20px;
+}
+
+/* Enlace para omitir */
+.setup-page__skip {
+  display: block;
+  text-align: center;
+  margin-top: var(--space-1);
+  padding: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--gris-500);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.setup-page__skip:hover {
+  color: var(--gris-700);
+  background: var(--gris-100);
+  text-decoration: none;
+}
+
+.setup-page__skip:focus-visible {
+  outline: 2px solid var(--turquesa-400);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive - Tablet y Desktop
+   -------------------------------------------------------------------------- */
+@media (min-width: 768px) {
+  .daily-setup-page {
+    padding: var(--space-4);
+    justify-content: center;
+  }
+
+  .setup-page__header {
+    padding: var(--space-3) 0;
+  }
+
+  .setup-page__icon {
+    font-size: 48px;
+  }
+
+  .setup-page__title {
+    font-size: var(--font-size-2xl);
+  }
+
+  .setup-page__selectors {
+    padding: var(--space-3);
+  }
+
+  .selector-chip {
+    padding: var(--space-2) var(--space-1);
+  }
+
+  .selector-chip__icon {
+    font-size: 24px;
+  }
+
+  .selector-chip__label {
+    font-size: var(--font-size-xs);
+  }
+
+  .setup-page__tasks {
+    max-height: 400px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Accesibilidad - Reducir movimiento
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .setup-task {
+    animation: none;
+  }
+
+  .setup-page__result {
+    transition: opacity 0.1s ease;
+    transform: none;
+  }
+
+  .setup-page__result.visible {
+    transform: none;
+  }
+
+  .selector-chip,
+  .setup-task__check-icon,
+  .setup-page__btn-start {
+    transition: none;
+  }
+}
