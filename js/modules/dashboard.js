@@ -23,6 +23,10 @@ export const render = (data) => {
       <header class="dashboard__header">
         <h1 class="dashboard__title">Oráculo</h1>
         <p class="dashboard__date">${formatDate(today)}</p>
+        <a href="#daily-setup" data-view="daily-setup" class="dashboard__reconfigure" title="Reconfigurar mi día">
+          <span class="material-symbols-outlined">tune</span>
+          <span>Reconfigurar día</span>
+        </a>
       </header>
 
       <section class="dashboard__section dashboard__focus">

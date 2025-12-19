@@ -66,8 +66,12 @@ export const init = () => {
   const setupEnabled = state.data.burkemanSettings?.dailySetupEnabled !== false;
   const needsSetup = setupEnabled && needsDailySetup(state.data);
 
-  // Renderizar vista inicial
-  if (needsSetup) {
+  // Determinar vista inicial respetando el hash de la URL
+  const hashView = window.location.hash.slice(1);
+
+  if (hashView && VIEWS[hashView]) {
+    navigateTo(hashView);
+  } else if (needsSetup) {
     navigateTo('daily-setup');
   } else {
     navigateTo('dashboard');
