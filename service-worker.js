@@ -3,8 +3,8 @@
  * Estrategia: Cache-first para assets estáticos, Network-first para datos
  */
 
-const CACHE_NAME = 'oraculo-v1.3';
-const STATIC_CACHE = 'oraculo-static-v1.3';
+const CACHE_NAME = 'oraculo-v1.4';
+const STATIC_CACHE = 'oraculo-static-v1.4';
 
 // Archivos a cachear en la instalación
 const STATIC_ASSETS = [
@@ -34,8 +34,6 @@ const STATIC_ASSETS = [
   '/js/components/calm-timer.js',
   // Data y utils
   '/js/data/burkeman.js',
-  '/js/utils/dates.js',
-  '/js/utils/ics.js',
   '/js/utils/achievements-calculator.js'
 ];
 
