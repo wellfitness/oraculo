@@ -1,125 +1,107 @@
 /**
  * Deploy Script para Oráculo
  * Sube la aplicación a Hostinger vía FTP
- *
- * Uso:
- *   npm run deploy        # Deploy completo
- *   npm run deploy:dry    # Solo muestra qué se subiría
  */
 
 import { Client } from 'basic-ftp';
 import { config } from 'dotenv';
 import { readdir, stat } from 'fs/promises';
-import { join, relative } from 'path';
+import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
-// Cargar variables de entorno
 config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const DIST_DIR = join(__dirname, 'dist');
 
-// Configuración FTP desde .env
 const FTP_CONFIG = {
   host: process.env.FTP_HOST,
   user: process.env.FTP_USER,
   password: process.env.FTP_PASSWORD,
-  remotePath: process.env.FTP_REMOTE_PATH,
-  secure: false // Hostinger usa FTP sin SSL por defecto
+  secure: false
 };
 
-// Archivos y carpetas a subir (solo producción)
+// Archivos y carpetas a subir
 const INCLUDE = [
   'index.html',
-  'favicon.svg',
+  'app.html',
+  'aviso-legal.html',
+  'privacidad.html',
   'css',
-  'js'
+  'landing.css',
+  'js',
+  'manifest.json',
+  'service-worker.js',
+  'favicon.svg',
+  'favicon.ico',
+  'favicon-16x16.png',
+  'favicon-32x32.png',
+  'favicon-192x192.png',
+  'favicon-512x512.png',
+  'apple-touch-icon.png',
+  // 'logo.png', // No subir - es muy grande (900KB)
+  'icons',
+  'landing'
 ];
 
-// Archivos a excluir dentro de las carpetas incluidas
-const EXCLUDE_PATTERNS = [
-  /\.map$/,           // Source maps
-  /\.test\.js$/,      // Tests
-  /\.spec\.js$/,      // Specs
-  /\.md$/,            // Markdown
-  /node_modules/,     // Node modules
-  /\.git/,            // Git
-  /\.env/,            // Env files
-  /\.DS_Store/,       // macOS
-  /Thumbs\.db/        // Windows
-];
+const EXCLUDE = [/\.map$/, /\.test\.js$/, /\.md$/, /node_modules/, /\.git/, /\.env/];
 
-// Colores para consola
-const colors = {
-  reset: '\x1b[0m',
-  bright: '\x1b[1m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  red: '\x1b[31m',
-  cyan: '\x1b[36m'
-};
-
-function log(message, color = 'reset') {
-  console.log(`${colors[color]}${message}${colors.reset}`);
+function shouldExclude(path) {
+  return EXCLUDE.some(p => p.test(path));
 }
 
-function shouldExclude(filePath) {
-  return EXCLUDE_PATTERNS.some(pattern => pattern.test(filePath));
-}
-
-async function getFilesToUpload(basePath, subPath = '') {
+async function getAllFiles(basePath, subPath = '') {
   const files = [];
   const currentPath = join(basePath, subPath);
 
-  const entries = await readdir(currentPath, { withFileTypes: true });
+  try {
+    const entries = await readdir(currentPath, { withFileTypes: true });
 
-  for (const entry of entries) {
-    const relativePath = join(subPath, entry.name);
-    const fullPath = join(basePath, relativePath);
+    for (const entry of entries) {
+      const relativePath = subPath ? `${subPath}/${entry.name}` : entry.name;
 
-    if (shouldExclude(relativePath)) {
-      continue;
+      if (shouldExclude(relativePath)) continue;
+
+      if (entry.isDirectory()) {
+        files.push(...await getAllFiles(basePath, relativePath));
+      } else {
+        const stats = await stat(join(basePath, relativePath));
+        files.push({
+          local: join(basePath, relativePath),
+          remote: relativePath,
+          size: stats.size
+        });
+      }
     }
-
-    if (entry.isDirectory()) {
-      const subFiles = await getFilesToUpload(basePath, relativePath);
-      files.push(...subFiles);
-    } else {
-      const stats = await stat(fullPath);
-      files.push({
-        localPath: fullPath,
-        remotePath: relativePath.replace(/\\/g, '/'),
-        size: stats.size
-      });
-    }
+  } catch (e) {
+    // Ignore errors
   }
 
   return files;
 }
 
-async function collectAllFiles() {
+async function collectFiles() {
   const allFiles = [];
 
   for (const item of INCLUDE) {
-    const fullPath = join(__dirname, item);
+    const fullPath = join(DIST_DIR, item);
 
     try {
       const stats = await stat(fullPath);
 
       if (stats.isDirectory()) {
-        const dirFiles = await getFilesToUpload(__dirname, item);
-        allFiles.push(...dirFiles);
+        allFiles.push(...await getAllFiles(DIST_DIR, item));
       } else {
         allFiles.push({
-          localPath: fullPath,
-          remotePath: item,
+          local: fullPath,
+          remote: item,
           size: stats.size
         });
       }
-    } catch (error) {
-      log(`  Advertencia: ${item} no encontrado`, 'yellow');
+    } catch (e) {
+      console.log(`⚠️  No encontrado: ${item}`);
     }
   }
 
@@ -132,97 +114,90 @@ function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-async function deploy(dryRun = false) {
-  console.log('\n');
-  log('═══════════════════════════════════════════', 'cyan');
-  log('     ORÁCULO - Deploy a Hostinger', 'bright');
-  log('═══════════════════════════════════════════', 'cyan');
-  console.log('\n');
+async function deploy() {
+  console.log('\n🔮 ORÁCULO - Deploy a Hostinger\n');
+  console.log(`Host: ${FTP_CONFIG.host}`);
+  console.log(`Usuario: ${FTP_CONFIG.user}\n`);
 
-  // Verificar configuración
   if (!FTP_CONFIG.host || !FTP_CONFIG.user || !FTP_CONFIG.password) {
-    log('Error: Faltan credenciales FTP en el archivo .env', 'red');
-    log('Asegúrate de tener: FTP_HOST, FTP_USER, FTP_PASSWORD, FTP_REMOTE_PATH', 'yellow');
+    console.error('❌ Faltan credenciales FTP en .env');
     process.exit(1);
   }
 
-  log(`Host: ${FTP_CONFIG.host}`, 'blue');
-  log(`Usuario: ${FTP_CONFIG.user}`, 'blue');
-  log(`Destino: ${FTP_CONFIG.remotePath}`, 'blue');
-  console.log('\n');
-
-  // Recolectar archivos
-  log('Analizando archivos...', 'yellow');
-  const files = await collectAllFiles();
+  const files = await collectFiles();
   const totalSize = files.reduce((acc, f) => acc + f.size, 0);
 
-  log(`\nArchivos a subir: ${files.length}`, 'green');
-  log(`Tamaño total: ${formatSize(totalSize)}`, 'green');
-  console.log('\n');
+  console.log(`📁 Archivos: ${files.length}`);
+  console.log(`📦 Tamaño: ${formatSize(totalSize)}\n`);
 
-  // Mostrar lista de archivos
-  log('Archivos:', 'cyan');
-  for (const file of files) {
-    log(`  ${file.remotePath} (${formatSize(file.size)})`, 'reset');
-  }
-  console.log('\n');
-
-  if (dryRun) {
-    log('═══════════════════════════════════════════', 'yellow');
-    log('  MODO DRY-RUN: No se subió nada', 'yellow');
-    log('═══════════════════════════════════════════', 'yellow');
-    return;
-  }
-
-  // Conectar y subir
   const client = new Client();
   client.ftp.verbose = false;
 
   try {
-    log('Conectando al servidor FTP...', 'yellow');
-    await client.access({
-      host: FTP_CONFIG.host,
-      user: FTP_CONFIG.user,
-      password: FTP_CONFIG.password,
-      secure: FTP_CONFIG.secure
-    });
-    log('Conectado!', 'green');
+    console.log('🔌 Conectando...');
+    await client.access(FTP_CONFIG);
+    console.log('✅ Conectado!\n');
 
-    // Ir al directorio remoto
-    log(`Navegando a ${FTP_CONFIG.remotePath}...`, 'yellow');
-    await client.cd(FTP_CONFIG.remotePath);
+    // Obtener directorios únicos y ordenarlos
+    const dirs = [...new Set(files.map(f => {
+      const parts = f.remote.split('/');
+      parts.pop();
+      return parts.join('/');
+    }).filter(Boolean))].sort();
 
-    // Subir archivos
-    let uploaded = 0;
-    for (const file of files) {
-      uploaded++;
-      const progress = `[${uploaded}/${files.length}]`;
-      log(`${progress} Subiendo: ${file.remotePath}...`, 'blue');
-
-      // Crear directorio si no existe
-      const dir = file.remotePath.split('/').slice(0, -1).join('/');
-      if (dir) {
+    // Crear directorios primero
+    for (const dir of dirs) {
+      try {
         await client.ensureDir(dir);
-        await client.cd(FTP_CONFIG.remotePath); // Volver al root
+        console.log(`📂 Creado: ${dir}`);
+      } catch (e) {
+        // Directorio ya existe
       }
-
-      await client.uploadFrom(file.localPath, file.remotePath);
     }
 
-    console.log('\n');
-    log('═══════════════════════════════════════════', 'green');
-    log('     DEPLOY COMPLETADO EXITOSAMENTE!', 'green');
-    log('═══════════════════════════════════════════', 'green');
-    log(`\n  URL: https://oraculo.movimientofuncional.app\n`, 'cyan');
+    // Volver al directorio raíz
+    await client.cd('/');
+
+    console.log('\n📤 Subiendo archivos...\n');
+
+    let uploaded = 0;
+    let errors = 0;
+
+    for (const file of files) {
+      uploaded++;
+      try {
+        // Asegurarse de estar en el directorio correcto
+        const dir = file.remote.split('/').slice(0, -1).join('/');
+        if (dir) {
+          await client.cd('/' + dir);
+        } else {
+          await client.cd('/');
+        }
+
+        const fileName = file.remote.split('/').pop();
+        await client.uploadFrom(file.local, fileName);
+        console.log(`[${uploaded}/${files.length}] ✅ ${file.remote}`);
+      } catch (e) {
+        console.log(`[${uploaded}/${files.length}] ❌ ${file.remote}: ${e.message}`);
+        errors++;
+      }
+    }
+
+    console.log('\n' + '═'.repeat(50));
+    if (errors === 0) {
+      console.log('✅ DEPLOY COMPLETADO!');
+    } else {
+      console.log(`⚠️  Deploy completado con ${errors} errores`);
+    }
+    console.log('🌐 URL: https://oraculo.movimientofuncional.app');
+    console.log('═'.repeat(50) + '\n');
 
   } catch (error) {
-    log(`\nError durante el deploy: ${error.message}`, 'red');
+    console.error(`\n❌ Error: ${error.message}`);
     process.exit(1);
   } finally {
     client.close();
   }
 }
 
-// Ejecutar
-const isDryRun = process.argv.includes('--dry-run');
-deploy(isDryRun);
+deploy();
