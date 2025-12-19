@@ -26,3 +26,28 @@ build/
 # Temporary
 *.tmp
 *.temp
+
+# Reference materials (PDFs and HTML docs)
+*.pdf
+*.PDF
+
+# Claude local config
+.claude/
+.mcp.json
+
+# Design system scripts (local tooling)
+design-system/scripts/
+design-system/hooks/
+design-system/config/
+
+# Husky hooks
+.husky/
+
+# Reference HTML files
+Analiza*.html
+Cómo*.html
+Gestión*.html
+Herramientas*.html
+
+# Other reference files
+gemini.md
