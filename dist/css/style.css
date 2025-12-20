@@ -7920,8 +7920,9 @@ body {
 }
 
 .prompt-item:hover {
-  background: var(--turquesa-100);
-  border-color: var(--turquesa-300);
+  background: var(--turquesa-700);
+  border-color: var(--turquesa-700);
+  color: white;
 }
 
 /* Herramientas Mark Manson */
