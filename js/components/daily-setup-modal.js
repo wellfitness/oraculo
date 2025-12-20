@@ -1,25 +1,13 @@
 /**
- * Oráculo - Modal de Volumen Fijo
+ * Oráculo - Modal de Volumen Fijo (v2 - Layout 2 Columnas)
  * Setup diario basado en la técnica de Burkeman
  *
- * Al abrir la app, el usuario define:
- * - Tiempo disponible
- * - Nivel de energía
- * - Qué tareas elige para hoy (Modo Menú)
- *
- * El sistema ajusta los límites del día según estos parámetros.
+ * Vista única con 2 columnas:
+ * - Izquierda: Tiempo + Energía + Mensaje
+ * - Derecha: Lista de tareas
  */
 
-import { showNotification, generateId } from '../app.js';
-import { getReflexionDelDia } from '../data/burkeman.js';
-
-// Tipos de tarea para Modo Menú
-const TASK_TYPES = {
-  importante: { name: 'Importante', icon: 'priority_high', color: 'var(--rosa-600)' },
-  divertido: { name: 'Divertido', icon: 'mood', color: 'var(--tulip-tree-500)' },
-  atelico: { name: 'Ocio', icon: 'spa', color: 'var(--turquesa-600)' },
-  sincronia: { name: 'Sincronía', icon: 'group', color: 'var(--rosa-400)' }
-};
+import { showNotification } from '../app.js';
 
 // Nombres de columnas para mostrar
 const COLUMN_NAMES = {
@@ -32,17 +20,17 @@ const COLUMN_NAMES = {
 
 // Opciones de tiempo disponible
 const TIME_OPTIONS = [
-  { value: '2h', label: '2 horas', icon: 'schedule', limit: 1 },
-  { value: '4h', label: '4 horas', icon: 'schedule', limit: 2 },
-  { value: '6h', label: '6 horas', icon: 'schedule', limit: 3 },
-  { value: 'full', label: 'Día completo', icon: 'wb_sunny', limit: 3 }
+  { value: '2h', label: '2h', icon: 'hourglass_empty', limit: 1 },
+  { value: '4h', label: '4h', icon: 'hourglass_bottom', limit: 2 },
+  { value: '6h', label: '6h', icon: 'hourglass_top', limit: 3 },
+  { value: 'full', label: 'Full', icon: 'wb_sunny', limit: 3 }
 ];
 
 // Opciones de nivel de energía
 const ENERGY_OPTIONS = [
-  { value: 'low', label: 'Baja', icon: 'battery_1_bar', modifier: -1, color: 'var(--rosa-400)' },
-  { value: 'medium', label: 'Media', icon: 'battery_4_bar', modifier: 0, color: 'var(--gris-500)' },
-  { value: 'high', label: 'Alta', icon: 'battery_full', modifier: 1, color: 'var(--turquesa-500)' }
+  { value: 'low', label: 'Baja', icon: 'battery_1_bar', modifier: -1 },
+  { value: 'medium', label: 'Media', icon: 'battery_4_bar', modifier: 0 },
+  { value: 'high', label: 'Alta', icon: 'battery_full', modifier: 1 }
 ];
 
 /**
@@ -52,7 +40,6 @@ export const needsDailySetup = (data) => {
   const today = new Date().toISOString().split('T')[0];
   const setupDate = data.dailySetup?.date;
 
-  // Si no hay setup o es de otro día, necesita configurarse
   if (!setupDate || setupDate !== today) {
     return true;
   }
@@ -76,132 +63,122 @@ export const calculateDailyLimit = (availableTime, energyLevel) => {
 };
 
 /**
- * Renderiza el modal de setup diario con 3 pasos:
- * 1. Tiempo y energía
- * 2. Selección de tareas (Modo Menú)
- * 3. Confirmación
+ * Renderiza el modal de setup diario en formato 2 columnas
  */
 export const renderDailySetupModal = () => {
   return `
-    <dialog id="daily-setup-modal" class="modal modal--setup">
-      <div class="modal-content setup-content" id="daily-setup-form">
+    <dialog id="daily-setup-modal" class="modal modal--setup modal--setup-2col">
+      <div class="modal-content setup-content setup-2col">
 
-        <!-- PASO 1: Tiempo y Energía -->
-        <div class="setup-step" id="setup-step-1" data-step="1">
-          <header class="setup-header">
-            <span class="material-symbols-outlined setup-icon">wb_twilight</span>
-            <h2 class="setup-title">Buenos días</h2>
-            <p class="setup-subtitle">¿Cómo es tu día hoy?</p>
-          </header>
+        <!-- BODY: 2 Columnas -->
+        <div class="setup-2col__body">
 
-          <blockquote class="quote quote--inline setup-quote">
-            <p>"${getReflexionDelDia('decisions')}"</p>
-          </blockquote>
+          <!-- COLUMNA IZQUIERDA: Configuración -->
+          <div class="setup-2col__left">
 
-          <div class="setup-section">
-            <label class="setup-label">
-              <span class="material-symbols-outlined icon-sm">schedule</span>
-              ¿Cuánto tiempo tienes para tus prioridades?
-            </label>
-            <div class="setup-options time-options">
-              ${TIME_OPTIONS.map(opt => `
-                <button
-                  type="button"
-                  class="setup-option time-option"
-                  data-time="${opt.value}"
-                >
-                  <span class="material-symbols-outlined">${opt.icon}</span>
-                  <span class="option-label">${opt.label}</span>
-                </button>
-              `).join('')}
+            <!-- Header compacto -->
+            <header class="setup-header">
+              <span class="material-symbols-outlined setup-icon">wb_twilight</span>
+              <h2 class="setup-title">Buenos días</h2>
+              <p class="setup-subtitle">¿Cómo es tu día hoy?</p>
+            </header>
+
+            <!-- Selector de TIEMPO -->
+            <section class="selector-group">
+              <label class="selector-group__label">
+                <span class="material-symbols-outlined">schedule</span>
+                Tiempo
+              </label>
+              <div class="selector-chips" role="group" aria-label="Tiempo disponible">
+                ${TIME_OPTIONS.map(opt => `
+                  <button
+                    type="button"
+                    class="selector-chip"
+                    data-time="${opt.value}"
+                    aria-pressed="false"
+                    title="${opt.label}"
+                  >
+                    <span class="material-symbols-outlined selector-chip__icon">${opt.icon}</span>
+                    <span class="selector-chip__label">${opt.label}</span>
+                  </button>
+                `).join('')}
+              </div>
+            </section>
+
+            <!-- Selector de ENERGÍA -->
+            <section class="selector-group">
+              <label class="selector-group__label">
+                <span class="material-symbols-outlined">bolt</span>
+                Energía
+              </label>
+              <div class="selector-chips" role="group" aria-label="Nivel de energía">
+                ${ENERGY_OPTIONS.map(opt => `
+                  <button
+                    type="button"
+                    class="selector-chip"
+                    data-energy="${opt.value}"
+                    aria-pressed="false"
+                    title="${opt.label}"
+                  >
+                    <span class="material-symbols-outlined selector-chip__icon">${opt.icon}</span>
+                    <span class="selector-chip__label">${opt.label}</span>
+                  </button>
+                `).join('')}
+              </div>
+            </section>
+
+            <!-- Mensaje de ayuda (visible hasta seleccionar ambos) -->
+            <div class="setup-help" id="setup-help">
+              <p class="setup-help__text">
+                <span class="material-symbols-outlined">help_outline</span>
+                Selecciona cuánto tiempo tienes hoy para tus prioridades y cómo te sientes de energía ahora
+              </p>
             </div>
-          </div>
 
-          <div class="setup-section">
-            <label class="setup-label">
-              <span class="material-symbols-outlined icon-sm">battery_charging_full</span>
-              ¿Cuál es tu nivel de energía?
-            </label>
-            <div class="setup-options energy-options">
-              ${ENERGY_OPTIONS.map(opt => `
-                <button
-                  type="button"
-                  class="setup-option energy-option"
-                  data-energy="${opt.value}"
-                  style="--option-color: ${opt.color}"
-                >
-                  <span class="material-symbols-outlined">${opt.icon}</span>
-                  <span class="option-label">${opt.label}</span>
-                </button>
-              `).join('')}
+            <!-- Resultado calculado (oculto hasta selección completa) -->
+            <div class="setup-result" id="setup-result" style="display: none;">
+              <span class="material-symbols-outlined setup-result__icon">tips_and_updates</span>
+              <p class="setup-result__text" id="result-text"></p>
             </div>
+
+            <!-- Inputs ocultos para guardar selección -->
+            <input type="hidden" id="setup-time" value="">
+            <input type="hidden" id="setup-energy" value="">
+
           </div>
 
-          <!-- Mensaje de ayuda inicial (visible por defecto) -->
-          <div class="setup-help" id="setup-help">
-            <div class="help-card">
-              <span class="material-symbols-outlined help-icon">help_outline</span>
-              <p class="help-text">Selecciona cuánto tiempo tienes hoy para tus prioridades y cómo te sientes de energía ahora</p>
-            </div>
+          <!-- COLUMNA DERECHA: Lista de tareas -->
+          <div class="setup-2col__right">
+            <header class="setup-tasks__header">
+              <h3 class="setup-tasks__title">
+                <span class="material-symbols-outlined">checklist</span>
+                Elige tus prioridades
+              </h3>
+              <span class="setup-tasks__counter" id="tasks-counter">0/0</span>
+            </header>
+
+            <ul class="setup-tasks__list" id="setup-tasks-list" role="list">
+              <!-- Se llena dinámicamente -->
+              <li class="setup-tasks__empty">
+                <span class="material-symbols-outlined">hourglass_empty</span>
+                <p>Selecciona tiempo y energía</p>
+                <p class="hint">para ver cuántas tareas puedes elegir</p>
+              </li>
+            </ul>
           </div>
 
-          <!-- Resultado calculado (oculto hasta selección) -->
-          <div class="setup-result" id="setup-result" style="display: none;">
-            <div class="result-card">
-              <span class="material-symbols-outlined result-icon">tips_and_updates</span>
-              <p class="result-text" id="result-text"></p>
-            </div>
-          </div>
-
-          <input type="hidden" id="setup-time" value="">
-          <input type="hidden" id="setup-energy" value="">
-
-          <div class="modal-actions">
-            <button type="button" class="btn btn--tertiary" id="skip-setup">
-              Omitir
-            </button>
-            <button type="button" class="btn btn--primary" id="next-to-menu" disabled>
-              Siguiente: Elegir tareas
-              <span class="material-symbols-outlined icon-sm">arrow_forward</span>
-            </button>
-          </div>
         </div>
 
-        <!-- PASO 2: Modo Menú - Elegir Tareas -->
-        <div class="setup-step" id="setup-step-2" data-step="2" style="display: none;">
-          <header class="setup-header">
-            <span class="material-symbols-outlined setup-icon">restaurant_menu</span>
-            <h2 class="setup-title">¿Qué eliges hoy?</h2>
-            <p class="setup-subtitle">
-              Esto no es una lista para terminar, es un menú para elegir.
-            </p>
-          </header>
-
-          <div class="menu-slots-indicator" id="menu-slots-indicator">
-            <span class="material-symbols-outlined">target</span>
-            <span id="slots-count">Puedes elegir hasta <strong>3</strong> tareas</span>
-          </div>
-
-          <div class="menu-container" id="menu-tasks-container">
-            <!-- Se llena dinámicamente con las tareas -->
-            <p class="loading">Cargando tareas...</p>
-          </div>
-
-          <blockquote class="quote quote--inline setup-quote">
-            <p>"${getReflexionDelDia('kanban')}"</p>
-          </blockquote>
-
-          <div class="modal-actions">
-            <button type="button" class="btn btn--tertiary" id="back-to-step1">
-              <span class="material-symbols-outlined icon-sm">arrow_back</span>
-              Volver
-            </button>
-            <button type="button" class="btn btn--primary" id="confirm-setup">
-              <span class="material-symbols-outlined icon-sm">check</span>
-              Empezar el día
-            </button>
-          </div>
-        </div>
+        <!-- FOOTER: Botones de acción -->
+        <footer class="setup-2col__footer">
+          <button type="button" class="btn btn--tertiary" id="skip-setup">
+            Omitir por hoy
+          </button>
+          <button type="button" class="btn btn--primary" id="confirm-setup" disabled>
+            <span class="material-symbols-outlined icon-sm">check</span>
+            Empezar el día
+          </button>
+        </footer>
 
       </div>
     </dialog>
@@ -209,131 +186,7 @@ export const renderDailySetupModal = () => {
 };
 
 /**
- * Renderiza las tareas pendientes en formato Menú
- */
-const renderMenuTasks = (data, limit) => {
-  const objectives = data.objectives || {};
-  const projects = (data.projects || []).filter(p => p.status === 'active' || p.status === 'paused');
-
-  // Combinar tareas de todas las columnas excepto daily
-  const allItems = [];
-  ['quarterly', 'monthly', 'weekly', 'backlog'].forEach(column => {
-    (objectives[column] || []).forEach(item => {
-      if (!item.completed) {
-        allItems.push({ ...item, column });
-      }
-    });
-  });
-
-  // Tareas ya en daily (para mostrarlas como ya elegidas)
-  const dailyItems = (objectives.daily || []).filter(i => !i.completed);
-
-  if (allItems.length === 0 && dailyItems.length === 0) {
-    return `
-      <div class="menu-empty">
-        <span class="material-symbols-outlined">inbox</span>
-        <p>No tienes tareas pendientes.</p>
-        <p class="hint">Añade tareas en la vista de Horizontes.</p>
-      </div>
-    `;
-  }
-
-  // Agrupar por tipo
-  const byType = {
-    importante: allItems.filter(i => i.taskType === 'importante'),
-    divertido: allItems.filter(i => i.taskType === 'divertido'),
-    atelico: allItems.filter(i => i.taskType === 'atelico'),
-    sincronia: allItems.filter(i => i.taskType === 'sincronia'),
-    otros: allItems.filter(i => !i.taskType || !TASK_TYPES[i.taskType])
-  };
-
-  let html = '';
-
-  // Mostrar tareas ya en foco
-  if (dailyItems.length > 0) {
-    html += `
-      <section class="menu-section menu-section--current">
-        <h3 class="menu-section__title menu-section__title--current">
-          <span class="material-symbols-outlined">today</span>
-          Ya en foco (${dailyItems.length})
-        </h3>
-        <ul class="menu-items">
-          ${dailyItems.map(item => renderSetupMenuItem(item, projects, true)).join('')}
-        </ul>
-      </section>
-    `;
-  }
-
-  // Mostrar tareas disponibles agrupadas por tipo
-  Object.entries(byType).forEach(([type, items]) => {
-    if (items.length === 0) return;
-
-    const typeInfo = TASK_TYPES[type] || { name: 'Otras tareas', icon: 'list', color: 'var(--gris-500)' };
-
-    html += `
-      <section class="menu-section" data-type="${type}">
-        <h3 class="menu-section__title" style="--type-color: ${typeInfo.color}">
-          <span class="material-symbols-outlined">${typeInfo.icon}</span>
-          ${typeInfo.name}
-          <span class="menu-section__count">${items.length}</span>
-        </h3>
-        <ul class="menu-items">
-          ${items.map(item => renderSetupMenuItem(item, projects, false)).join('')}
-        </ul>
-      </section>
-    `;
-  });
-
-  return html || `
-    <div class="menu-empty">
-      <span class="material-symbols-outlined">check_circle</span>
-      <p>¡Todas tus tareas ya están en foco!</p>
-    </div>
-  `;
-};
-
-/**
- * Renderiza un item del menú en el setup
- */
-const renderSetupMenuItem = (item, projects, isInDaily = false) => {
-  const project = item.projectId ? projects.find(p => p.id === item.projectId) : null;
-  const columnName = COLUMN_NAMES[item.column];
-
-  return `
-    <li class="menu-item ${isInDaily ? 'menu-item--in-daily' : ''}" data-id="${item.id}" data-column="${item.column || 'daily'}">
-      <label class="menu-item__select">
-        <input
-          type="checkbox"
-          class="menu-item__checkbox"
-          data-id="${item.id}"
-          ${isInDaily ? 'checked disabled' : ''}
-        >
-        <span class="menu-item__text">${item.text}</span>
-      </label>
-
-      <div class="menu-item__meta">
-        <span class="menu-item__horizon" title="Horizonte: ${columnName}">
-          ${columnName}
-        </span>
-        ${project ? `
-          <span class="menu-item__project" style="--project-color: ${project.color}">
-            ${project.name}
-          </span>
-        ` : ''}
-      </div>
-
-      ${isInDaily ? `
-        <span class="menu-item__badge">
-          <span class="material-symbols-outlined icon-sm">check</span>
-          En foco
-        </span>
-      ` : ''}
-    </li>
-  `;
-};
-
-/**
- * Inicializa el modal de setup diario con navegación entre pasos
+ * Inicializa el modal de setup diario (versión 2 columnas, sin pasos)
  */
 export const initDailySetupModal = (data, updateData) => {
   const modal = document.getElementById('daily-setup-modal');
@@ -341,68 +194,223 @@ export const initDailySetupModal = (data, updateData) => {
 
   let selectedTime = null;
   let selectedEnergy = null;
-  let selectedTasks = []; // IDs de tareas seleccionadas para hoy
-  let currentLimit = 3;
+  let selectedTasks = [];
+  let currentLimit = 0;
 
-  // === PASO 1: Selección de tiempo y energía ===
-
-  // Selección de tiempo
-  document.querySelectorAll('.time-option').forEach(btn => {
+  // === SELECTORES DE TIEMPO ===
+  document.querySelectorAll('.selector-chip[data-time]').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.time-option').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
+      // Deseleccionar otros
+      document.querySelectorAll('.selector-chip[data-time]').forEach(b => {
+        b.setAttribute('aria-pressed', 'false');
+      });
+      // Seleccionar este
+      btn.setAttribute('aria-pressed', 'true');
       selectedTime = btn.dataset.time;
       document.getElementById('setup-time').value = selectedTime;
-      updateResult();
+      updateUI();
     });
   });
 
-  // Selección de energía
-  document.querySelectorAll('.energy-option').forEach(btn => {
+  // === SELECTORES DE ENERGÍA ===
+  document.querySelectorAll('.selector-chip[data-energy]').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.energy-option').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
+      // Deseleccionar otros
+      document.querySelectorAll('.selector-chip[data-energy]').forEach(b => {
+        b.setAttribute('aria-pressed', 'false');
+      });
+      // Seleccionar este
+      btn.setAttribute('aria-pressed', 'true');
       selectedEnergy = btn.dataset.energy;
       document.getElementById('setup-energy').value = selectedEnergy;
-      updateResult();
+      updateUI();
     });
   });
 
-  // Actualizar resultado del paso 1
-  const updateResult = () => {
-    const nextBtn = document.getElementById('next-to-menu');
+  // === ACTUALIZAR UI ===
+  const updateUI = () => {
     const helpDiv = document.getElementById('setup-help');
     const resultDiv = document.getElementById('setup-result');
     const resultText = document.getElementById('result-text');
+    const confirmBtn = document.getElementById('confirm-setup');
+    const tasksList = document.getElementById('setup-tasks-list');
+    const counter = document.getElementById('tasks-counter');
 
     if (selectedTime && selectedEnergy) {
+      // Calcular límite
       currentLimit = calculateDailyLimit(selectedTime, selectedEnergy);
-      nextBtn.disabled = false;
-      helpDiv.style.display = 'none';
-      resultDiv.style.display = 'block';
 
+      // Mostrar resultado, ocultar ayuda
+      helpDiv.style.display = 'none';
+      resultDiv.style.display = 'flex';
+
+      // Mensaje según límite
       let message = '';
       if (currentLimit === 1) {
-        message = '✨ Hoy es día de UNA sola cosa. Elige lo que más importa.';
+        message = 'Hoy es día de <strong>UNA sola cosa</strong>. Elige lo que más importa.';
       } else if (currentLimit === 2) {
-        message = '✨ Tienes espacio para 2 prioridades. Menos es más.';
+        message = 'Tienes espacio para <strong>2 prioridades</strong>. Menos es más.';
       } else {
-        message = '✨ Puedes con hasta 3 prioridades hoy. ¡A por ellas!';
+        message = 'Puedes con hasta <strong>3 prioridades</strong> hoy.';
       }
+      resultText.innerHTML = message;
 
-      resultText.textContent = message;
+      // Renderizar tareas
+      renderTasks(currentLimit);
+
+      // Actualizar contador
+      const dailyCount = (data.objectives?.daily || []).filter(i => !i.completed).length;
+      const available = Math.max(0, currentLimit - dailyCount);
+      counter.textContent = `${selectedTasks.length}/${available}`;
+      counter.classList.toggle('setup-tasks__counter--full', selectedTasks.length >= available);
+
+      // Habilitar botón confirmar
+      confirmBtn.disabled = false;
+
     } else {
-      nextBtn.disabled = true;
+      // Mostrar ayuda, ocultar resultado
       helpDiv.style.display = 'block';
       resultDiv.style.display = 'none';
+      confirmBtn.disabled = true;
+      counter.textContent = '0/0';
+
+      // Mostrar estado inicial en lista
+      tasksList.innerHTML = `
+        <li class="setup-tasks__empty">
+          <span class="material-symbols-outlined">hourglass_empty</span>
+          <p>Selecciona tiempo y energía</p>
+          <p class="hint">para ver cuántas tareas puedes elegir</p>
+        </li>
+      `;
     }
   };
 
-  // Omitir setup - guardar la fecha para no volver a mostrar hoy
+  // === RENDERIZAR LISTA DE TAREAS ===
+  const renderTasks = (limit) => {
+    const tasksList = document.getElementById('setup-tasks-list');
+    const objectives = data.objectives || {};
+    const projects = (data.projects || []).filter(p => p.status === 'active' || p.status === 'paused');
+
+    // Tareas ya en daily
+    const dailyItems = (objectives.daily || []).filter(i => !i.completed);
+    const slotsUsed = dailyItems.length;
+    const slotsAvailable = Math.max(0, limit - slotsUsed);
+
+    // Combinar tareas de otras columnas
+    const allItems = [];
+    ['quarterly', 'monthly', 'weekly', 'backlog'].forEach(column => {
+      (objectives[column] || []).forEach(item => {
+        if (!item.completed) {
+          allItems.push({ ...item, column });
+        }
+      });
+    });
+
+    if (allItems.length === 0 && dailyItems.length === 0) {
+      tasksList.innerHTML = `
+        <li class="setup-tasks__empty">
+          <span class="material-symbols-outlined">inbox</span>
+          <p>No tienes tareas pendientes</p>
+          <p class="hint">Añade tareas en la vista de Horizontes</p>
+        </li>
+      `;
+      return;
+    }
+
+    let html = '';
+
+    // Mostrar tareas ya en foco primero
+    dailyItems.forEach(item => {
+      const project = item.projectId ? projects.find(p => p.id === item.projectId) : null;
+      html += renderTaskItem(item, project, true, 'daily');
+    });
+
+    // Mostrar tareas disponibles
+    allItems.forEach((item, index) => {
+      const project = item.projectId ? projects.find(p => p.id === item.projectId) : null;
+      html += renderTaskItem(item, project, false, item.column, index);
+    });
+
+    tasksList.innerHTML = html;
+
+    // Configurar checkboxes
+    setupCheckboxes(slotsAvailable);
+  };
+
+  // === RENDERIZAR ITEM DE TAREA ===
+  const renderTaskItem = (item, project, isInDaily, column, animIndex = 0) => {
+    return `
+      <li class="task-item ${isInDaily ? 'task-item--in-daily' : ''}"
+          data-id="${item.id}"
+          data-column="${column}"
+          style="animation-delay: ${animIndex * 0.03}s">
+        <label class="task-item__checkbox">
+          <input
+            type="checkbox"
+            data-id="${item.id}"
+            data-column="${column}"
+            ${isInDaily ? 'checked disabled' : ''}
+          >
+          <span class="task-item__check-visual">
+            <span class="material-symbols-outlined">check</span>
+          </span>
+        </label>
+        <div class="task-item__content">
+          <p class="task-item__text">${item.text}</p>
+          <div class="task-item__meta">
+            <span class="task-item__tag">${COLUMN_NAMES[column]}</span>
+            ${project ? `
+              <span class="task-item__tag task-item__tag--project" style="--project-color: ${project.color}">
+                ${project.name}
+              </span>
+            ` : ''}
+            ${isInDaily ? `
+              <span class="task-item__tag task-item__tag--in-daily">En foco</span>
+            ` : ''}
+          </div>
+        </div>
+      </li>
+    `;
+  };
+
+  // === CONFIGURAR CHECKBOXES ===
+  const setupCheckboxes = (maxSelectable) => {
+    const checkboxes = document.querySelectorAll('.task-item__checkbox input:not([disabled])');
+    const counter = document.getElementById('tasks-counter');
+
+    checkboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', () => {
+        // Actualizar lista de seleccionados
+        selectedTasks = Array.from(
+          document.querySelectorAll('.task-item__checkbox input:checked:not([disabled])')
+        ).map(cb => ({
+          id: cb.dataset.id,
+          column: cb.dataset.column
+        }));
+
+        // Verificar límite
+        if (selectedTasks.length > maxSelectable) {
+          checkbox.checked = false;
+          selectedTasks = selectedTasks.filter(t => t.id !== checkbox.dataset.id);
+          showNotification(`Solo puedes elegir ${maxSelectable} tarea${maxSelectable > 1 ? 's' : ''} más`, 'warning');
+          return;
+        }
+
+        // Actualizar UI del item
+        const taskItem = checkbox.closest('.task-item');
+        taskItem.classList.toggle('task-item--selected', checkbox.checked);
+
+        // Actualizar contador
+        counter.textContent = `${selectedTasks.length}/${maxSelectable}`;
+        counter.classList.toggle('setup-tasks__counter--full', selectedTasks.length >= maxSelectable);
+      });
+    });
+  };
+
+  // === OMITIR SETUP ===
   document.getElementById('skip-setup')?.addEventListener('click', () => {
     const today = new Date().toISOString().split('T')[0];
 
-    // Guardar solo la fecha (sin tiempo/energía) para evitar que vuelva a aparecer
     data.dailySetup = {
       ...data.dailySetup,
       date: today,
@@ -413,77 +421,7 @@ export const initDailySetupModal = (data, updateData) => {
     modal.close();
   });
 
-  // Ir al paso 2 (Modo Menú)
-  document.getElementById('next-to-menu')?.addEventListener('click', () => {
-    if (!selectedTime || !selectedEnergy) return;
-
-    // Ocultar paso 1, mostrar paso 2
-    document.getElementById('setup-step-1').style.display = 'none';
-    document.getElementById('setup-step-2').style.display = 'block';
-
-    // Actualizar indicador de slots
-    const dailyTasks = (data.objectives?.daily || []).filter(i => !i.completed);
-    const slotsUsed = dailyTasks.length;
-    const slotsAvailable = Math.max(0, currentLimit - slotsUsed);
-
-    document.getElementById('slots-count').innerHTML = slotsAvailable > 0
-      ? `Puedes elegir hasta <strong>${slotsAvailable}</strong> tarea${slotsAvailable > 1 ? 's' : ''} más`
-      : `<strong>Sin slots disponibles</strong>. Completa algo primero.`;
-
-    // Renderizar tareas en modo menú
-    const container = document.getElementById('menu-tasks-container');
-    container.innerHTML = renderMenuTasks(data, currentLimit);
-
-    // Configurar checkboxes de selección
-    setupMenuCheckboxes(slotsAvailable);
-  });
-
-  // Configurar checkboxes del menú
-  const setupMenuCheckboxes = (maxSelectable) => {
-    const checkboxes = document.querySelectorAll('.menu-item__checkbox:not([disabled])');
-
-    checkboxes.forEach(checkbox => {
-      checkbox.addEventListener('change', () => {
-        selectedTasks = Array.from(document.querySelectorAll('.menu-item__checkbox:checked:not([disabled])'))
-          .map(cb => ({
-            id: cb.dataset.id,
-            column: cb.closest('.menu-item').dataset.column
-          }));
-
-        // Verificar límite
-        if (selectedTasks.length > maxSelectable) {
-          checkbox.checked = false;
-          selectedTasks = selectedTasks.filter(t => t.id !== checkbox.dataset.id);
-          showNotification(`Solo puedes elegir ${maxSelectable} tarea${maxSelectable > 1 ? 's' : ''} más`, 'warning');
-          return;
-        }
-
-        // Actualizar visual
-        updateSelectionCount(maxSelectable);
-      });
-    });
-  };
-
-  // Actualizar contador de selección
-  const updateSelectionCount = (maxSelectable) => {
-    const slotsIndicator = document.getElementById('slots-count');
-    const remaining = maxSelectable - selectedTasks.length;
-
-    if (remaining === 0) {
-      slotsIndicator.innerHTML = `<strong>¡Slots completos!</strong> Has elegido ${selectedTasks.length} tarea${selectedTasks.length > 1 ? 's' : ''}`;
-    } else {
-      slotsIndicator.innerHTML = `Has elegido <strong>${selectedTasks.length}</strong> de ${maxSelectable} slots disponibles`;
-    }
-  };
-
-  // Volver al paso 1
-  document.getElementById('back-to-step1')?.addEventListener('click', () => {
-    document.getElementById('setup-step-2').style.display = 'none';
-    document.getElementById('setup-step-1').style.display = 'block';
-    selectedTasks = [];
-  });
-
-  // Confirmar setup
+  // === CONFIRMAR SETUP ===
   document.getElementById('confirm-setup')?.addEventListener('click', () => {
     if (!selectedTime || !selectedEnergy) return;
 
@@ -492,7 +430,7 @@ export const initDailySetupModal = (data, updateData) => {
     // Mover tareas seleccionadas a daily
     if (selectedTasks.length > 0) {
       selectedTasks.forEach(({ id, column }) => {
-        if (column === 'daily') return; // Ya está en daily
+        if (column === 'daily') return;
 
         const sourceItems = data.objectives[column];
         if (!sourceItems) return;
@@ -533,13 +471,13 @@ export const initDailySetupModal = (data, updateData) => {
 
     showNotification(`¡Día configurado!${tasksMsg}`, 'success');
 
-    // Recargar para ver los cambios
+    // Recargar para ver cambios
     if (selectedTasks.length > 0) {
       location.reload();
     }
   });
 
-  // Mostrar modal si es necesario
+  // === MOSTRAR MODAL SI ES NECESARIO ===
   if (needsDailySetup(data)) {
     setTimeout(() => {
       modal.showModal();
