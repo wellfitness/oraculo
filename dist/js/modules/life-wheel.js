@@ -11,6 +11,9 @@ import { renderEvolutionChart } from '../components/evolution-chart.js';
 let updateDataCallback = null;
 let currentData = null;
 
+// Estado de vista: 'main' o 'evaluation'
+let currentView = 'main';
+
 // Colores por área para gráficos
 const AREA_COLORS = {
   health: '#10b981',      // Verde
@@ -35,12 +38,37 @@ const getCurrentQuarter = () => {
 };
 
 /**
- * Renderiza la página principal de la Rueda de la Vida
+ * Re-renderiza la página completa
+ */
+const reRender = () => {
+  const container = document.getElementById('app-content');
+  if (container && currentData) {
+    container.innerHTML = render(currentData);
+    init(currentData, updateDataCallback);
+  }
+};
+
+/**
+ * Renderiza la página de la Rueda de la Vida
  */
 export const render = (data) => {
   currentData = data;
+
+  // Si estamos en modo evaluación, mostrar wizard de página completa
+  if (currentView === 'evaluation') {
+    return renderEvaluationPage(data);
+  }
+
+  // Vista normal de la rueda
+  return renderMainPage(data);
+};
+
+/**
+ * Renderiza la página principal de la Rueda de la Vida
+ */
+const renderMainPage = (data) => {
   const lifeWheel = data.lifeWheel || {};
-  const areas = lifeWheel.areas || [];
+  const areas = lifeWheel.areas || getDefaultAreas();
   const evaluations = lifeWheel.evaluations || [];
   const lastEvaluation = evaluations[evaluations.length - 1] || null;
   const currentQuarter = getCurrentQuarter();
@@ -132,9 +160,6 @@ export const render = (data) => {
           ${areas.map((area, index) => renderAreaItem(area, index, data.values)).join('')}
         </div>
       </section>
-
-      <!-- Modal de evaluación -->
-      ${renderEvaluationModal(areas)}
 
       <!-- Modal de editar área -->
       ${renderEditAreaModal()}
@@ -255,45 +280,6 @@ const renderAreaItem = (area, index, values) => {
 };
 
 /**
- * Renderiza el modal de evaluación (wizard)
- */
-const renderEvaluationModal = (areas) => `
-  <dialog id="evaluation-modal" class="modal modal--large">
-    <div class="modal-content evaluation-wizard">
-      <header class="wizard-header">
-        <h2 class="modal-title">Evaluación Trimestral</h2>
-        <div class="wizard-progress">
-          <span class="wizard-step-indicator">Paso <span id="current-step">1</span> de ${areas.length + 1}</span>
-          <div class="wizard-progress-bar">
-            <div class="wizard-progress-fill" id="wizard-progress-fill"></div>
-          </div>
-        </div>
-      </header>
-
-      <div class="wizard-content" id="wizard-content">
-        <!-- El contenido se genera dinámicamente -->
-      </div>
-
-      <footer class="wizard-footer">
-        <button type="button" class="btn btn--tertiary" id="wizard-cancel">
-          Cancelar
-        </button>
-        <div class="wizard-nav">
-          <button type="button" class="btn btn--secondary" id="wizard-prev" disabled>
-            <span class="material-symbols-outlined">arrow_back</span>
-            Anterior
-          </button>
-          <button type="button" class="btn btn--primary" id="wizard-next">
-            Siguiente
-            <span class="material-symbols-outlined">arrow_forward</span>
-          </button>
-        </div>
-      </footer>
-    </div>
-  </dialog>
-`;
-
-/**
  * Renderiza el modal de editar área
  */
 const renderEditAreaModal = () => `
@@ -346,7 +332,7 @@ const getDefaultAreas = () => [
 ];
 
 // ============================================================
-// WIZARD DE EVALUACIÓN
+// WIZARD DE EVALUACIÓN - PÁGINA COMPLETA
 // ============================================================
 
 let wizardState = {
@@ -356,12 +342,204 @@ let wizardState = {
 };
 
 /**
- * Inicia el wizard de evaluación
+ * Renderiza la página de evaluación (wizard de página completa)
+ * Navegacion en header, scroll natural del navegador
+ */
+const renderEvaluationPage = (data) => {
+  const areas = data.lifeWheel?.areas || getDefaultAreas();
+  const totalSteps = areas.length + 1; // 8 áreas + 1 resumen
+  const step = wizardState.currentStep;
+  const progress = ((step + 1) / totalSteps) * 100;
+
+  return `
+    <div class="wizard-page evaluation-page">
+      <!-- Header con progreso y navegacion -->
+      <header class="wizard-header">
+        <!-- Izquierda: Cerrar -->
+        <div class="wizard-header-left">
+          <button class="btn btn--icon" id="eval-cancel" title="Cancelar evaluación">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <!-- Centro: Progreso -->
+        <div class="wizard-header-center">
+          <div class="wizard-progress-dots">
+            ${Array.from({ length: totalSteps }, (_, i) => `
+              <span class="wizard-dot ${i < step ? 'completed' : ''} ${i === step ? 'active' : ''}"></span>
+            `).join('')}
+          </div>
+          <span class="wizard-progress-label">Paso ${step + 1} de ${totalSteps}</span>
+        </div>
+
+        <!-- Derecha: Navegacion -->
+        <div class="wizard-header-right">
+          <button class="btn btn--tertiary btn--sm" id="eval-cancel-btn">
+            Cancelar
+          </button>
+          <button class="btn btn--secondary btn--sm" id="eval-prev" ${step === 0 ? 'disabled' : ''}>
+            <span class="material-symbols-outlined">arrow_back</span>
+          </button>
+          <button class="btn btn--primary btn--sm" id="eval-next">
+            ${step >= areas.length
+              ? `<span class="material-symbols-outlined">check</span>`
+              : `<span class="material-symbols-outlined">arrow_forward</span>`
+            }
+          </button>
+        </div>
+      </header>
+
+      <!-- Contenido del paso actual - scroll natural -->
+      <div class="wizard-content">
+        ${step < areas.length
+          ? renderEvaluationStep(areas[step], step)
+          : renderEvaluationSummary(areas)}
+      </div>
+
+      <!-- Footer oculto por CSS -->
+      <footer class="wizard-footer">
+        <!-- Mantenido para compatibilidad, oculto por CSS -->
+      </footer>
+    </div>
+  `;
+};
+
+/**
+ * Renderiza un paso de evaluación de área
+ */
+const renderEvaluationStep = (area, stepIndex) => {
+  const existingScore = wizardState.scores[area.id] || { current: 5, desired: 7, reflection: {} };
+  const areaColor = AREA_COLORS[area.id] || '#6b7280';
+
+  return `
+    <div class="eval-step" data-area="${area.id}">
+      <!-- Cabecera del área -->
+      <div class="eval-area-header" style="--area-color: ${areaColor}">
+        <span class="material-symbols-outlined eval-area-icon">${area.icon}</span>
+        <h2 class="eval-area-title">${area.name}</h2>
+        <p class="eval-area-subtitle">Evalúa esta área de tu vida</p>
+      </div>
+
+      <!-- Sliders de puntuación -->
+      <div class="eval-sliders">
+        <div class="eval-slider-group">
+          <label class="eval-slider-label">
+            <span>¿Cómo te sientes actualmente?</span>
+            <span class="eval-slider-value" id="current-value">${existingScore.current}</span>
+          </label>
+          <input type="range" min="1" max="10" value="${existingScore.current}"
+                 class="eval-slider" id="score-current">
+          <div class="eval-slider-hints">
+            <span>Muy insatisfecha</span>
+            <span>Muy satisfecha</span>
+          </div>
+        </div>
+
+        <div class="eval-slider-group eval-slider-group--desired">
+          <label class="eval-slider-label">
+            <span>¿Qué puntuación te gustaría tener?</span>
+            <span class="eval-slider-value eval-slider-value--desired" id="desired-value">${existingScore.desired}</span>
+          </label>
+          <input type="range" min="1" max="10" value="${existingScore.desired}"
+                 class="eval-slider eval-slider--desired" id="score-desired">
+          <div class="eval-slider-hints">
+            <span>1</span>
+            <span>10</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reflexiones -->
+      <div class="eval-reflections">
+        <h3 class="eval-reflections-title">
+          <span class="material-symbols-outlined">edit_note</span>
+          Reflexiones
+        </h3>
+
+        <div class="eval-reflection-card">
+          <label for="reflection-why">
+            <span class="material-symbols-outlined">psychology</span>
+            ¿Por qué has puntuado así esta área?
+          </label>
+          <textarea id="reflection-why" class="input textarea" rows="3"
+                    placeholder="Reflexiona sobre tu situación actual...">${existingScore.reflection?.why || ''}</textarea>
+        </div>
+
+        <div class="eval-reflection-card">
+          <label for="reflection-improve">
+            <span class="material-symbols-outlined">lightbulb</span>
+            ¿Qué aspectos podrías mejorar?
+          </label>
+          <textarea id="reflection-improve" class="input textarea" rows="3"
+                    placeholder="Identifica oportunidades de mejora...">${existingScore.reflection?.improve || ''}</textarea>
+        </div>
+
+        <div class="eval-reflection-card">
+          <label for="reflection-actions">
+            <span class="material-symbols-outlined">rocket_launch</span>
+            ¿Qué harás para lograrlo?
+          </label>
+          <textarea id="reflection-actions" class="input textarea" rows="3"
+                    placeholder="Define acciones concretas...">${existingScore.reflection?.actions || ''}</textarea>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+/**
+ * Renderiza el resumen de la evaluación (paso final)
+ */
+const renderEvaluationSummary = (areas) => {
+  const scores = wizardState.scores;
+
+  return `
+    <div class="eval-summary">
+      <h2 class="eval-summary-title">
+        <span class="material-symbols-outlined">donut_large</span>
+        Resumen de tu evaluación
+      </h2>
+
+      <div class="eval-summary-wheel">
+        ${renderWheelChart(scores, areas, { size: 300, showLabels: true, showDesired: true, colors: AREA_COLORS })}
+      </div>
+
+      <div class="eval-summary-scores">
+        ${areas.map(area => {
+          const score = scores[area.id] || { current: 0, desired: 0 };
+          const diff = score.desired - score.current;
+          const diffClass = diff > 0 ? 'positive' : diff < 0 ? 'negative' : '';
+          return `
+            <div class="eval-summary-score" style="--area-color: ${AREA_COLORS[area.id] || '#6b7280'}">
+              <span class="material-symbols-outlined">${area.icon}</span>
+              <span class="name">${area.name}</span>
+              <span class="scores">
+                <span class="current">${score.current}</span>
+                <span class="arrow">→</span>
+                <span class="desired">${score.desired}</span>
+                ${diff !== 0 ? `<span class="diff ${diffClass}">${diff > 0 ? '+' : ''}${diff}</span>` : ''}
+              </span>
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      <div class="form-group eval-overall-reflection">
+        <label for="overall-reflection">
+          <span class="material-symbols-outlined icon-sm">edit_note</span>
+          Reflexión general del trimestre
+        </label>
+        <textarea id="overall-reflection" class="input textarea" rows="4"
+                  placeholder="¿Qué conclusiones sacas de esta evaluación? ¿Qué áreas quieres priorizar?">${wizardState.overallReflection}</textarea>
+      </div>
+    </div>
+  `;
+};
+
+/**
+ * Inicia el wizard de evaluación (cambia a vista de página completa)
  */
 const startEvaluationWizard = () => {
-  const areas = currentData.lifeWheel?.areas || getDefaultAreas();
-  const modal = document.getElementById('evaluation-modal');
-
   // Reiniciar estado
   wizardState = {
     currentStep: 0,
@@ -369,127 +547,22 @@ const startEvaluationWizard = () => {
     overallReflection: ''
   };
 
-  // Renderizar primer paso
-  renderWizardStep(areas);
-  updateWizardProgress(areas.length + 1);
-
-  modal.showModal();
+  // Cambiar a vista de evaluación
+  currentView = 'evaluation';
+  reRender();
 };
 
 /**
- * Renderiza un paso del wizard
+ * Cancela el wizard y vuelve a la vista principal
  */
-const renderWizardStep = (areas) => {
-  const container = document.getElementById('wizard-content');
-  const step = wizardState.currentStep;
-
-  if (step < areas.length) {
-    // Paso de evaluación de área
-    const area = areas[step];
-    const existingScore = wizardState.scores[area.id] || { current: 5, desired: 7, reflection: {} };
-
-    container.innerHTML = `
-      <div class="wizard-step wizard-step--area">
-        <div class="wizard-area-header" style="--area-color: ${AREA_COLORS[area.id] || '#6b7280'}">
-          <span class="material-symbols-outlined icon-xl">${area.icon}</span>
-          <h3>${area.name}</h3>
-        </div>
-
-        <div class="wizard-sliders">
-          <div class="slider-group">
-            <label>
-              ¿Cómo te sientes actualmente en esta área?
-              <span class="slider-value" id="current-value">${existingScore.current}</span>
-            </label>
-            <input type="range" min="1" max="10" value="${existingScore.current}"
-                   class="slider" id="score-current">
-            <div class="slider-labels">
-              <span>1 - Muy insatisfecha</span>
-              <span>10 - Muy satisfecha</span>
-            </div>
-          </div>
-
-          <div class="slider-group">
-            <label>
-              ¿Qué puntuación te gustaría tener?
-              <span class="slider-value" id="desired-value">${existingScore.desired}</span>
-            </label>
-            <input type="range" min="1" max="10" value="${existingScore.desired}"
-                   class="slider" id="score-desired">
-            <div class="slider-labels">
-              <span>1</span>
-              <span>10</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="wizard-reflections">
-          <div class="form-group">
-            <label for="reflection-why">¿Por qué has puntuado así esta área?</label>
-            <textarea id="reflection-why" class="input textarea" rows="2"
-                      placeholder="Reflexiona sobre tu situación actual...">${existingScore.reflection?.why || ''}</textarea>
-          </div>
-
-          <div class="form-group">
-            <label for="reflection-improve">¿Qué aspectos podrías mejorar?</label>
-            <textarea id="reflection-improve" class="input textarea" rows="2"
-                      placeholder="Identifica oportunidades de mejora...">${existingScore.reflection?.improve || ''}</textarea>
-          </div>
-
-          <div class="form-group">
-            <label for="reflection-actions">¿Qué harás para lograrlo?</label>
-            <textarea id="reflection-actions" class="input textarea" rows="2"
-                      placeholder="Define acciones concretas...">${existingScore.reflection?.actions || ''}</textarea>
-          </div>
-        </div>
-      </div>
-    `;
-
-    // Eventos de sliders
-    setupSliderEvents();
-  } else {
-    // Paso final: resumen y reflexión general
-    container.innerHTML = renderWizardSummary(areas);
-  }
-
-  // Actualizar botones de navegación
-  updateWizardNavigation(areas.length);
-};
-
-/**
- * Renderiza el resumen del wizard
- */
-const renderWizardSummary = (areas) => {
-  const scores = wizardState.scores;
-
-  return `
-    <div class="wizard-step wizard-step--summary">
-      <h3>Resumen de tu evaluación</h3>
-
-      <div class="summary-wheel">
-        ${renderWheelChart(scores, areas, { size: 300, showLabels: true, showDesired: true })}
-      </div>
-
-      <div class="summary-scores">
-        ${areas.map(area => {
-          const score = scores[area.id] || { current: 0, desired: 0 };
-          return `
-            <div class="summary-score-item">
-              <span class="material-symbols-outlined">${area.icon}</span>
-              <span class="name">${area.name}</span>
-              <span class="scores">${score.current} → ${score.desired}</span>
-            </div>
-          `;
-        }).join('')}
-      </div>
-
-      <div class="form-group">
-        <label for="overall-reflection">Reflexión general del trimestre</label>
-        <textarea id="overall-reflection" class="input textarea" rows="4"
-                  placeholder="¿Qué conclusiones sacas de esta evaluación? ¿Qué áreas quieres priorizar?">${wizardState.overallReflection}</textarea>
-      </div>
-    </div>
-  `;
+const cancelEvaluationWizard = () => {
+  currentView = 'main';
+  wizardState = {
+    currentStep: 0,
+    scores: {},
+    overallReflection: ''
+  };
+  reRender();
 };
 
 /**
@@ -508,43 +581,6 @@ const setupSliderEvents = () => {
   desiredSlider?.addEventListener('input', (e) => {
     desiredValue.textContent = e.target.value;
   });
-};
-
-/**
- * Actualiza la barra de progreso del wizard
- */
-const updateWizardProgress = (totalSteps) => {
-  const progress = ((wizardState.currentStep + 1) / totalSteps) * 100;
-  const fill = document.getElementById('wizard-progress-fill');
-  const stepIndicator = document.getElementById('current-step');
-
-  if (fill) fill.style.width = `${progress}%`;
-  if (stepIndicator) stepIndicator.textContent = wizardState.currentStep + 1;
-};
-
-/**
- * Actualiza los botones de navegación del wizard
- */
-const updateWizardNavigation = (totalAreas) => {
-  const prevBtn = document.getElementById('wizard-prev');
-  const nextBtn = document.getElementById('wizard-next');
-  const step = wizardState.currentStep;
-
-  if (prevBtn) prevBtn.disabled = step === 0;
-
-  if (nextBtn) {
-    if (step >= totalAreas) {
-      nextBtn.innerHTML = `
-        <span class="material-symbols-outlined">check</span>
-        Guardar evaluación
-      `;
-    } else {
-      nextBtn.innerHTML = `
-        Siguiente
-        <span class="material-symbols-outlined">arrow_forward</span>
-      `;
-    }
-  }
 };
 
 /**
@@ -576,8 +612,7 @@ const wizardPrev = (areas) => {
   if (wizardState.currentStep > 0) {
     saveCurrentStepData(areas);
     wizardState.currentStep--;
-    renderWizardStep(areas);
-    updateWizardProgress(areas.length + 1);
+    reRender();
   }
 };
 
@@ -592,8 +627,7 @@ const wizardNext = (areas) => {
     saveEvaluation(areas);
   } else {
     wizardState.currentStep++;
-    renderWizardStep(areas);
-    updateWizardProgress(areas.length + 1);
+    reRender();
   }
 };
 
@@ -615,11 +649,12 @@ const saveEvaluation = (areas) => {
 
   updateDataCallback('lifeWheel', lifeWheel);
 
-  document.getElementById('evaluation-modal').close();
-  showNotification('Evaluación guardada correctamente', 'success');
+  // Volver a vista principal
+  currentView = 'main';
+  wizardState = { currentStep: 0, scores: {}, overallReflection: '' };
 
-  // Recargar vista
-  location.reload();
+  showNotification('Evaluación guardada correctamente', 'success');
+  reRender();
 };
 
 // ============================================================
@@ -635,15 +670,40 @@ export const init = (data, updateData) => {
 
   const areas = data.lifeWheel?.areas || getDefaultAreas();
 
+  // Si estamos en vista de evaluación, inicializar eventos del wizard
+  if (currentView === 'evaluation') {
+    initEvaluationEvents(areas);
+    return;
+  }
+
+  // Eventos de la vista principal
+  initMainViewEvents(data, areas);
+};
+
+/**
+ * Inicializa eventos del wizard de evaluación
+ */
+const initEvaluationEvents = (areas) => {
+  // Configurar sliders
+  setupSliderEvents();
+
+  // Botón cancelar (X en header)
+  document.getElementById('eval-cancel')?.addEventListener('click', cancelEvaluationWizard);
+
+  // Botón cancelar (footer)
+  document.getElementById('eval-cancel-btn')?.addEventListener('click', cancelEvaluationWizard);
+
+  // Navegación
+  document.getElementById('eval-prev')?.addEventListener('click', () => wizardPrev(areas));
+  document.getElementById('eval-next')?.addEventListener('click', () => wizardNext(areas));
+};
+
+/**
+ * Inicializa eventos de la vista principal
+ */
+const initMainViewEvents = (data, areas) => {
   // Botón nueva evaluación
   document.getElementById('new-evaluation-btn')?.addEventListener('click', startEvaluationWizard);
-
-  // Navegación del wizard
-  document.getElementById('wizard-prev')?.addEventListener('click', () => wizardPrev(areas));
-  document.getElementById('wizard-next')?.addEventListener('click', () => wizardNext(areas));
-  document.getElementById('wizard-cancel')?.addEventListener('click', () => {
-    document.getElementById('evaluation-modal').close();
-  });
 
   // Toggle de vistas
   document.querySelectorAll('.view-toggle [data-view]').forEach(btn => {
@@ -907,7 +967,7 @@ const saveAreaEdit = (data) => {
     updateDataCallback('lifeWheel', lifeWheel);
     document.getElementById('edit-area-modal').close();
     showNotification('Área actualizada', 'success');
-    location.reload();
+    reRender();
   }
 };
 

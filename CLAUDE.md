@@ -27,6 +27,19 @@ Sin backend, sin dependencias externas
 Ejecutable directamente en navegador
 ```
 
+### Desarrollo Local
+
+**IMPORTANTE**: No abrir archivos HTML directamente con `file://` — causa errores CORS con ES modules.
+
+```bash
+# Servidor de desarrollo (puerto 8000)
+npx http-server D:/SOFTWARE/oraculo/dist -p 8000
+
+# Luego abrir: http://localhost:8000/app.html
+```
+
+Alternativa: Usar extensión "Live Preview" de VSCode (clic derecho → Show Preview).
+
 ---
 
 ## Estructura del Proyecto

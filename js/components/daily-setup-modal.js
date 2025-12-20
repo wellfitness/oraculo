@@ -137,6 +137,15 @@ export const renderDailySetupModal = () => {
             </div>
           </div>
 
+          <!-- Mensaje de ayuda inicial (visible por defecto) -->
+          <div class="setup-help" id="setup-help">
+            <div class="help-card">
+              <span class="material-symbols-outlined help-icon">help_outline</span>
+              <p class="help-text">Selecciona cuánto tiempo tienes hoy para tus prioridades y cómo te sientes de energía ahora</p>
+            </div>
+          </div>
+
+          <!-- Resultado calculado (oculto hasta selección) -->
           <div class="setup-result" id="setup-result" style="display: none;">
             <div class="result-card">
               <span class="material-symbols-outlined result-icon">tips_and_updates</span>
@@ -362,26 +371,29 @@ export const initDailySetupModal = (data, updateData) => {
   // Actualizar resultado del paso 1
   const updateResult = () => {
     const nextBtn = document.getElementById('next-to-menu');
+    const helpDiv = document.getElementById('setup-help');
     const resultDiv = document.getElementById('setup-result');
     const resultText = document.getElementById('result-text');
 
     if (selectedTime && selectedEnergy) {
       currentLimit = calculateDailyLimit(selectedTime, selectedEnergy);
       nextBtn.disabled = false;
+      helpDiv.style.display = 'none';
       resultDiv.style.display = 'block';
 
       let message = '';
       if (currentLimit === 1) {
-        message = 'Hoy es un día para enfocarte en UNA sola cosa. Elige tu Roca Principal.';
+        message = '✨ Hoy es día de UNA sola cosa. Elige lo que más importa.';
       } else if (currentLimit === 2) {
-        message = 'Tienes espacio para 2 prioridades. Recuerda: menos es más.';
+        message = '✨ Tienes espacio para 2 prioridades. Menos es más.';
       } else {
-        message = 'Puedes abordar hasta 3 prioridades hoy.';
+        message = '✨ Puedes con hasta 3 prioridades hoy. ¡A por ellas!';
       }
 
       resultText.textContent = message;
     } else {
       nextBtn.disabled = true;
+      helpDiv.style.display = 'block';
       resultDiv.style.display = 'none';
     }
   };
