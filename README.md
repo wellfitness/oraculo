@@ -171,12 +171,14 @@ Oráculo está diseñado con estas ideas en mente:
 
 ## Licencia
 
-Este proyecto está bajo la licencia [GNU GPL v3](LICENSE).
+Este proyecto está bajo la licencia [CC BY-NC-SA 4.0](LICENSE) (Creative Commons Attribution-NonCommercial-ShareAlike).
 
 Puedes usar, modificar y distribuir este software libremente, siempre que:
-- Mantengas la misma licencia en trabajos derivados
-- Incluyas el código fuente
-- Documentes los cambios realizados
+- **Atribución**: Des crédito apropiado a Movimiento Funcional
+- **No Comercial**: No uses el material con fines comerciales
+- **Compartir Igual**: Distribuyas tus contribuciones bajo la misma licencia
+
+Para uso comercial, contacta: hola@movimientofuncional.com
 
 ## Créditos
 
