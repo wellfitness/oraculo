@@ -5,6 +5,7 @@
 
 import { generateId, showNotification } from '../app.js';
 import { getReflexionDelDia, getReflexionPorPilar } from '../data/burkeman.js';
+import { getHabitosManson } from '../data/markmanson.js';
 
 // Áreas de vida para priorización de hábitos (v1.5)
 const LIFE_AREAS = [
@@ -92,6 +93,8 @@ export const render = (data) => {
           </div>
         `}
       </section>
+
+      ${!activeHabit ? renderHabitSuggestions() : ''}
 
       ${graduatedHabits.length > 0 ? `
         <section class="habits-graduated">
@@ -337,6 +340,46 @@ export const render = (data) => {
 };
 
 /**
+ * Renderiza las sugerencias de hábitos de Mark Manson
+ * "6 Hábitos Nada Sexis que Cambiarán tu Vida"
+ */
+const renderHabitSuggestions = () => {
+  const habitos = getHabitosManson();
+
+  return `
+    <section class="habits-suggestions">
+      <h2>
+        <span class="material-symbols-outlined icon-primary">lightbulb</span>
+        6 Hábitos Nada Sexis
+      </h2>
+      <p class="section-description">
+        Mark Manson: "Los hábitos que realmente cambian tu vida no son glamurosos.
+        Son aburridos, repetitivos, y funcionan."
+      </p>
+
+      <div class="suggestion-cards">
+        ${habitos.map(h => `
+          <div class="suggestion-card" data-habit-id="${h.id}">
+            <div class="suggestion-icon">
+              <span class="material-symbols-outlined">${h.icono}</span>
+            </div>
+            <h3>${h.nombre}</h3>
+            <p class="suggestion-desc">${h.descripcion}</p>
+            <div class="suggestion-micro">
+              <span class="material-symbols-outlined icon-sm">timer</span>
+              ${h.microVersion}
+            </div>
+            <div class="suggestion-benefits">
+              ${h.beneficios.map(b => `<span class="benefit-tag">${b}</span>`).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </section>
+  `;
+};
+
+/**
  * Renderiza la sección de Descanso Atélico
  */
 const renderAtelicSection = (activities) => {
@@ -422,6 +465,30 @@ export const init = (data, updateData) => {
     wizardStep = 1;
     wizardData = {};
     reRender(data);
+  });
+
+  // Tarjetas de sugerencias de hábitos (Mark Manson)
+  document.querySelectorAll('.suggestion-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const habitId = card.dataset.habitId;
+      const habitos = getHabitosManson();
+      const habito = habitos.find(h => h.id === habitId);
+
+      if (habito) {
+        // Pre-rellenar el wizard con datos del hábito seleccionado
+        wizardData = {
+          area: habito.area,
+          identity: habito.identidad,
+          name: habito.nombre,
+          micro: habito.microVersion,
+          fromManson: true
+        };
+        currentView = 'wizard';
+        wizardStep = 1;
+        reRender(data);
+        showNotification(`Has elegido "${habito.nombre}". ¡Personalízalo a tu medida!`, 'info');
+      }
+    });
   });
 
   // Botón editar hábito activo (abre wizard con datos existentes)
