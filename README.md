@@ -85,7 +85,7 @@ PWA: Funciona offline
 
 1. Clona el repositorio:
 ```bash
-git clone https://github.com/movimientofuncional/oraculo.git
+git clone https://github.com/wellfitness/oraculo.git
 cd oraculo
 ```
 
