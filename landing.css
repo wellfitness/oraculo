@@ -1108,7 +1108,7 @@ section {
 
 @media (min-width: 640px) {
   .footer-links {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -1152,6 +1152,27 @@ section {
   font-size: var(--text-xs);
 }
 
+.footer-github {
+  margin-top: var(--space-4);
+}
+
+.footer-github a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-gray-500);
+  font-size: var(--text-sm);
+  transition: color var(--transition-fast);
+}
+
+.footer-github a:hover {
+  color: var(--turquesa-400);
+}
+
+.footer-github svg {
+  flex-shrink: 0;
+}
+
 .footer-legal {
   margin-top: var(--space-4);
   font-size: var(--text-xs);
@@ -1179,7 +1200,8 @@ section {
 }
 
 .semanas-container {
-  max-width: 900px;
+  max-width: 1400px;
+  width: 90%;
   margin: 0 auto;
   text-align: center;
 }
@@ -1337,11 +1359,10 @@ section {
 }
 
 .semana-cell {
-  aspect-ratio: 1;
-  min-width: 4px;
+  min-width: 3px;
+  height: 3px;
   border-radius: 1px;
   background: var(--color-gray-700);
-  transition: all var(--transition-fast);
 }
 
 .semana-cell.vivida {
@@ -1437,9 +1458,7 @@ section {
 
 /* Responsive para el grid de semanas */
 @media (max-width: 640px) {
-  .semanas-grid {
-    grid-template-columns: repeat(26, 1fr);
-  }
+  /* Grid mantiene 52 columnas (celdas de 3px caben bien) */
 
   .stat-number {
     font-size: var(--text-4xl);
