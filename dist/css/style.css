@@ -243,7 +243,7 @@ a:hover {
 .app-main {
   flex: 1;
   padding: var(--space-3) var(--space-4);
-  max-width: 1200px;
+  max-width: 1000px;
   width: 100%;
   margin: 0 auto;
 }
@@ -3600,7 +3600,7 @@ a.entry-type-btn {
 /* Página de logros */
 .achievements-page {
   padding: var(--space-3);
-  max-width: 900px;
+  max-width: 1000px;
   margin: 0 auto;
 }
 
@@ -3940,7 +3940,7 @@ a.entry-type-btn {
 
 .settings-page {
   padding: var(--space-3);
-  max-width: 700px;
+  max-width: 1000px;
   margin: 0 auto;
 }
 
@@ -6164,7 +6164,7 @@ a.entry-type-btn {
    ========================================================================== */
 
 .help-page {
-  max-width: 900px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: var(--space-3);
 }
@@ -8368,7 +8368,7 @@ select,
    -------------------------------------------------------------------------- */
 
 .values-page {
-  max-width: 900px;
+  max-width: 1000px;
   margin: 0 auto;
 }
 
@@ -8832,7 +8832,7 @@ select,
    -------------------------------------------------------------------------- */
 
 .habits-page {
-  max-width: 800px;
+  max-width: 1000px;
   margin: 0 auto;
 }
 
