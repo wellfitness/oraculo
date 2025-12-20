@@ -145,8 +145,21 @@ export const render = (data) => {
             <p class="setup-result__text" id="result-text"></p>
           </div>
 
-          <!-- Anticipación de obstáculos (opcional, colapsable) -->
-          <details class="setup-obstacles" id="setup-obstacles" style="display: none;">
+        </div>
+
+        <!-- COLUMNA DERECHA -->
+        <div class="setup-2col__right">
+          <!-- FOOTER: Botones de acción -->
+          <footer class="setup-2col__footer">
+            <a href="#" class="btn btn--tertiary" id="btn-skip">Omitir por hoy</a>
+            <button type="button" class="btn btn--primary" id="btn-start-day" disabled>
+              <span class="material-symbols-outlined icon-sm">check</span>
+              Empezar el día
+            </button>
+          </footer>
+
+          <!-- Obstáculos (opcional) -->
+          <details class="setup-obstacles" id="setup-obstacles">
             <summary class="setup-obstacles__summary">
               <span class="material-symbols-outlined">psychology</span>
               <span>Anticipar posibles obstáculos</span>
@@ -157,33 +170,19 @@ export const render = (data) => {
                 <label for="potential-obstacle" class="form-label form-label--sm">
                   ¿Qué podría dificultar hoy?
                 </label>
-                <textarea
-                  id="potential-obstacle"
-                  class="form-textarea form-textarea--sm"
-                  placeholder="Ej: Reuniones largas, cansancio..."
-                  maxlength="150"
-                  rows="2"
-                ></textarea>
+                <textarea id="potential-obstacle" class="form-textarea form-textarea--sm"
+                  placeholder="Ej: Reuniones largas, cansancio..." maxlength="150" rows="1"></textarea>
               </div>
               <div class="form-group form-group--compact">
                 <label for="contingency-plan" class="form-label form-label--sm">
                   Si pasa, haré...
                 </label>
-                <textarea
-                  id="contingency-plan"
-                  class="form-textarea form-textarea--sm"
-                  placeholder="Ej: Dejaré una tarea para mañana"
-                  maxlength="150"
-                  rows="2"
-                ></textarea>
+                <textarea id="contingency-plan" class="form-textarea form-textarea--sm"
+                  placeholder="Ej: Dejaré una tarea para mañana" maxlength="150" rows="1"></textarea>
               </div>
             </div>
           </details>
 
-        </div>
-
-        <!-- COLUMNA DERECHA: Lista de tareas -->
-        <div class="setup-2col__right">
           <header class="setup-tasks__header">
             <h2 class="setup-tasks__title">
               <span class="material-symbols-outlined">checklist</span>
@@ -200,15 +199,6 @@ export const render = (data) => {
         </div>
 
       </div>
-
-      <!-- FOOTER: Botones de acción -->
-      <footer class="setup-2col__footer">
-        <a href="#" class="btn btn--tertiary" id="btn-skip">Omitir por hoy</a>
-        <button type="button" class="btn btn--primary" id="btn-start-day" disabled>
-          <span class="material-symbols-outlined icon-sm">check</span>
-          Empezar el día
-        </button>
-      </footer>
     </div>
   `;
 };
@@ -310,15 +300,13 @@ export const init = (data, updateData) => {
 
   // --- Actualizar resultado ---
   const updateResult = () => {
-    const obstaclesDiv = document.getElementById('setup-obstacles');
-
     if (selectedTime && selectedEnergy) {
       currentLimit = calculateDailyLimit(selectedTime, selectedEnergy);
 
-      // Ocultar ayuda, mostrar resultado y obstáculos
+      // Ocultar ayuda, mostrar resultado con animación
       helpDiv.style.display = 'none';
       resultDiv.style.display = 'flex';
-      obstaclesDiv.style.display = 'block';
+      resultDiv.classList.add('visible');
 
       // Mensaje según límite
       let message = '';
@@ -333,6 +321,11 @@ export const init = (data, updateData) => {
 
       btnStart.disabled = false;
       updateCounter();
+    } else {
+      // Si falta alguna selección, mostrar ayuda
+      helpDiv.style.display = 'block';
+      resultDiv.style.display = 'none';
+      resultDiv.classList.remove('visible');
     }
   };
 

@@ -5,7 +5,6 @@
 
 import { generateId, showNotification } from '../app.js';
 import { getReflexionDelDia, getReflexionPorPilar } from '../data/burkeman.js';
-import { getHabitosManson } from '../data/markmanson.js';
 
 // Áreas de vida para priorización de hábitos (v1.5)
 const LIFE_AREAS = [
@@ -59,52 +58,8 @@ export const render = (data) => {
   const history = data.habits.history || [];
 
   return `
-    <div class="habits-page habits-page--layout">
-      <!-- Sidebar con Las 4 Leyes + Ocio -->
-      <aside class="habits-sidebar">
-        <div class="habits-sidebar__section">
-          <h2 class="habits-sidebar__title">
-            <span class="material-symbols-outlined">auto_stories</span>
-            Las 4 Leyes
-          </h2>
-          <ol class="laws-list">
-            <li class="law-item">
-              <span class="law-item__number">1</span>
-              <div class="law-item__content">
-                <strong>Hacerlo Obvio</strong>
-                <span>La señal debe ser visible</span>
-              </div>
-            </li>
-            <li class="law-item">
-              <span class="law-item__number">2</span>
-              <div class="law-item__content">
-                <strong>Hacerlo Atractivo</strong>
-                <span>Vincúlalo con algo que disfrutes</span>
-              </div>
-            </li>
-            <li class="law-item">
-              <span class="law-item__number">3</span>
-              <div class="law-item__content">
-                <strong>Hacerlo Fácil</strong>
-                <span>Reduce la fricción al mínimo</span>
-              </div>
-            </li>
-            <li class="law-item">
-              <span class="law-item__number">4</span>
-              <div class="law-item__content">
-                <strong>Hacerlo Satisfactorio</strong>
-                <span>Recompénsate inmediatamente</span>
-              </div>
-            </li>
-          </ol>
-        </div>
-
-        ${renderAtelicSidebar(data.atelicActivities || [])}
-      </aside>
-
-      <!-- Contenido principal -->
-      <main class="habits-main">
-        <header class="page-header">
+    <div class="habits-page">
+      <header class="page-header">
         <h1 class="page-title">Laboratorio de Hábitos</h1>
         <p class="page-description">
           Un hábito a la vez. Los hábitos compiten por recursos cognitivos.
@@ -135,8 +90,6 @@ export const render = (data) => {
               </button>
             </div>
           </div>
-
-          ${renderHabitSuggestions()}
         `}
       </section>
 
@@ -158,7 +111,33 @@ export const render = (data) => {
         </section>
       ` : ''}
 
-      </main>
+      <section class="habits-science">
+        <h2>Las 4 Leyes de los Hábitos</h2>
+        <div class="laws-grid">
+          <div class="law-card">
+            <span class="law-number">1</span>
+            <h3>Hacerlo Obvio</h3>
+            <p>La señal debe ser visible. Prepara el entorno para que el hábito sea inevitable.</p>
+          </div>
+          <div class="law-card">
+            <span class="law-number">2</span>
+            <h3>Hacerlo Atractivo</h3>
+            <p>Vincúlalo con algo que disfrutes. El deseo impulsa la acción.</p>
+          </div>
+          <div class="law-card">
+            <span class="law-number">3</span>
+            <h3>Hacerlo Fácil</h3>
+            <p>Reduce la fricción. La versión de 2 minutos es suficiente para empezar.</p>
+          </div>
+          <div class="law-card">
+            <span class="law-number">4</span>
+            <h3>Hacerlo Satisfactorio</h3>
+            <p>Recompénsate inmediatamente. Lo que se recompensa, se repite.</p>
+          </div>
+        </div>
+      </section>
+
+      ${renderAtelicSection(data.atelicActivities || [])}
 
       <!-- Modal para crear/editar hábito -->
       <dialog id="habit-modal" class="modal modal--large">
@@ -358,49 +337,6 @@ export const render = (data) => {
 };
 
 /**
- * Renderiza el sidebar de actividades atélicas (versión compacta)
- */
-const renderAtelicSidebar = (activities) => {
-  const recentActivities = activities
-    .slice()
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .slice(0, 3);
-
-  return `
-    <div class="habits-sidebar__section habits-sidebar__section--atelic">
-      <div class="habits-sidebar__header">
-        <h2 class="habits-sidebar__title">
-          <span class="material-symbols-outlined">spa</span>
-          Ocio sin Objetivo
-        </h2>
-        <button class="btn btn--icon btn--sm" id="add-atelic-btn-sidebar" title="Registrar actividad">
-          <span class="material-symbols-outlined icon-sm">add</span>
-        </button>
-      </div>
-
-      <p class="habits-sidebar__hint">
-        También está permitido simplemente ser.
-      </p>
-
-      ${recentActivities.length > 0 ? `
-        <ul class="atelic-mini-list">
-          ${recentActivities.map(a => `
-            <li class="atelic-mini-item">
-              <span class="material-symbols-outlined icon-sm">${a.icon || 'spa'}</span>
-              <span>${a.name}</span>
-            </li>
-          `).join('')}
-        </ul>
-      ` : `
-        <p class="habits-sidebar__empty">
-          ¿Cuándo fue la última vez que hiciste algo solo por el placer de hacerlo?
-        </p>
-      `}
-    </div>
-  `;
-};
-
-/**
  * Renderiza la sección de Descanso Atélico
  */
 const renderAtelicSection = (activities) => {
@@ -488,9 +424,6 @@ export const init = (data, updateData) => {
     reRender(data);
   });
 
-  // Configurar tarjetas de sugerencias de hábitos (Mark Manson)
-  setupSuggestionCards(data);
-
   // Botón editar hábito activo (abre wizard con datos existentes)
   document.getElementById('edit-habit-btn')?.addEventListener('click', () => {
     const habit = data.habits.active;
@@ -525,11 +458,6 @@ export const init = (data, updateData) => {
 
   // Botón añadir actividad atélica
   document.getElementById('add-atelic-btn')?.addEventListener('click', () => {
-    openAtelicModal();
-  });
-
-  // Botón añadir actividad atélica (en sidebar)
-  document.getElementById('add-atelic-btn-sidebar')?.addEventListener('click', () => {
     openAtelicModal();
   });
 
@@ -1827,77 +1755,6 @@ const renderHabitWizard = () => {
   }
 
   return '';
-};
-
-// ============================================================
-// SUGERENCIAS DE HÁBITOS (Mark Manson)
-// ============================================================
-
-/**
- * Renderiza las sugerencias de hábitos de Mark Manson
- */
-const renderHabitSuggestions = () => {
-  const habitos = getHabitosManson();
-
-  return `
-    <section class="habit-suggestions">
-      <header class="habit-suggestions__header">
-        <span class="material-symbols-outlined">lightbulb</span>
-        <div>
-          <h3>6 Hábitos que Cambiarán tu Vida</h3>
-          <p>Según Mark Manson, estos son los hábitos más transformadores (aunque nada sexis).</p>
-        </div>
-      </header>
-
-      <div class="suggestion-cards">
-        ${habitos.map(h => `
-          <button class="suggestion-card" data-habit-id="${h.id}">
-            <span class="material-symbols-outlined suggestion-card__icon">${h.icono}</span>
-            <h4 class="suggestion-card__name">${h.nombre}</h4>
-            <p class="suggestion-card__desc">${h.descripcion}</p>
-            <div class="suggestion-card__benefits">
-              ${h.beneficios.map(b => `<span class="benefit-tag">${b}</span>`).join('')}
-            </div>
-            <span class="suggestion-card__cta">
-              <span class="material-symbols-outlined icon-sm">add</span>
-              Crear este hábito
-            </span>
-          </button>
-        `).join('')}
-      </div>
-    </section>
-  `;
-};
-
-/**
- * Configura los handlers para las tarjetas de sugerencia
- * @param {Object} data - Datos de la app para reRender
- */
-const setupSuggestionCards = (data) => {
-  const habitos = getHabitosManson();
-
-  document.querySelectorAll('.suggestion-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const habitId = card.dataset.habitId;
-      const habito = habitos.find(h => h.id === habitId);
-
-      if (habito) {
-        // Pre-rellenar wizardData con los datos de la sugerencia
-        wizardData = {
-          area: habito.area,
-          identity: habito.identidad,
-          name: habito.nombre,
-          micro: habito.microVersion,
-          fromSuggestion: true
-        };
-
-        // Iniciar el wizard
-        currentView = 'wizard';
-        wizardStep = 1;
-        reRender(data);
-      }
-    });
-  });
 };
 
 // ============================================================
