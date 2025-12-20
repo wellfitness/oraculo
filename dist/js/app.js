@@ -117,7 +117,6 @@ const setupNavigation = () => {
   window.addEventListener('hashchange', () => {
     const fullHash = window.location.hash.slice(1);
     const baseView = getBaseView(fullHash);
-    console.log('hashchange:', fullHash, '-> baseView:', baseView);
 
     // Solo re-renderizar si es una vista válida
     if (VIEWS[baseView]) {
