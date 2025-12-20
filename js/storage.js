@@ -78,7 +78,10 @@ const getDefaultData = () => ({
     energyLevel: null,             // 'low' | 'medium' | 'high'
     dailyLimit: 3,                 // Límite dinámico para tareas diarias
     rocaPrincipal: null,           // ID de la tarea prioritaria del día
-    setupAt: null                  // Timestamp del setup
+    setupAt: null,                 // Timestamp del setup
+    // Anticipación de obstáculos (v1.6)
+    potentialObstacle: null,       // "¿Qué podría dificultar hoy?"
+    contingencyPlan: null          // "Si pasa, haré..."
   },
 
   // Logros espontáneos - Done List

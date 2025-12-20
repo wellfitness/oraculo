@@ -145,6 +145,41 @@ export const render = (data) => {
             <p class="setup-result__text" id="result-text"></p>
           </div>
 
+          <!-- Anticipación de obstáculos (opcional, colapsable) -->
+          <details class="setup-obstacles" id="setup-obstacles" style="display: none;">
+            <summary class="setup-obstacles__summary">
+              <span class="material-symbols-outlined">psychology</span>
+              <span>Anticipar posibles obstáculos</span>
+              <span class="setup-obstacles__optional">(opcional)</span>
+            </summary>
+            <div class="setup-obstacles__content">
+              <div class="form-group form-group--compact">
+                <label for="potential-obstacle" class="form-label form-label--sm">
+                  ¿Qué podría dificultar hoy?
+                </label>
+                <textarea
+                  id="potential-obstacle"
+                  class="form-textarea form-textarea--sm"
+                  placeholder="Ej: Reuniones largas, cansancio..."
+                  maxlength="150"
+                  rows="2"
+                ></textarea>
+              </div>
+              <div class="form-group form-group--compact">
+                <label for="contingency-plan" class="form-label form-label--sm">
+                  Si pasa, haré...
+                </label>
+                <textarea
+                  id="contingency-plan"
+                  class="form-textarea form-textarea--sm"
+                  placeholder="Ej: Dejaré una tarea para mañana"
+                  maxlength="150"
+                  rows="2"
+                ></textarea>
+              </div>
+            </div>
+          </details>
+
         </div>
 
         <!-- COLUMNA DERECHA: Lista de tareas -->
@@ -275,12 +310,15 @@ export const init = (data, updateData) => {
 
   // --- Actualizar resultado ---
   const updateResult = () => {
+    const obstaclesDiv = document.getElementById('setup-obstacles');
+
     if (selectedTime && selectedEnergy) {
       currentLimit = calculateDailyLimit(selectedTime, selectedEnergy);
 
-      // Ocultar ayuda, mostrar resultado
+      // Ocultar ayuda, mostrar resultado y obstáculos
       helpDiv.style.display = 'none';
       resultDiv.style.display = 'flex';
+      obstaclesDiv.style.display = 'block';
 
       // Mensaje según límite
       let message = '';
@@ -389,6 +427,10 @@ export const init = (data, updateData) => {
       updateData('objectives', data.objectives);
     }
 
+    // Capturar valores de obstáculos (opcionales)
+    const potentialObstacle = document.getElementById('potential-obstacle')?.value.trim() || null;
+    const contingencyPlan = document.getElementById('contingency-plan')?.value.trim() || null;
+
     // Guardar configuración del día
     data.dailySetup = {
       date: today,
@@ -396,7 +438,9 @@ export const init = (data, updateData) => {
       energyLevel: selectedEnergy,
       dailyLimit: currentLimit,
       rocaPrincipal: data.dailySetup?.rocaPrincipal || null,
-      setupAt: new Date().toISOString()
+      setupAt: new Date().toISOString(),
+      potentialObstacle,
+      contingencyPlan
     };
 
     updateData('dailySetup', data.dailySetup);
