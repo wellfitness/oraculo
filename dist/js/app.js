@@ -43,6 +43,15 @@ const VIEWS = {
 };
 
 /**
+ * Extrae la vista base de un hash (antes del primer /)
+ * Ej: "journal/new/gratitude" -> "journal"
+ */
+const getBaseView = (hash) => {
+  const cleanHash = hash.startsWith('#') ? hash.slice(1) : hash;
+  return cleanHash.split('/')[0] || 'dashboard';
+};
+
+/**
  * Inicializa la aplicación
  */
 export const init = () => {
@@ -68,10 +77,11 @@ export const init = () => {
   const needsSetup = setupEnabled && needsDailySetup(state.data);
 
   // Determinar vista inicial respetando el hash de la URL
-  const hashView = window.location.hash.slice(1);
+  const fullHash = window.location.hash.slice(1);
+  const baseView = getBaseView(fullHash);
 
-  if (hashView && VIEWS[hashView]) {
-    navigateTo(hashView);
+  if (fullHash && VIEWS[baseView]) {
+    navigateTo(baseView, fullHash);
   } else if (needsSetup) {
     navigateTo('daily-setup');
   } else {
@@ -100,6 +110,20 @@ const setupNavigation = () => {
   window.addEventListener('popstate', (e) => {
     if (e.state && e.state.view) {
       renderView(e.state.view);
+    }
+  });
+
+  // Manejar cambios de hash (para subrutas como #journal/new/gratitude)
+  window.addEventListener('hashchange', () => {
+    const fullHash = window.location.hash.slice(1);
+    const baseView = getBaseView(fullHash);
+    console.log('hashchange:', fullHash, '-> baseView:', baseView);
+
+    // Solo re-renderizar si es una vista válida
+    if (VIEWS[baseView]) {
+      state.currentView = baseView;
+      renderView(baseView);
+      updateActiveNav(baseView);
     }
   });
 };
