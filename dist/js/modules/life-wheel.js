@@ -5,6 +5,7 @@
 
 import { generateId, showNotification, navigateTo } from '../app.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
+import { getTrianguloFelicidad } from '../data/markmanson.js';
 import { renderWheelChart } from '../components/wheel-chart.js';
 import { renderEvolutionChart } from '../components/evolution-chart.js';
 
@@ -46,6 +47,42 @@ const reRender = () => {
     container.innerHTML = render(currentData);
     init(currentData, updateDataCallback);
   }
+};
+
+/**
+ * Renderiza el Triángulo de la Felicidad de Mark Manson
+ * Las 3 dimensiones clave: Libertad, Relaciones, Salud
+ */
+const renderTrianguloFelicidad = () => {
+  const triangulo = getTrianguloFelicidad();
+
+  return `
+    <section class="happiness-triangle">
+      <details class="happiness-triangle__details" open>
+        <summary>
+          <span class="material-symbols-outlined">change_history</span>
+          El Triángulo de la Felicidad
+        </summary>
+
+        <div class="happiness-triangle__content">
+          <p class="happiness-triangle__intro">
+            Mark Manson: "${triangulo.conexion}"
+          </p>
+
+          <div class="triangle-areas">
+            ${triangulo.areas.map(area => `
+              <div class="triangle-area">
+                <span class="material-symbols-outlined triangle-icon">${area.icono}</span>
+                <h4>${area.nombre}</h4>
+                <p class="triangle-desc">${area.descripcion}</p>
+                <p class="triangle-insight">"${area.insight}"</p>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </details>
+    </section>
+  `;
 };
 
 /**
@@ -146,6 +183,9 @@ const renderMainPage = (data) => {
           </blockquote>
         </section>
       ` : ''}
+
+      <!-- Triángulo de la Felicidad (Mark Manson) -->
+      ${renderTrianguloFelicidad()}
 
       <!-- Gestión de áreas -->
       <section class="wheel-areas-management">

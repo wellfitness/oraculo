@@ -6,6 +6,7 @@
 
 import { generateId, showNotification } from '../app.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
+import { getBuenosValores, getMalosValores } from '../data/markmanson.js';
 
 let updateDataCallback = null;
 let currentData = null;
@@ -58,6 +59,8 @@ export const render = (data) => {
             <li><strong>Contribución</strong> — Ayudar a otros y dejar huella</li>
           </ul>
         </div>
+
+        ${renderValuesGuide()}
       ` : ''}
 
       ${values.length > 0 ? `
@@ -183,6 +186,62 @@ export const init = (data, updateData) => {
 
   // Configurar botones de sugerencias desde la rueda
   setupSuggestionButtons();
+};
+
+/**
+ * Renderiza la guía de valores de Mark Manson
+ * Buenos valores vs Malos valores
+ */
+const renderValuesGuide = () => {
+  const buenos = getBuenosValores();
+  const malos = getMalosValores();
+
+  return `
+    <section class="values-guide">
+      <p class="values-guide__intro">
+        Mark Manson: "Buenos valores te hacen mejor persona y no dependen de nada externo."
+      </p>
+
+      <details class="values-guide__details">
+        <summary>
+          <span class="material-symbols-outlined">help_outline</span>
+          ¿Qué hace un buen valor?
+        </summary>
+
+        <div class="values-guide__content">
+          <div class="values-comparison">
+            <div class="values-column values-column--good">
+              <h4>
+                <span class="material-symbols-outlined icon-success">check_circle</span>
+                Buenos Valores
+              </h4>
+              <ul class="values-traits">
+                ${buenos.caracteristicas.map(c => `<li>${c}</li>`).join('')}
+              </ul>
+              <p class="examples-label">Ejemplos:</p>
+              <div class="values-examples">
+                ${buenos.ejemplos.map(e => `<span class="value-tag value-tag--good">${e}</span>`).join('')}
+              </div>
+            </div>
+
+            <div class="values-column values-column--bad">
+              <h4>
+                <span class="material-symbols-outlined icon-warning">warning</span>
+                Valores Problemáticos
+              </h4>
+              <ul class="values-traits">
+                ${malos.caracteristicas.map(c => `<li>${c}</li>`).join('')}
+              </ul>
+              <p class="examples-label">Ejemplos:</p>
+              <div class="values-examples">
+                ${malos.ejemplos.map(e => `<span class="value-tag value-tag--bad">${e}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
+    </section>
+  `;
 };
 
 /**
