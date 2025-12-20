@@ -5,6 +5,10 @@
 
 import { generateId, showNotification, navigateTo } from '../app.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
+import {
+  getTrianguloFelicidad,
+  getReflexionPorTema
+} from '../data/markmanson.js';
 import { renderWheelChart } from '../components/wheel-chart.js';
 import { renderEvolutionChart } from '../components/evolution-chart.js';
 
@@ -24,6 +28,45 @@ const AREA_COLORS = {
   career: '#06b6d4',      // Cian
   finances: '#eab308',    // Amarillo
   leisure: '#6b7280'      // Gris
+};
+
+// Mapeo de áreas a pilares del Triángulo de la Felicidad (Mark Manson)
+const AREA_TO_PILLAR = {
+  health: 'salud',
+  emotional: 'salud',
+  growth: 'libertad',
+  family: 'relaciones',
+  social: 'relaciones',
+  career: 'libertad',
+  finances: 'libertad',
+  leisure: 'libertad'
+};
+
+/**
+ * Obtiene el pilar del Triángulo según el área con mayor brecha
+ */
+const getPillarForLargestGap = (scores, areas) => {
+  let maxGap = 0;
+  let areaWithMaxGap = null;
+
+  areas.forEach(area => {
+    const score = scores[area.id];
+    if (score) {
+      const gap = score.desired - score.current;
+      if (gap > maxGap) {
+        maxGap = gap;
+        areaWithMaxGap = area.id;
+      }
+    }
+  });
+
+  if (!areaWithMaxGap || maxGap <= 0) return null;
+
+  return {
+    areaId: areaWithMaxGap,
+    pillar: AREA_TO_PILLAR[areaWithMaxGap] || 'libertad',
+    gap: maxGap
+  };
 };
 
 /**
@@ -137,12 +180,15 @@ const renderMainPage = (data) => {
         </div>
       ` : ''}
 
-      <!-- Reflexión de Burkeman -->
+      <!-- Triángulo de la Felicidad -->
+      ${evaluations.length > 0 ? renderTriangleSection(lastEvaluation, areas) : ''}
+
+      <!-- Reflexión de Mark Manson -->
       ${evaluations.length > 0 ? `
         <section class="wheel-reflection">
           <blockquote class="quote quote--secondary">
-            <p>"${getReflexionDelDia('values')}"</p>
-            <cite>— Oliver Burkeman</cite>
+            <p>"${getReflexionPorTema('felicidad')}"</p>
+            <cite>— Mark Manson</cite>
           </blockquote>
         </section>
       ` : ''}
@@ -488,10 +534,118 @@ const renderEvaluationStep = (area, stepIndex) => {
 };
 
 /**
+ * Renderiza la sección del Triángulo de la Felicidad en la vista principal
+ */
+const renderTriangleSection = (evaluation, areas) => {
+  if (!evaluation?.scores) return '';
+
+  const triangulo = getTrianguloFelicidad();
+
+  // Calcular promedio por pilar
+  const pillarScores = {
+    salud: { total: 0, count: 0 },
+    relaciones: { total: 0, count: 0 },
+    libertad: { total: 0, count: 0 }
+  };
+
+  areas.forEach(area => {
+    const score = evaluation.scores[area.id];
+    const pilar = AREA_TO_PILLAR[area.id];
+    if (score && pilar && pillarScores[pilar]) {
+      pillarScores[pilar].total += score.current;
+      pillarScores[pilar].count++;
+    }
+  });
+
+  // Calcular promedios
+  const pillarAverages = {};
+  Object.keys(pillarScores).forEach(pilar => {
+    const ps = pillarScores[pilar];
+    pillarAverages[pilar] = ps.count > 0 ? Math.round(ps.total / ps.count) : 0;
+  });
+
+  // Mapeo de nombre a key del pilar
+  const nombreToKey = {
+    'Salud': 'salud',
+    'Relaciones': 'relaciones',
+    'Libertad': 'libertad'
+  };
+
+  return `
+    <section class="triangle-section">
+      <h3>
+        <span class="material-symbols-outlined">change_history</span>
+        Triángulo de la Felicidad
+      </h3>
+      <p>
+        Según Mark Manson, la felicidad se sostiene en tres pilares interconectados.
+      </p>
+
+      <div class="triangle-pillars">
+        ${triangulo.areas.map(pilar => {
+          const key = nombreToKey[pilar.nombre] || pilar.nombre.toLowerCase();
+          const avg = pillarAverages[key] || 0;
+          return `
+            <div class="triangle-pillar ${key}">
+              <span class="material-symbols-outlined">${pilar.icono}</span>
+              <h4>${pilar.nombre}</h4>
+              <span class="pillar-score">${avg}/10</span>
+              <span class="pillar-areas">${pilar.descripcion}</span>
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      <p class="triangle-connection">${triangulo.conexion}</p>
+    </section>
+  `;
+};
+
+/**
+ * Renderiza el insight del Triángulo de la Felicidad según el área con mayor brecha
+ */
+const renderTriangleInsight = (pillarInfo, areas) => {
+  if (!pillarInfo) return '';
+
+  const triangulo = getTrianguloFelicidad();
+
+  // Mapeo de key de pilar a nombre en el triángulo
+  const keyToNombre = {
+    salud: 'Salud',
+    relaciones: 'Relaciones',
+    libertad: 'Libertad'
+  };
+
+  const nombrePilar = keyToNombre[pillarInfo.pillar];
+  const pilar = triangulo.areas.find(p => p.nombre === nombrePilar);
+  if (!pilar) return '';
+
+  const areaName = areas.find(a => a.id === pillarInfo.areaId)?.name || 'esta área';
+
+  return `
+    <div class="triangle-insight">
+      <div class="triangle-insight__header">
+        <span class="material-symbols-outlined">${pilar.icono}</span>
+        <h3>Triángulo de la Felicidad</h3>
+      </div>
+      <p class="triangle-insight__area">
+        Tu mayor brecha está en <strong>${areaName}</strong> (+${pillarInfo.gap}),
+        que pertenece al pilar de <strong>${pilar.nombre}</strong>.
+      </p>
+      <blockquote class="triangle-insight__quote">
+        <p>"${pilar.insight}"</p>
+        <cite>— Mark Manson</cite>
+      </blockquote>
+    </div>
+  `;
+};
+
+/**
  * Renderiza el resumen de la evaluación (paso final)
  */
 const renderEvaluationSummary = (areas) => {
   const scores = wizardState.scores;
+  const pillarInfo = getPillarForLargestGap(scores, areas);
 
   return `
     <div class="eval-summary">
@@ -523,6 +677,8 @@ const renderEvaluationSummary = (areas) => {
           `;
         }).join('')}
       </div>
+
+      ${renderTriangleInsight(pillarInfo, areas)}
 
       <div class="form-group eval-overall-reflection">
         <label for="overall-reflection">

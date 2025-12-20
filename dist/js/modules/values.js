@@ -5,11 +5,79 @@
  */
 
 import { generateId, showNotification } from '../app.js';
-import { getReflexionDelDia } from '../data/burkeman.js';
+import {
+  getReflexionDelDia,
+  getBuenosValores,
+  getMalosValores
+} from '../data/markmanson.js';
 
 let updateDataCallback = null;
 let currentData = null;
 const MAX_VALUES = 5;
+
+/**
+ * Renderiza el "puente" que conecta con la Rueda de la Vida
+ * @param {boolean} isProminent - Si es true, muestra versión destacada (estado vacío)
+ */
+const renderWheelBridge = (isProminent) => {
+  if (isProminent) {
+    return `
+      <div class="values-bridge values-bridge--prominent">
+        <span class="material-symbols-outlined">lightbulb</span>
+        <div class="values-bridge__content">
+          <strong>¿No tienes claro qué valoras?</strong>
+          <p>
+            La <a href="#life-wheel" data-view="life-wheel">Rueda de la Vida</a>
+            puede darte claridad. Evalúa dónde estás y descubre qué te importa.
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="values-bridge">
+      <span class="material-symbols-outlined">donut_large</span>
+      <p>
+        Tus valores se conectan con tu
+        <a href="#life-wheel" data-view="life-wheel">Rueda de la Vida</a>
+      </p>
+    </div>
+  `;
+};
+
+/**
+ * Renderiza la guía de buenos/malos valores según Mark Manson
+ */
+const renderValuesGuide = () => {
+  const buenos = getBuenosValores();
+  const malos = getMalosValores();
+
+  return `
+    <details class="values-guide">
+      <summary>
+        <span class="material-symbols-outlined">help</span>
+        ¿Qué hace un buen valor?
+      </summary>
+      <div class="values-guide__content">
+        <div class="good-values">
+          <h4><span class="material-symbols-outlined">check_circle</span> Buenos valores</h4>
+          <p class="values-guide__subtitle">Realistas, constructivos, controlables</p>
+          <ul>
+            ${buenos.map(v => `<li>${v}</li>`).join('')}
+          </ul>
+        </div>
+        <div class="bad-values">
+          <h4><span class="material-symbols-outlined">cancel</span> Evita estos</h4>
+          <p class="values-guide__subtitle">Emocionales, destructivos, incontrolables</p>
+          <ul>
+            ${malos.map(v => `<li>${v}</li>`).join('')}
+          </ul>
+        </div>
+      </div>
+    </details>
+  `;
+};
 
 /**
  * Renderiza la brújula de valores
@@ -29,6 +97,8 @@ export const render = (data) => {
           y energía, y qué puedes soltar sin culpa.
         </p>
       </header>
+
+      ${renderWheelBridge(values.length === 0)}
 
       <section class="values-grid">
         ${values.map(value => renderValueCard(value, wheelAreas)).join('')}
@@ -70,7 +140,7 @@ export const render = (data) => {
           </blockquote>
           <blockquote class="quote quote--secondary">
             <p>"${getReflexionDelDia('values')}"</p>
-            <cite>— Oliver Burkeman</cite>
+            <cite>— Mark Manson</cite>
           </blockquote>
         </section>
       ` : ''}
@@ -113,6 +183,8 @@ export const render = (data) => {
               maxlength="2"
             >
           </div>
+
+          ${renderValuesGuide()}
 
           <input type="hidden" id="value-id">
 

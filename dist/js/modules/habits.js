@@ -5,6 +5,7 @@
 
 import { generateId, showNotification } from '../app.js';
 import { getReflexionDelDia, getReflexionPorPilar } from '../data/burkeman.js';
+import { getHabitosManson } from '../data/markmanson.js';
 
 // Áreas de vida para priorización de hábitos (v1.5)
 const LIFE_AREAS = [
@@ -90,6 +91,8 @@ export const render = (data) => {
               </button>
             </div>
           </div>
+
+          ${renderHabitSuggestions()}
         `}
       </section>
 
@@ -423,6 +426,9 @@ export const init = (data, updateData) => {
     wizardData = {};
     reRender(data);
   });
+
+  // Configurar tarjetas de sugerencias de hábitos (Mark Manson)
+  setupSuggestionCards(data);
 
   // Botón editar hábito activo (abre wizard con datos existentes)
   document.getElementById('edit-habit-btn')?.addEventListener('click', () => {
@@ -1755,6 +1761,77 @@ const renderHabitWizard = () => {
   }
 
   return '';
+};
+
+// ============================================================
+// SUGERENCIAS DE HÁBITOS (Mark Manson)
+// ============================================================
+
+/**
+ * Renderiza las sugerencias de hábitos de Mark Manson
+ */
+const renderHabitSuggestions = () => {
+  const habitos = getHabitosManson();
+
+  return `
+    <section class="habit-suggestions">
+      <header class="habit-suggestions__header">
+        <span class="material-symbols-outlined">lightbulb</span>
+        <div>
+          <h3>6 Hábitos que Cambiarán tu Vida</h3>
+          <p>Según Mark Manson, estos son los hábitos más transformadores (aunque nada sexis).</p>
+        </div>
+      </header>
+
+      <div class="suggestion-cards">
+        ${habitos.map(h => `
+          <button class="suggestion-card" data-habit-id="${h.id}">
+            <span class="material-symbols-outlined suggestion-card__icon">${h.icono}</span>
+            <h4 class="suggestion-card__name">${h.nombre}</h4>
+            <p class="suggestion-card__desc">${h.descripcion}</p>
+            <div class="suggestion-card__benefits">
+              ${h.beneficios.map(b => `<span class="benefit-tag">${b}</span>`).join('')}
+            </div>
+            <span class="suggestion-card__cta">
+              <span class="material-symbols-outlined icon-sm">add</span>
+              Crear este hábito
+            </span>
+          </button>
+        `).join('')}
+      </div>
+    </section>
+  `;
+};
+
+/**
+ * Configura los handlers para las tarjetas de sugerencia
+ * @param {Object} data - Datos de la app para reRender
+ */
+const setupSuggestionCards = (data) => {
+  const habitos = getHabitosManson();
+
+  document.querySelectorAll('.suggestion-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const habitId = card.dataset.habitId;
+      const habito = habitos.find(h => h.id === habitId);
+
+      if (habito) {
+        // Pre-rellenar wizardData con los datos de la sugerencia
+        wizardData = {
+          area: habito.area,
+          identity: habito.identidad,
+          name: habito.nombre,
+          micro: habito.microVersion,
+          fromSuggestion: true
+        };
+
+        // Iniciar el wizard
+        currentView = 'wizard';
+        wizardStep = 1;
+        reRender(data);
+      }
+    });
+  });
 };
 
 // ============================================================

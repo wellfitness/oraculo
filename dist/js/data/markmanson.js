@@ -360,6 +360,79 @@ export const getPreguntasCoherencia = () => PREGUNTAS_COHERENCIA;
 export const getTrianguloFelicidad = () => TRIANGULO_FELICIDAD;
 
 // ============================================================
+// 6 HÁBITOS NADA SEXIS (para Laboratorio de Hábitos)
+// ============================================================
+
+const HABITOS_MANSON = [
+  {
+    id: 'ejercicio',
+    nombre: 'Ejercicio',
+    icono: 'fitness_center',
+    area: 'ejercicio',
+    descripcion: 'Empieza de forma sencilla. No sobreestimes el esfuerzo necesario.',
+    microVersion: '30 minutos caminando al día',
+    identidad: 'Soy una persona que mueve su cuerpo cada día',
+    beneficios: ['Más energía', 'Mejor humor', 'Claridad mental']
+  },
+  {
+    id: 'cocinar',
+    nombre: 'Cocinar',
+    icono: 'cooking',
+    area: 'alimentacion',
+    descripcion: 'Control sobre qué y cuánto comes.',
+    microVersion: 'Preparar una comida casera al día',
+    identidad: 'Soy una persona que nutre su cuerpo con comida real',
+    beneficios: ['Más energía', 'Mejor concentración', 'Mejor humor']
+  },
+  {
+    id: 'meditacion',
+    nombre: 'Meditación',
+    icono: 'self_improvement',
+    area: 'descanso',
+    descripcion: 'Incluso 1 minuto al día produce beneficios.',
+    microVersion: '1 minuto de respiración consciente',
+    identidad: 'Soy una persona que cultiva la calma interior',
+    beneficios: ['Autoconocimiento', 'Reducción del estrés', 'Claridad']
+  },
+  {
+    id: 'lectura',
+    nombre: 'Lectura',
+    icono: 'menu_book',
+    area: 'descanso',
+    descripcion: 'Te hace más empático e informado. Si no disfrutas un libro, déjalo.',
+    microVersion: '10 páginas al día (o 15 minutos)',
+    identidad: 'Soy una persona que alimenta su mente con buenas lecturas',
+    beneficios: ['Empatía', 'Conocimiento', 'Relajación']
+  },
+  {
+    id: 'escribir',
+    nombre: 'Escribir',
+    icono: 'edit_note',
+    area: 'organizacion',
+    descripcion: 'Herramienta de autodescubrimiento. Terapéutico.',
+    microVersion: '5 minutos de escritura libre',
+    identidad: 'Soy una persona que procesa sus pensamientos escribiendo',
+    beneficios: ['Autodescubrimiento', 'Claridad mental', 'Terapéutico']
+  },
+  {
+    id: 'relacionarse',
+    nombre: 'Relacionarse',
+    icono: 'groups',
+    area: 'descanso',
+    descripcion: 'La soledad es tan nociva como fumar.',
+    microVersion: 'Escribir a un amigo diferente cada día',
+    identidad: 'Soy una persona que cultiva sus relaciones',
+    beneficios: ['Conexión', 'Apoyo social', 'Bienestar emocional']
+  }
+];
+
+/**
+ * Obtiene los 6 hábitos recomendados por Manson
+ * @returns {Object[]} Array de hábitos con sus propiedades
+ */
+export const getHabitosManson = () => HABITOS_MANSON;
+
+// ============================================================
 // MAPEO DE CONTEXTOS
 // ============================================================
 
@@ -403,6 +476,9 @@ export const MANSON = {
   // Triángulo de la felicidad
   trianguloFelicidad: TRIANGULO_FELICIDAD,
 
+  // 6 Hábitos Nada Sexis
+  habitosManson: HABITOS_MANSON,
+
   // Funciones de utilidad
   getReflexion,
   getReflexionDelDia,
@@ -412,7 +488,8 @@ export const MANSON = {
   getBuenosValores,
   getMalosValores,
   getPreguntasCoherencia,
-  getTrianguloFelicidad
+  getTrianguloFelicidad,
+  getHabitosManson
 };
 
 export default MANSON;
