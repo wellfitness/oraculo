@@ -12295,3 +12295,278 @@ select,
     order: 1;
   }
 }
+
+/* --------------------------------------------------------------------------
+   v1.6 - Anticipación de Obstáculos (Daily Setup)
+   -------------------------------------------------------------------------- */
+.setup-obstacles {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--gris-200);
+}
+
+.setup-obstacles__summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--gris-600);
+  cursor: pointer;
+  padding: var(--space-1) 0;
+  list-style: none;
+  transition: color var(--transition-fast);
+}
+
+.setup-obstacles__summary::-webkit-details-marker {
+  display: none;
+}
+
+.setup-obstacles__summary:hover {
+  color: var(--turquesa-600);
+}
+
+.setup-obstacles__summary .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--turquesa-500);
+}
+
+.setup-obstacles__optional {
+  font-size: var(--font-size-xs);
+  color: var(--gris-400);
+  font-style: italic;
+  margin-left: auto;
+}
+
+.setup-obstacles__content {
+  margin-top: var(--space-2);
+  padding-left: var(--space-3);
+  animation: fadeIn 0.2s ease;
+}
+
+.setup-obstacles[open] .setup-obstacles__summary {
+  color: var(--turquesa-600);
+  margin-bottom: var(--space-1);
+}
+
+.form-group--compact {
+  margin-bottom: var(--space-2);
+}
+
+.form-label--sm {
+  font-size: var(--font-size-sm);
+  color: var(--gris-700);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.form-textarea--sm {
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--gris-300);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  resize: none;
+  transition: all var(--transition-fast);
+}
+
+.form-textarea--sm:focus {
+  outline: none;
+  border-color: var(--turquesa-500);
+  box-shadow: 0 0 0 3px var(--turquesa-100);
+}
+
+.form-textarea--sm::placeholder {
+  color: var(--gris-400);
+}
+
+/* --------------------------------------------------------------------------
+   v1.6 - Evening Check-in Modal
+   -------------------------------------------------------------------------- */
+.modal--evening {
+  background: transparent;
+  border: none;
+  padding: 0;
+  max-width: 500px;
+  width: 90vw;
+}
+
+.modal--evening::backdrop {
+  background: rgba(30, 41, 59, 0.85);
+}
+
+.evening-content {
+  background: linear-gradient(180deg, var(--gris-50), white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  position: relative;
+}
+
+.evening-header {
+  text-align: center;
+  margin-bottom: var(--space-3);
+  position: relative;
+}
+
+.evening-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: var(--gris-400);
+  background: transparent;
+}
+
+.evening-close:hover {
+  color: var(--gris-600);
+  background: var(--gris-100);
+}
+
+.evening-icon {
+  font-size: 48px;
+  color: var(--tulip-tree-400); /* Warm amber for evening ambiance */
+  display: block;
+  margin-bottom: var(--space-2);
+}
+
+.evening-title {
+  font-family: var(--font-family-headings);
+  font-size: var(--font-size-xl);
+  color: var(--gris-800);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.evening-subtitle {
+  color: var(--gris-500);
+  font-size: var(--font-size-sm);
+}
+
+.evening-form .form-group {
+  margin-bottom: var(--space-3);
+}
+
+.evening-form .form-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: 500;
+  color: var(--gris-700);
+  margin-bottom: var(--space-1);
+}
+
+.evening-form .form-label .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--tulip-tree-500); /* Warm amber to match evening theme */
+}
+
+.evening-form .form-textarea {
+  width: 100%;
+  padding: var(--space-2);
+  border: 1px solid var(--gris-300);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  resize: vertical;
+  min-height: 80px;
+  transition: all var(--transition-fast);
+}
+
+.evening-form .form-textarea:focus {
+  outline: none;
+  border-color: var(--tulip-tree-400);
+  box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.15); /* Warm amber glow */
+}
+
+.evening-form .form-textarea::placeholder {
+  color: var(--gris-400);
+}
+
+.quote--evening {
+  margin: var(--space-3) 0;
+  padding: var(--space-2);
+  background: var(--gris-100);
+  border-left: 3px solid var(--gris-400);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  font-size: var(--font-size-sm);
+}
+
+.quote--evening p {
+  color: var(--gris-600);
+  margin: 0;
+}
+
+.quote--evening cite {
+  display: block;
+  text-align: right;
+  font-size: var(--font-size-xs);
+  color: var(--gris-500);
+  margin-top: var(--space-1);
+}
+
+.evening-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--gris-200);
+}
+
+/* Botón trigger en el Dashboard */
+.evening-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3);
+  background: linear-gradient(135deg, var(--gris-700), var(--gris-800));
+  border: none;
+  border-radius: var(--radius-md);
+  color: white;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.evening-trigger:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.evening-trigger .material-symbols-outlined {
+  font-size: 32px;
+  color: var(--tulip-tree-400);
+}
+
+.evening-trigger__content {
+  text-align: left;
+}
+
+.evening-trigger__title {
+  display: block;
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  margin-bottom: 2px;
+}
+
+.evening-trigger__subtitle {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--gris-300); /* Improved contrast: ~5.5:1 on dark bg */
+  opacity: 0.9;
+}
+
+/* Responsive Evening */
+@media (max-width: 480px) {
+  .evening-content {
+    padding: var(--space-3);
+  }
+
+  .evening-form .form-textarea {
+    min-height: 60px;
+  }
+
+  .evening-actions {
+    flex-direction: column;
+  }
+
+  .evening-actions .btn {
+    width: 100%;
+  }
+}
