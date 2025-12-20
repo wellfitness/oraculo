@@ -2261,6 +2261,210 @@ a:hover {
   color: white;
 }
 
+.prompt-item--inserted {
+  background: var(--turquesa-500);
+  color: white;
+  transform: scale(0.95);
+}
+
+/* --------------------------------------------------------------------------
+   Journal Editor (Página completa)
+   -------------------------------------------------------------------------- */
+.journal-editor-page {
+  min-height: calc(100vh - 200px);
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--gris-200);
+}
+
+.editor-back {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--gris-600);
+}
+
+.editor-back:hover {
+  color: var(--turquesa-600);
+}
+
+.editor-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.entry-type-badge--large {
+  font-size: var(--font-size-sm);
+  padding: var(--space-1) var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.editor-date {
+  color: var(--gris-500);
+  font-size: var(--font-size-sm);
+}
+
+.editor-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: var(--space-4);
+  flex: 1;
+  min-height: 0;
+}
+
+.editor-sidebar {
+  background: var(--gris-50);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  height: fit-content;
+  max-height: calc(100vh - 250px);
+  overflow-y: auto;
+  position: sticky;
+  top: var(--space-2);
+}
+
+.editor-title {
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--space-2);
+  color: var(--gris-800);
+}
+
+.herramienta-intro {
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--gris-200);
+}
+
+.prompts-section {
+  margin-top: var(--space-2);
+}
+
+.prompts-hint {
+  font-size: var(--font-size-xs);
+  color: var(--gris-400);
+  font-weight: normal;
+}
+
+.editor-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: var(--space-3);
+}
+
+.editor-textarea {
+  flex: 1;
+  min-height: 400px;
+  width: 100%;
+  padding: var(--space-3);
+  border: 2px solid var(--gris-200);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  line-height: 1.8;
+  resize: vertical;
+  transition: border-color var(--transition-fast);
+}
+
+.editor-textarea:focus {
+  outline: none;
+  border-color: var(--turquesa-400);
+  box-shadow: 0 0 0 3px var(--turquesa-100);
+}
+
+.editor-textarea::placeholder {
+  color: var(--gris-400);
+}
+
+.editor-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--gris-200);
+}
+
+.editor-actions-right {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+/* Responsive: Editor en móvil */
+@media (max-width: 768px) {
+  .editor-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-sidebar {
+    position: static;
+    max-height: none;
+    order: 2;
+  }
+
+  .editor-main {
+    order: 1;
+  }
+
+  .editor-textarea {
+    min-height: 300px;
+  }
+
+  .editor-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .editor-meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .editor-actions {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .editor-actions-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* Entry cards como links */
+a.entry-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+a.entry-card:hover {
+  text-decoration: none;
+}
+
+/* Entry type buttons como links */
+a.entry-type-btn {
+  text-decoration: none;
+  color: inherit;
+}
+
 /* --------------------------------------------------------------------------
    Settings
    -------------------------------------------------------------------------- */
@@ -7718,6 +7922,119 @@ body {
 .prompt-item:hover {
   background: var(--turquesa-100);
   border-color: var(--turquesa-300);
+}
+
+/* Herramientas Mark Manson */
+.herramienta-descripcion {
+  font-size: var(--font-size-base);
+  color: var(--gris-700);
+  margin-bottom: var(--space-2);
+  line-height: 1.6;
+}
+
+.herramienta-instruccion {
+  font-size: var(--font-size-sm);
+  color: var(--turquesa-700);
+  background: var(--turquesa-50);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-3);
+  border-left: 3px solid var(--turquesa-400);
+}
+
+.herramienta-ejemplos {
+  margin-bottom: var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.herramienta-ejemplos summary {
+  cursor: pointer;
+  color: var(--gris-500);
+  font-weight: 500;
+  padding: var(--space-1) 0;
+}
+
+.herramienta-ejemplos summary:hover {
+  color: var(--gris-700);
+}
+
+.herramienta-ejemplos ul {
+  margin-top: var(--space-2);
+  padding-left: var(--space-4);
+  color: var(--gris-600);
+}
+
+.herramienta-ejemplos li {
+  margin-bottom: var(--space-1);
+}
+
+/* Listas de control (Control Analysis) */
+.control-lists {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+@media (max-width: 480px) {
+  .control-lists {
+    grid-template-columns: 1fr;
+  }
+}
+
+.control-list {
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+}
+
+.control-list h4 {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+
+.control-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.control-list li {
+  padding: var(--space-1) 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.control-list--no {
+  background: var(--rosa-50);
+  border: 1px solid var(--rosa-200);
+}
+
+.control-list--no h4 {
+  color: var(--rosa-700);
+}
+
+.control-list--no li::before {
+  content: "✕";
+  color: var(--rosa-500);
+  font-weight: bold;
+}
+
+.control-list--yes {
+  background: var(--turquesa-50);
+  border: 1px solid var(--turquesa-200);
+}
+
+.control-list--yes h4 {
+  color: var(--turquesa-700);
+}
+
+.control-list--yes li::before {
+  content: "✓";
+  color: var(--turquesa-500);
+  font-weight: bold;
 }
 
 /* --------------------------------------------------------------------------

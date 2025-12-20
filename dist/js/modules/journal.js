@@ -1,6 +1,6 @@
 /**
  * Oráculo - Diario Reflexivo
- * Journaling con prompts guiados
+ * Journaling con prompts guiados - Páginas completas (sin modales)
  */
 
 import { generateId, showNotification, formatDate } from '../app.js';
@@ -10,8 +10,10 @@ import {
   getPreguntasJung,
   getZoomingOut
 } from '../data/burkeman.js';
+import { getHerramienta } from '../data/markmanson.js';
 
 let updateDataCallback = null;
+let currentData = null;
 
 // Tipos de entrada
 const ENTRY_TYPES = {
@@ -20,6 +22,10 @@ const ENTRY_TYPES = {
   quarterly: { name: 'Revisión trimestral', icon: 'flag', iconClass: 'icon-secondary' },
   discomfort: { name: 'Registro de incomodidad', icon: 'psychology', iconClass: 'icon-secondary' },
   meditation: { name: 'Meditación', icon: 'self_improvement', iconClass: 'icon-primary' },
+  // Herramientas Mark Manson
+  gratitude: { name: 'Gratitud', icon: 'favorite', iconClass: 'icon-danger' },
+  'letting-go': { name: 'Lista Soltar', icon: 'delete_sweep', iconClass: 'icon-muted' },
+  'control-analysis': { name: 'Análisis de Control', icon: 'tune', iconClass: 'icon-primary' },
   free: { name: 'Escritura libre', icon: 'edit_note', iconClass: 'icon-muted' }
 };
 
@@ -52,14 +58,54 @@ const PROMPTS = {
     '¿Hubo algún momento de resistencia?',
     '¿Cómo te sientes ahora comparado con antes?'
   ],
+  // Herramientas Mark Manson
+  gratitude: getHerramienta('gratitude')?.prompts || [],
+  'letting-go': getHerramienta('letting-go')?.prompts || [],
+  'control-analysis': getHerramienta('control-analysis')?.prompts || [],
   jung: getPreguntasJung(),
   free: []
 };
 
 /**
- * Renderiza el diario
+ * Parsea la subruta del diario
+ * Formatos: #journal, #journal/new/daily, #journal/edit/abc123
+ */
+const parseJournalRoute = () => {
+  const hash = window.location.hash;
+  const parts = hash.split('/');
+
+  if (parts.length >= 3 && parts[1] === 'new') {
+    return { mode: 'new', type: parts[2] || 'free' };
+  }
+  if (parts.length >= 3 && parts[1] === 'edit') {
+    return { mode: 'edit', id: parts[2] };
+  }
+  return { mode: 'list' };
+};
+
+/**
+ * Renderiza el diario (detecta si mostrar lista o editor)
  */
 export const render = (data) => {
+  const route = parseJournalRoute();
+
+  if (route.mode === 'new') {
+    return renderEditor(data, null, route.type);
+  }
+  if (route.mode === 'edit') {
+    const entry = (data.journal || []).find(e => e.id === route.id);
+    if (entry) {
+      return renderEditor(data, entry, entry.type);
+    }
+  }
+
+  return renderList(data);
+};
+
+/**
+ * Renderiza la lista de entradas
+ */
+const renderList = (data) => {
   const entries = (data.journal || []).sort((a, b) =>
     new Date(b.createdAt) - new Date(a.createdAt)
   );
@@ -82,10 +128,10 @@ export const render = (data) => {
         <h2>Nueva entrada</h2>
         <div class="entry-type-buttons">
           ${Object.entries(ENTRY_TYPES).map(([type, info]) => `
-            <button class="entry-type-btn" data-type="${type}">
+            <a href="#journal/new/${type}" class="entry-type-btn">
               <span class="material-symbols-outlined entry-type-icon ${info.iconClass}">${info.icon}</span>
               <span class="entry-type-name">${info.name}</span>
-            </button>
+            </a>
           `).join('')}
         </div>
       </section>
@@ -100,41 +146,138 @@ export const render = (data) => {
           </div>
         ` : `
           <div class="entries-list">
-            ${entries.map(entry => renderEntry(entry)).join('')}
+            ${entries.map(entry => renderEntryCard(entry)).join('')}
           </div>
         `}
       </section>
+    </div>
+  `;
+};
 
-      <!-- Modal para nueva/editar entrada -->
-      <dialog id="journal-modal" class="modal modal--large">
-        <form method="dialog" class="modal-content" id="journal-form">
-          <header class="modal-header">
-            <span class="entry-type-badge" id="modal-type-badge"></span>
-            <h2 class="modal-title" id="journal-modal-title">Nueva entrada</h2>
-            <time class="modal-date" id="modal-date"></time>
-          </header>
+/**
+ * Renderiza una tarjeta de entrada en la lista
+ */
+const renderEntryCard = (entry) => {
+  const typeInfo = ENTRY_TYPES[entry.type] || ENTRY_TYPES.free;
+  const preview = entry.content.substring(0, 150) + (entry.content.length > 150 ? '...' : '');
 
-          <div class="journal-prompts" id="journal-prompts"></div>
+  return `
+    <a href="#journal/edit/${entry.id}" class="entry-card">
+      <header class="entry-card__header">
+        <span class="entry-type-badge">
+          <span class="material-symbols-outlined icon-sm ${typeInfo.iconClass}">${typeInfo.icon}</span>
+          ${typeInfo.name}
+        </span>
+        <time class="entry-date">${formatEntryDate(entry.createdAt)}</time>
+      </header>
+      <p class="entry-preview">${preview}</p>
+    </a>
+  `;
+};
 
-          <div class="form-group">
+/**
+ * Renderiza el editor de entrada (página completa)
+ */
+const renderEditor = (data, entry, type) => {
+  const typeInfo = ENTRY_TYPES[type] || ENTRY_TYPES.free;
+  const herramienta = getHerramienta(type);
+  const prompts = PROMPTS[type] || [];
+  const isNew = !entry;
+
+  const title = entry
+    ? 'Editar entrada'
+    : (herramienta?.titulo || typeInfo.name);
+
+  return `
+    <div class="journal-editor-page">
+      <header class="editor-header">
+        <a href="#journal" class="btn btn--ghost editor-back">
+          <span class="material-symbols-outlined">arrow_back</span>
+          Volver al diario
+        </a>
+        <div class="editor-meta">
+          <span class="entry-type-badge entry-type-badge--large">
+            <span class="material-symbols-outlined ${typeInfo.iconClass}">${typeInfo.icon}</span>
+            ${typeInfo.name}
+          </span>
+          <time class="editor-date">${entry ? formatEntryDate(entry.createdAt) : 'Hoy'}</time>
+        </div>
+      </header>
+
+      <div class="editor-layout">
+        <!-- Sidebar con prompts -->
+        <aside class="editor-sidebar">
+          <h2 class="editor-title">${title}</h2>
+
+          ${herramienta ? `
+            <div class="herramienta-intro">
+              <p class="herramienta-descripcion">${herramienta.descripcion}</p>
+              <p class="herramienta-instruccion"><em>${herramienta.instruccion}</em></p>
+
+              ${herramienta.ejemplos ? `
+                <details class="herramienta-ejemplos">
+                  <summary>Ver ejemplos</summary>
+                  <ul>${herramienta.ejemplos.map(ej => `<li>${ej}</li>`).join('')}</ul>
+                </details>
+              ` : ''}
+
+              ${type === 'control-analysis' ? `
+                <div class="control-lists">
+                  <div class="control-list control-list--no">
+                    <h4>No puedes cambiar:</h4>
+                    <ul>${herramienta.noPuedesControlar.map(x => `<li>${x}</li>`).join('')}</ul>
+                  </div>
+                  <div class="control-list control-list--yes">
+                    <h4>Sí puedes cambiar:</h4>
+                    <ul>${herramienta.puedesControlar.map(x => `<li>${x}</li>`).join('')}</ul>
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
+
+          ${prompts.length > 0 ? `
+            <div class="prompts-section">
+              <p class="prompts-label">Prompts para guiarte <span class="prompts-hint">(click para insertar)</span></p>
+              <ul class="prompts-list">
+                ${prompts.map(p => `<li class="prompt-item">${p}</li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+        </aside>
+
+        <!-- Área de escritura principal -->
+        <main class="editor-main">
+          <form id="journal-form" class="editor-form">
             <textarea
               id="journal-content"
-              class="input textarea textarea--large"
-              placeholder="Escribe aquí..."
-              rows="10"
-            ></textarea>
-          </div>
+              class="editor-textarea"
+              placeholder="Escribe aquí... Tómate tu tiempo."
+              autofocus
+            >${entry?.content || ''}</textarea>
 
-          <input type="hidden" id="journal-id">
-          <input type="hidden" id="journal-type">
+            <input type="hidden" id="journal-id" value="${entry?.id || ''}">
+            <input type="hidden" id="journal-type" value="${type}">
+            <input type="hidden" id="journal-created" value="${entry?.createdAt || ''}">
 
-          <div class="modal-actions">
-            <button type="button" class="btn btn--tertiary" id="cancel-journal">Cancelar</button>
-            <button type="button" class="btn btn--danger" id="delete-journal" style="display:none">Eliminar</button>
-            <button type="submit" class="btn btn--primary">Guardar</button>
-          </div>
-        </form>
-      </dialog>
+            <div class="editor-actions">
+              ${!isNew ? `
+                <button type="button" class="btn btn--danger btn--outline" id="delete-journal">
+                  <span class="material-symbols-outlined">delete</span>
+                  Eliminar
+                </button>
+              ` : ''}
+              <div class="editor-actions-right">
+                <a href="#journal" class="btn btn--tertiary">Cancelar</a>
+                <button type="submit" class="btn btn--primary btn--large">
+                  <span class="material-symbols-outlined">save</span>
+                  Guardar
+                </button>
+              </div>
+            </div>
+          </form>
+        </main>
+      </div>
     </div>
   `;
 };
@@ -144,82 +287,43 @@ export const render = (data) => {
  */
 export const init = (data, updateData) => {
   updateDataCallback = updateData;
+  currentData = data;
 
-  // Botones de tipo de entrada
-  document.querySelectorAll('.entry-type-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const type = btn.dataset.type;
-      openJournalModal(null, type);
-    });
-  });
+  const route = parseJournalRoute();
 
-  // Click en entrada para ver/editar
-  document.querySelectorAll('.entry-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const entryId = card.dataset.id;
-      const entry = data.journal.find(e => e.id === entryId);
-      if (entry) openJournalModal(entry);
-    });
-  });
-
-  setupModal(data);
+  if (route.mode === 'new' || route.mode === 'edit') {
+    setupEditor(data);
+  }
 };
 
 /**
- * Renderiza una entrada del diario
+ * Configura el editor
  */
-const renderEntry = (entry) => {
-  const typeInfo = ENTRY_TYPES[entry.type] || ENTRY_TYPES.free;
-  const preview = entry.content.substring(0, 150) + (entry.content.length > 150 ? '...' : '');
-
-  return `
-    <article class="entry-card" data-id="${entry.id}">
-      <header class="entry-card__header">
-        <span class="entry-type-badge">
-          <span class="material-symbols-outlined icon-sm ${typeInfo.iconClass}">${typeInfo.icon}</span>
-          ${typeInfo.name}
-        </span>
-        <time class="entry-date">${formatEntryDate(entry.createdAt)}</time>
-      </header>
-      <p class="entry-preview">${preview}</p>
-    </article>
-  `;
-};
-
-/**
- * Configura el modal
- */
-const setupModal = (data) => {
-  const modal = document.getElementById('journal-modal');
+const setupEditor = (data) => {
   const form = document.getElementById('journal-form');
+  const textarea = document.getElementById('journal-content');
 
-  document.getElementById('cancel-journal')?.addEventListener('click', () => modal.close());
-
-  document.getElementById('delete-journal')?.addEventListener('click', () => {
-    const id = document.getElementById('journal-id').value;
-    if (id && confirm('¿Eliminar esta entrada?')) {
-      data.journal = data.journal.filter(e => e.id !== id);
-      updateDataCallback('journal', data.journal);
-      modal.close();
-      showNotification('Entrada eliminada', 'info');
-      location.reload();
-    }
-  });
-
+  // Guardar entrada
   form?.addEventListener('submit', (e) => {
     e.preventDefault();
     saveEntry(data);
   });
 
-  modal?.addEventListener('click', (e) => {
-    if (e.target === modal) modal.close();
+  // Eliminar entrada
+  document.getElementById('delete-journal')?.addEventListener('click', () => {
+    const id = document.getElementById('journal-id').value;
+    if (id && confirm('¿Eliminar esta entrada?')) {
+      data.journal = data.journal.filter(e => e.id !== id);
+      updateDataCallback('journal', data.journal);
+      showNotification('Entrada eliminada', 'info');
+      window.location.hash = '#journal';
+    }
   });
 
-  // Clicks en prompts para insertarlos
-  document.getElementById('journal-prompts')?.addEventListener('click', (e) => {
-    if (e.target.classList.contains('prompt-item')) {
-      const textarea = document.getElementById('journal-content');
-      const prompt = e.target.textContent;
+  // Click en prompts para insertarlos
+  document.querySelectorAll('.prompt-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const prompt = item.textContent;
       const currentContent = textarea.value;
 
       textarea.value = currentContent
@@ -228,53 +332,23 @@ const setupModal = (data) => {
 
       textarea.focus();
       textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+      // Feedback visual
+      item.classList.add('prompt-item--inserted');
+      setTimeout(() => item.classList.remove('prompt-item--inserted'), 300);
+    });
+  });
+
+  // Auto-focus en textarea
+  setTimeout(() => textarea?.focus(), 100);
+
+  // Guardar con Ctrl+S / Cmd+S
+  textarea?.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      saveEntry(data);
     }
   });
-};
-
-/**
- * Abre el modal
- */
-const openJournalModal = (entry = null, type = 'free') => {
-  const modal = document.getElementById('journal-modal');
-  const title = document.getElementById('journal-modal-title');
-  const typeBadge = document.getElementById('modal-type-badge');
-  const dateEl = document.getElementById('modal-date');
-  const promptsContainer = document.getElementById('journal-prompts');
-  const deleteBtn = document.getElementById('delete-journal');
-
-  const entryType = entry?.type || type;
-  const typeInfo = ENTRY_TYPES[entryType];
-
-  document.getElementById('journal-id').value = entry?.id || '';
-  document.getElementById('journal-type').value = entryType;
-  document.getElementById('journal-content').value = entry?.content || '';
-
-  title.textContent = entry ? 'Editar entrada' : 'Nueva entrada';
-  typeBadge.innerHTML = `<span class="material-symbols-outlined icon-sm ${typeInfo.iconClass}">${typeInfo.icon}</span> ${typeInfo.name}`;
-  dateEl.textContent = entry ? formatEntryDate(entry.createdAt) : formatEntryDate(new Date());
-  deleteBtn.style.display = entry ? 'block' : 'none';
-
-  // Mostrar prompts
-  const prompts = PROMPTS[entryType] || [];
-  if (prompts.length > 0 && !entry) {
-    promptsContainer.innerHTML = `
-      <p class="prompts-label">Prompts para guiarte (click para insertar):</p>
-      <ul class="prompts-list">
-        ${prompts.map(p => `<li class="prompt-item">${p}</li>`).join('')}
-      </ul>
-    `;
-    promptsContainer.style.display = 'block';
-  } else {
-    promptsContainer.style.display = 'none';
-  }
-
-  modal.showModal();
-
-  // Focus en textarea
-  setTimeout(() => {
-    document.getElementById('journal-content').focus();
-  }, 100);
 };
 
 /**
@@ -284,6 +358,7 @@ const saveEntry = (data) => {
   const id = document.getElementById('journal-id').value;
   const type = document.getElementById('journal-type').value;
   const content = document.getElementById('journal-content').value.trim();
+  const createdAt = document.getElementById('journal-created').value;
 
   if (!content) {
     showNotification('Escribe algo antes de guardar', 'warning');
@@ -294,9 +369,7 @@ const saveEntry = (data) => {
     id: id || generateId(),
     type,
     content,
-    createdAt: id
-      ? data.journal.find(e => e.id === id)?.createdAt
-      : new Date().toISOString(),
+    createdAt: createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
 
@@ -308,9 +381,8 @@ const saveEntry = (data) => {
   }
 
   updateDataCallback('journal', data.journal);
-  document.getElementById('journal-modal').close();
   showNotification('Entrada guardada', 'success');
-  location.reload();
+  window.location.hash = '#journal';
 };
 
 /**
