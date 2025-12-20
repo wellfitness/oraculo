@@ -18,6 +18,7 @@ let currentData = null;
 // Tipos de entrada
 const ENTRY_TYPES = {
   daily: { name: 'Check-in diario', icon: 'wb_sunny', iconClass: 'icon-warning' },
+  'evening-check-in': { name: 'Check-in vespertino', icon: 'bedtime', iconClass: 'icon-secondary' },
   weekly: { name: 'Revisión semanal', icon: 'date_range', iconClass: 'icon-primary' },
   quarterly: { name: 'Revisión trimestral', icon: 'flag', iconClass: 'icon-secondary' },
   discomfort: { name: 'Registro de incomodidad', icon: 'psychology', iconClass: 'icon-secondary' },
@@ -26,6 +27,7 @@ const ENTRY_TYPES = {
   gratitude: { name: 'Gratitud', icon: 'favorite', iconClass: 'icon-danger' },
   'letting-go': { name: 'Lista Soltar', icon: 'delete_sweep', iconClass: 'icon-muted' },
   'control-analysis': { name: 'Análisis de Control', icon: 'tune', iconClass: 'icon-primary' },
+  'compassionate-reflection': { name: 'Reflexión Compasiva', icon: 'spa', iconClass: 'icon-primary' },
   free: { name: 'Escritura libre', icon: 'edit_note', iconClass: 'icon-muted' }
 };
 
@@ -62,6 +64,7 @@ const PROMPTS = {
   gratitude: getHerramienta('gratitude')?.prompts || [],
   'letting-go': getHerramienta('letting-go')?.prompts || [],
   'control-analysis': getHerramienta('control-analysis')?.prompts || [],
+  'compassionate-reflection': getHerramienta('compassionate-reflection')?.prompts || [],
   jung: getPreguntasJung(),
   free: []
 };

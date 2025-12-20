@@ -3,7 +3,8 @@
  * Vista principal con resumen del día
  */
 
-import { generateId, formatDate, showNotification, openCalmTimer, openSpontaneousModal } from '../app.js';
+import { generateId, formatDate, showNotification, openCalmTimer, openSpontaneousModal, openEveningCheckIn } from '../app.js';
+import { isEveningTime, hasEveningCheckIn } from '../components/evening-check-in.js';
 import { getAchievementsStats, isHabitCompletedToday } from '../utils/achievements-calculator.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
 
@@ -105,6 +106,8 @@ export const render = (data) => {
         </button>
       </section>
 
+      ${renderEveningCheckInButton(data)}
+
       <section class="dashboard__section dashboard__quote">
         <blockquote class="quote">
           <p>"${getReflexionDelDia('dashboard')}"</p>
@@ -182,6 +185,14 @@ export const init = (data, updateData) => {
       openSpontaneousModal();
     });
   }
+
+  // Botón de evening check-in
+  const eveningBtn = document.getElementById('open-evening-check-in');
+  if (eveningBtn) {
+    eveningBtn.addEventListener('click', () => {
+      openEveningCheckIn();
+    });
+  }
 };
 
 /**
@@ -253,6 +264,28 @@ const renderActiveHabit = (habit, history) => {
     <a href="#habits" data-view="habits" class="link-subtle">
       Ver detalles del hábito →
     </a>
+  `;
+};
+
+/**
+ * Renderiza el botón de Evening Check-in (solo visible por la tarde/noche)
+ */
+const renderEveningCheckInButton = (data) => {
+  // Solo mostrar a partir de las 18:00 y si no se ha hecho hoy
+  if (!isEveningTime() || hasEveningCheckIn(data)) {
+    return '';
+  }
+
+  return `
+    <section class="dashboard__section dashboard__evening">
+      <button class="evening-trigger" id="open-evening-check-in">
+        <span class="material-symbols-outlined">bedtime</span>
+        <div class="evening-trigger__content">
+          <span class="evening-trigger__title">Cierre del día</span>
+          <span class="evening-trigger__subtitle">Reflexiona antes de descansar</span>
+        </div>
+      </button>
+    </section>
   `;
 };
 

@@ -184,6 +184,32 @@ const HERRAMIENTA_CONTROL = {
   ]
 };
 
+/**
+ * HERRAMIENTA 4: Reflexión Compasiva
+ * Procesar días difíciles con autocompasión
+ */
+const HERRAMIENTA_COMPASION = {
+  id: 'compassionate-reflection',
+  titulo: "Reflexión Compasiva",
+  subtitulo: "Habla contigo como hablarías con alguien a quien amas",
+  descripcion: "Cuando tenemos un día difícil, solemos ser muy duras con nosotras mismas. Esta herramienta te ayuda a procesar lo ocurrido desde la compasión, no desde la crítica.",
+  instruccion: "Responde a cada pregunta con honestidad. No hay respuestas correctas. El objetivo es entenderte y tratarte con amabilidad.",
+  icono: "spa",
+  ejemplos: [
+    "Me siento frustrada porque no logré hacer todo lo que quería",
+    "Estoy siendo muy dura conmigo misma por un error en el trabajo",
+    "No tengo energía y me siento culpable por descansar",
+    "Me comparo con otras personas y me siento menos"
+  ],
+  prompts: [
+    "¿Qué pasó hoy? Describe los hechos, sin juzgarte.",
+    "¿Qué te estás diciendo a ti misma sobre esto?",
+    "¿Qué le dirías a una amiga que estuviera pasando por lo mismo?",
+    "¿Qué puedes aprender de esta experiencia?",
+    "Escribe un mensaje de compasión para ti misma."
+  ]
+};
+
 // ============================================================
 // GUÍA DE VALORES
 // ============================================================
@@ -320,7 +346,8 @@ export const getHerramienta = (id) => {
   const herramientas = {
     'gratitude': HERRAMIENTA_GRATITUD,
     'letting-go': HERRAMIENTA_SOLTAR,
-    'control-analysis': HERRAMIENTA_CONTROL
+    'control-analysis': HERRAMIENTA_CONTROL,
+    'compassionate-reflection': HERRAMIENTA_COMPASION
   };
   return herramientas[id] || null;
 };
@@ -332,7 +359,8 @@ export const getHerramienta = (id) => {
 export const getHerramientas = () => [
   HERRAMIENTA_GRATITUD,
   HERRAMIENTA_SOLTAR,
-  HERRAMIENTA_CONTROL
+  HERRAMIENTA_CONTROL,
+  HERRAMIENTA_COMPASION
 ];
 
 /**
@@ -464,7 +492,8 @@ export const MANSON = {
   herramientas: {
     gratitud: HERRAMIENTA_GRATITUD,
     soltar: HERRAMIENTA_SOLTAR,
-    control: HERRAMIENTA_CONTROL
+    control: HERRAMIENTA_CONTROL,
+    compasion: HERRAMIENTA_COMPASION
   },
 
   // Guía de valores
