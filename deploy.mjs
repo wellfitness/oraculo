@@ -41,6 +41,7 @@ const INCLUDE = [
   'favicon-192x192.png',
   'favicon-512x512.png',
   'apple-touch-icon.png',
+  'portada.webp',
   // 'logo.png', // No subir - es muy grande (900KB)
   'icons',
   'landing'
