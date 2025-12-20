@@ -8,6 +8,13 @@
 
 import { generateId, showNotification } from '../app.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
+import {
+  renderObjectiveEvaluator,
+  initObjectiveEvaluator,
+  openObjectiveEvaluator,
+  getEvaluationBadge,
+  getObjectiveEvaluation
+} from '../components/objective-evaluator.js';
 
 let updateDataCallback = null;
 let draggedItem = null;
@@ -117,12 +124,12 @@ const renderFocusSection = (items, projects, data) => {
             <span class="material-symbols-outlined icon-sm">diamond</span>
             Roca Principal
           </span>
-          ${renderFocusItem(rocaItem, projects, true)}
+          ${renderFocusItem(rocaItem, projects, true, data.objectiveEvaluation?.evaluations || [])}
         </div>
       ` : ''}
 
       <ul class="focus-items kanban-column__items" data-column="daily">
-        ${otherItems.map(item => renderFocusItem(item, projects, false)).join('')}
+        ${otherItems.map(item => renderFocusItem(item, projects, false, data.objectiveEvaluation?.evaluations || [])).join('')}
       </ul>
 
       ${!isFull ? `
@@ -143,8 +150,9 @@ const renderFocusSection = (items, projects, data) => {
  * Renderiza un item en la sección En Foco
  * (versión más prominente con checkboxes grandes)
  */
-const renderFocusItem = (item, projects, isRoca = false) => {
+const renderFocusItem = (item, projects, isRoca = false, evaluations = []) => {
   const project = item.projectId ? projects.find(p => p.id === item.projectId) : null;
+  const evaluation = getObjectiveEvaluation(item.id, evaluations);
 
   return `
     <li
@@ -161,7 +169,10 @@ const renderFocusItem = (item, projects, isRoca = false) => {
       </label>
 
       <div class="focus-item__content">
-        <span class="focus-item__text ${item.completed ? 'text--completed' : ''}">${item.text}</span>
+        <div class="focus-item__title-row">
+          <span class="focus-item__text ${item.completed ? 'text--completed' : ''}">${item.text}</span>
+          ${evaluation ? getEvaluationBadge(evaluation) : ''}
+        </div>
         ${item.notes ? `<p class="focus-item__notes">${item.notes}</p>` : ''}
         ${project ? `
           <span class="focus-item__project" style="--project-color: ${project.color}">
@@ -172,6 +183,9 @@ const renderFocusItem = (item, projects, isRoca = false) => {
       </div>
 
       <div class="focus-item__actions">
+        <button class="btn btn--icon item-evaluate" data-id="${item.id}" title="Evaluar objetivo">
+          <span class="material-symbols-outlined icon-sm">balance</span>
+        </button>
         <button class="btn btn--icon item-edit" data-id="${item.id}" title="Editar">
           <span class="material-symbols-outlined icon-sm">edit</span>
         </button>
@@ -193,6 +207,7 @@ const renderHorizonsSection = (objectives, projects, data) => {
     { key: 'monthly', name: 'Mes', icon: 'calendar_today' },
     { key: 'weekly', name: 'Semana', icon: 'date_range' }
   ];
+  const evaluations = data.objectiveEvaluation?.evaluations || [];
 
   return `
     <section class="kanban-section kanban-section--horizons" data-section="horizons">
@@ -204,7 +219,7 @@ const renderHorizonsSection = (objectives, projects, data) => {
       </header>
 
       <div class="horizons-grid">
-        ${horizons.map(h => renderHorizonColumn(h.key, objectives[h.key] || [], LIMITS[h.key], projects, h.icon)).join('')}
+        ${horizons.map(h => renderHorizonColumn(h.key, objectives[h.key] || [], LIMITS[h.key], projects, h.icon, evaluations)).join('')}
       </div>
     </section>
   `;
@@ -213,7 +228,7 @@ const renderHorizonsSection = (objectives, projects, data) => {
 /**
  * Renderiza una columna de horizonte (trimestre/mes/semana)
  */
-const renderHorizonColumn = (columnKey, items, limit, projects, icon) => {
+const renderHorizonColumn = (columnKey, items, limit, projects, icon, evaluations = []) => {
   const count = items.length;
   const hasLimit = limit !== null;
   const isFull = hasLimit && count >= limit;
@@ -229,7 +244,7 @@ const renderHorizonColumn = (columnKey, items, limit, projects, icon) => {
       </header>
 
       <ul class="horizon-items kanban-column__items" data-column="${columnKey}">
-        ${items.map(item => renderHorizonItem(item, projects)).join('')}
+        ${items.map(item => renderHorizonItem(item, projects, evaluations)).join('')}
       </ul>
 
       ${!isFull ? `
@@ -244,8 +259,9 @@ const renderHorizonColumn = (columnKey, items, limit, projects, icon) => {
 /**
  * Renderiza un item en una columna de horizonte
  */
-const renderHorizonItem = (item, projects) => {
+const renderHorizonItem = (item, projects, evaluations = []) => {
   const project = item.projectId ? projects.find(p => p.id === item.projectId) : null;
+  const evaluation = getObjectiveEvaluation(item.id, evaluations);
 
   return `
     <li
@@ -258,6 +274,7 @@ const renderHorizonItem = (item, projects) => {
         <label class="horizon-item__checkbox">
           <input type="checkbox" ${item.completed ? 'checked' : ''} data-id="${item.id}">
           <span class="horizon-item__text">${item.text}</span>
+          ${evaluation ? getEvaluationBadge(evaluation) : ''}
         </label>
         ${project ? `
           <span class="horizon-item__project" style="background-color: ${project.color}15; color: ${project.color}">
@@ -267,6 +284,9 @@ const renderHorizonItem = (item, projects) => {
       </div>
 
       <div class="horizon-item__actions">
+        <button class="btn btn--icon item-evaluate" data-id="${item.id}" title="Evaluar objetivo">
+          <span class="material-symbols-outlined icon-sm">balance</span>
+        </button>
         <button class="btn btn--icon item-edit" data-id="${item.id}" title="Editar">
           <span class="material-symbols-outlined icon-sm">edit</span>
         </button>
@@ -284,6 +304,7 @@ const renderHorizonItem = (item, projects) => {
  */
 const renderBacklogSection = (items, projects, data) => {
   const count = items.length;
+  const evaluations = data.objectiveEvaluation?.evaluations || [];
 
   return `
     <section class="kanban-section kanban-section--backlog ${isBacklogExpanded ? 'expanded' : ''}" data-section="backlog">
@@ -306,7 +327,7 @@ const renderBacklogSection = (items, projects, data) => {
         </p>
 
         <ul class="backlog-items kanban-column__items" data-column="backlog">
-          ${items.map(item => renderBacklogItem(item, projects)).join('')}
+          ${items.map(item => renderBacklogItem(item, projects, evaluations)).join('')}
         </ul>
 
         <button class="kanban-add-btn backlog-add-btn" data-column="backlog">
@@ -321,8 +342,9 @@ const renderBacklogSection = (items, projects, data) => {
 /**
  * Renderiza un item del backlog
  */
-const renderBacklogItem = (item, projects) => {
+const renderBacklogItem = (item, projects, evaluations = []) => {
   const project = item.projectId ? projects.find(p => p.id === item.projectId) : null;
+  const evaluation = getObjectiveEvaluation(item.id, evaluations);
 
   return `
     <li
@@ -333,6 +355,7 @@ const renderBacklogItem = (item, projects) => {
     >
       <div class="backlog-item__content">
         <span class="backlog-item__text">${item.text}</span>
+        ${evaluation ? getEvaluationBadge(evaluation) : ''}
         ${project ? `
           <span class="backlog-item__project" style="--project-color: ${project.color}">
             ${project.name}
@@ -341,6 +364,9 @@ const renderBacklogItem = (item, projects) => {
       </div>
 
       <div class="backlog-item__actions">
+        <button class="btn btn--icon item-evaluate" data-id="${item.id}" title="Evaluar objetivo">
+          <span class="material-symbols-outlined icon-sm">balance</span>
+        </button>
         <button class="btn btn--icon item-edit" data-id="${item.id}" title="Editar">
           <span class="material-symbols-outlined icon-sm">edit</span>
         </button>
@@ -493,6 +519,9 @@ export const render = (data) => {
           </div>
         </form>
       </dialog>
+
+      <!-- Modal del evaluador de objetivos -->
+      ${renderObjectiveEvaluator()}
     </div>
   `;
 };
@@ -510,6 +539,10 @@ export const init = (data, updateData) => {
   setupModal(data);
   setupProjectFilter(data);
   setupBacklogToggle();
+  setupEvaluateButtons(data);
+
+  // Inicializar el evaluador de objetivos
+  initObjectiveEvaluator(data, updateData);
 };
 
 /**
@@ -538,6 +571,33 @@ const setupBacklogToggle = () => {
   });
 };
 
+/**
+ * Configura los botones de evaluación de objetivos
+ */
+const setupEvaluateButtons = (data) => {
+  document.querySelectorAll('.item-evaluate').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const itemId = btn.dataset.id;
+
+      // Encontrar el item en los objetivos
+      const column = findItemColumn(itemId, data.objectives);
+      if (!column) return;
+
+      const item = data.objectives[column].find(i => i.id === itemId);
+      if (!item) return;
+
+      // Abrir el evaluador con callback para refrescar la vista
+      openObjectiveEvaluator(
+        { id: item.id, title: item.text, text: item.text, icon: item.icon },
+        (evaluation) => {
+          showNotification(`Objetivo evaluado: ${evaluation.result.recommendation === 'proceed' ? 'Adelante' : evaluation.result.recommendation === 'review' ? 'Revisar' : 'Reconsiderar'}`, 'success');
+          location.reload();
+        }
+      );
+    });
+  });
+};
 
 /**
  * Renderiza una columna del Kanban

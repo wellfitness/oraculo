@@ -31,6 +31,7 @@ const VIEWS = {
   'daily-setup': 'Configurar Día',
   dashboard: 'Dashboard',
   values: 'Brújula de Valores',
+  'life-wheel': 'Rueda de la Vida',
   kanban: 'Horizontes',
   projects: 'Proyectos',
   habits: 'Laboratorio de Hábitos',
