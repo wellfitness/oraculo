@@ -1,0 +1,10 @@
+# Oráculo - Gestión Personal Consciente
+# https://oraculo.movimientofuncional.app
+
+User-agent: *
+Allow: /
+Disallow: /app.html
+Disallow: /dist/
+
+# Sitemap
+Sitemap: https://oraculo.movimientofuncional.app/sitemap.xml
