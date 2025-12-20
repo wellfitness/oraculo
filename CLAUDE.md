@@ -21,7 +21,7 @@ Sistema de gestión personal consciente para mujeres +40 que quieren organizarse
 
 ```
 HTML5 + CSS3 + JavaScript (vanilla ES6 modules)
-Almacenamiento: localStorage (versión 1.3)
+Almacenamiento: localStorage (versión 1.5)
 Iconos: Material Symbols Outlined (Google Fonts CDN)
 Sin backend, sin dependencias externas
 Ejecutable directamente en navegador
@@ -45,7 +45,7 @@ oraculo/
 │   │   ├── values.js       # Brújula de valores
 │   │   ├── kanban.js       # Tablero por horizontes + backlog + filtros
 │   │   ├── projects.js     # Gestión de proyectos
-│   │   ├── habits.js       # Laboratorio de hábitos + actividades atélicas
+│   │   ├── habits.js       # Laboratorio de hábitos + auditoría + wizard + atélicas
 │   │   ├── calendar.js     # Calendario y eventos + sincronía
 │   │   ├── journal.js      # Diario reflexivo + tipos Burkeman
 │   │   ├── achievements.js # Logros, recapitulaciones + done list
@@ -176,20 +176,46 @@ Características:
 
 **Un solo hábito activo a la vez.**
 
-Configuración:
+#### Auditoría de Hábitos (v1.5)
+
+Proceso reflexivo antes de crear un hábito:
+
+1. **Listar actividades**: Anotar actividades de 2 días representativos
+2. **Evaluar cada una**: Marcar como + Mantener / - Cambiar / / Indiferente
+3. **Elegir una para transformar**: De las marcadas para cambiar
+
+#### Wizard de 7 Pasos (página completa)
+
+1. **Área de vida**: Alimentación, Ejercicio, Descanso u Organización
+2. **Identidad**: "Soy una persona que..."
+3. **El hábito**: Nombre + micro-versión (regla de 2 minutos)
+4. **Cuándo y dónde**: Hora específica + ubicación
+5. **Habit Stack**: "Después de [hábito actual] → [nuevo hábito]"
+6. **Las 4 Leyes**: Atractivo, fácil y satisfactorio
+7. **Duración**: 2 semanas, 1 mes, 2 meses o 3 meses
+
+#### Campos del Hábito
+
+- Área de vida (4 opciones con iconos)
 - Identidad ("Soy una persona que...")
 - Nombre del hábito
 - Micro-versión (regla de 2 minutos)
+- Hora específica (HH:mm)
+- Ubicación
 - Habit Stack ("Después de X → Y")
 - Las 4 Leyes: obvio, atractivo, fácil, satisfactorio
 - Recompensa inmediata
+- Duración objetivo
 
-Tracking:
+#### Tracking
+
 - Racha visual (fuego)
 - Calendario de cumplimiento
 - Historial de fechas
+- Badge de área en la tarjeta
 
-Graduación:
+#### Graduación
+
 - Cuando está consolidado
 - Se mantiene permanentemente
 
@@ -318,11 +344,11 @@ Como Bullet Journal: al terminar el año, archivas y empiezas un cuaderno nuevo.
 
 ## Sistema de Almacenamiento
 
-### localStorage (versión 1.3)
+### localStorage (versión 1.5)
 
 ```javascript
 const oraculoData = {
-  version: '1.3',
+  version: '1.5',
   createdAt: ISO_STRING,
   updatedAt: ISO_STRING,
 
@@ -331,7 +357,7 @@ const oraculoData = {
 
   // Objetivos por horizonte temporal
   objectives: {
-    backlog: [],      // Sin límite (nuevo en v1.3)
+    backlog: [],      // Sin límite
     quarterly: [],    // Máx 3
     monthly: [],      // Máx 6
     weekly: [],       // Máx 10
@@ -340,10 +366,22 @@ const oraculoData = {
 
   // Laboratorio de hábitos
   habits: {
-    active: null,     // Solo 1 hábito activo
+    active: null,     // Solo 1 hábito activo (ver campos abajo)
     graduated: [],    // Hábitos consolidados (permanentes)
-    history: []       // Registro de cumplimiento: { habitId, date, completedAt }
+    history: [],      // Registro de cumplimiento: { habitId, date, completedAt }
+    // Auditoría de hábitos (v1.5)
+    audit: {
+      activities: [], // { id, name, evaluation: 'maintain'|'change'|'indifferent', createdAt }
+      lastAuditAt: null
+    }
   },
+
+  // Campos del hábito activo (v1.5):
+  // { id, name, identity, micro, trigger, attractive, easy, reward, duration,
+  //   area: 'alimentacion'|'ejercicio'|'descanso'|'organizacion',
+  //   scheduledTime: 'HH:mm', location: string,
+  //   fromAudit: boolean, originalActivity: string|null,
+  //   startDate, status, completedDates }
 
   // Calendario
   calendar: {
@@ -437,6 +475,11 @@ Mapeo principal:
 | Atélico | spa |
 | Tiempo | schedule |
 | Energía | bolt |
+| Alimentación | restaurant |
+| Ejercicio | fitness_center |
+| Descanso | bedtime |
+| Organización | event_note |
+| Ubicación | location_on |
 
 ---
 
@@ -477,6 +520,9 @@ Ejemplos:
 - Probar archivado anual
 - Probar Volumen Fijo (límites dinámicos)
 - Probar logros espontáneos
+- Probar auditoría de hábitos (3 pasos)
+- Probar wizard de hábitos (7 pasos, navegación atrás/adelante)
+- Verificar que nuevos campos se guardan correctamente (área, hora, ubicación)
 
 ---
 
@@ -487,6 +533,7 @@ Ejemplos:
 - [x] Fase 8: Módulo de Proyectos (integración con kanban)
 - [x] Fase 9: Cuadernos Anuales + Módulo de Logros (heatmap, recaps)
 - [x] Fase 10: Sistema Burkeman v1.3 (volumen fijo, done list, actividades atélicas, reflexiones)
+- [x] Fase 11: Hábitos v1.5 (auditoría, wizard 7 pasos, área/hora/ubicación)
 
 ---
 

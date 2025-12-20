@@ -1,0 +1,47 @@
+{
+  "name": "Oráculo - Gestión Personal Consciente",
+  "short_name": "Oráculo",
+  "description": "Sistema de gestión personal consciente para mujeres +40. Basado en la filosofía de Oliver Burkeman.",
+  "start_url": "/app.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#06b6d4",
+  "orientation": "portrait-primary",
+  "lang": "es",
+  "categories": ["productivity", "lifestyle", "utilities"],
+  "icons": [
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Inicio",
+      "description": "Ver tu foco del día",
+      "url": "/app.html#dashboard"
+    },
+    {
+      "name": "Horizontes",
+      "short_name": "Kanban",
+      "description": "Ver tus objetivos",
+      "url": "/app.html#kanban"
+    }
+  ]
+}
