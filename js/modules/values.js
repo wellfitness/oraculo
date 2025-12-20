@@ -1,12 +1,14 @@
 /**
  * Oráculo - Brújula de Valores
  * Define los valores fundamentales para priorizar
+ * Integrado con la Rueda de la Vida para sugerir valores
  */
 
 import { generateId, showNotification } from '../app.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
 
 let updateDataCallback = null;
+let currentData = null;
 const MAX_VALUES = 5;
 
 /**
@@ -14,6 +16,9 @@ const MAX_VALUES = 5;
  */
 export const render = (data) => {
   const values = data.values || [];
+  const wheelAreas = data.lifeWheel?.areas || [];
+  const evaluations = data.lifeWheel?.evaluations || [];
+  const suggestions = getWheelSuggestions(wheelAreas, evaluations, values);
 
   return `
     <div class="values-page">
@@ -26,7 +31,7 @@ export const render = (data) => {
       </header>
 
       <section class="values-grid">
-        ${values.map(value => renderValueCard(value)).join('')}
+        ${values.map(value => renderValueCard(value, wheelAreas)).join('')}
 
         ${values.length < MAX_VALUES ? `
           <button class="value-card value-card--add" id="add-value-btn">
@@ -35,6 +40,8 @@ export const render = (data) => {
           </button>
         ` : ''}
       </section>
+
+      ${suggestions.length > 0 && values.length < MAX_VALUES ? renderWheelSuggestions(suggestions) : ''}
 
       ${values.length === 0 ? `
         <div class="empty-state empty-state--large">
@@ -128,6 +135,7 @@ export const render = (data) => {
  */
 export const init = (data, updateData) => {
   updateDataCallback = updateData;
+  currentData = data;
 
   const modal = document.getElementById('value-modal');
   const form = document.getElementById('value-form');
@@ -172,31 +180,56 @@ export const init = (data, updateData) => {
   modal?.addEventListener('click', (e) => {
     if (e.target === modal) modal.close();
   });
+
+  // Configurar botones de sugerencias desde la rueda
+  setupSuggestionButtons();
 };
 
 /**
  * Renderiza una tarjeta de valor
  */
-const renderValueCard = (value) => `
-  <article class="value-card" data-id="${value.id}">
-    <div class="value-card__header">
-      <span class="value-icon">${value.icon || ''}</span>
-      <span class="material-symbols-outlined icon-lg icon-primary value-icon-symbol">star</span>
-      <h3 class="value-name">${value.name}</h3>
-    </div>
+const renderValueCard = (value, wheelAreas = []) => {
+  // Encontrar áreas de la rueda vinculadas a este valor
+  const linkedAreas = wheelAreas.filter(area => area.linkedValueId === value.id);
 
-    <p class="value-description">${value.description || ''}</p>
+  return `
+    <article class="value-card" data-id="${value.id}">
+      <div class="value-card__header">
+        <span class="value-icon">${value.icon || ''}</span>
+        <span class="material-symbols-outlined icon-lg icon-primary value-icon-symbol">star</span>
+        <h3 class="value-name">${value.name}</h3>
+      </div>
 
-    <div class="value-card__actions">
-      <button class="btn btn--icon value-edit" title="Editar">
-        <span class="material-symbols-outlined">edit</span>
-      </button>
-      <button class="btn btn--icon value-delete" title="Eliminar">
-        <span class="material-symbols-outlined">delete</span>
-      </button>
-    </div>
-  </article>
-`;
+      <p class="value-description">${value.description || ''}</p>
+
+      ${linkedAreas.length > 0 ? `
+        <div class="value-linked-areas">
+          <span class="linked-label">
+            <span class="material-symbols-outlined icon-xs">donut_large</span>
+            Áreas vinculadas:
+          </span>
+          <div class="linked-areas-list">
+            ${linkedAreas.map(area => `
+              <span class="linked-area-tag">
+                <span class="material-symbols-outlined icon-xs">${area.icon}</span>
+                ${area.name}
+              </span>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      <div class="value-card__actions">
+        <button class="btn btn--icon value-edit" title="Editar">
+          <span class="material-symbols-outlined">edit</span>
+        </button>
+        <button class="btn btn--icon value-delete" title="Eliminar">
+          <span class="material-symbols-outlined">delete</span>
+        </button>
+      </div>
+    </article>
+  `;
+};
 
 /**
  * Abre el modal para añadir/editar valor
@@ -266,4 +299,130 @@ const handleDeleteValue = (valueId, data) => {
   updateDataCallback('values', data.values);
   showNotification('Valor eliminado', 'info');
   location.reload(); // Temporal
+};
+
+/**
+ * Obtiene sugerencias de valores basadas en la Rueda de la Vida
+ * Prioriza áreas con brecha grande (deseado - actual) que no tienen valor vinculado
+ */
+const getWheelSuggestions = (wheelAreas, evaluations, existingValues) => {
+  if (!evaluations || evaluations.length === 0) return [];
+
+  // Obtener la última evaluación
+  const lastEval = [...evaluations].sort(
+    (a, b) => new Date(b.date) - new Date(a.date)
+  )[0];
+
+  if (!lastEval?.scores) return [];
+
+  // Calcular brecha por área y filtrar las que no tienen valor vinculado
+  const suggestions = wheelAreas
+    .map(area => {
+      const score = lastEval.scores[area.id];
+      if (!score) return null;
+
+      const gap = (score.desired || 10) - (score.current || 5);
+      const hasLinkedValue = area.linkedValueId && existingValues.some(v => v.id === area.linkedValueId);
+
+      return {
+        area,
+        current: score.current || 5,
+        desired: score.desired || 10,
+        gap,
+        hasLinkedValue,
+        reflection: score.reflection || ''
+      };
+    })
+    .filter(s => s !== null && s.gap >= 2 && !s.hasLinkedValue) // Brecha >= 2 y sin valor vinculado
+    .sort((a, b) => b.gap - a.gap) // Ordenar por mayor brecha
+    .slice(0, 3); // Máximo 3 sugerencias
+
+  return suggestions;
+};
+
+/**
+ * Renderiza la sección de sugerencias desde la Rueda de la Vida
+ */
+const renderWheelSuggestions = (suggestions) => {
+  if (suggestions.length === 0) return '';
+
+  return `
+    <section class="wheel-suggestions">
+      <header class="suggestions-header">
+        <span class="material-symbols-outlined">lightbulb</span>
+        <h3>Sugerencias desde tu Rueda de la Vida</h3>
+      </header>
+      <p class="suggestions-intro">
+        Estas áreas tienen una brecha significativa entre tu situación actual y la deseada.
+        Considera si reflejan valores importantes para ti:
+      </p>
+      <div class="suggestions-grid">
+        ${suggestions.map(s => `
+          <div class="suggestion-card" data-area-id="${s.area.id}">
+            <div class="suggestion-header">
+              <span class="material-symbols-outlined suggestion-icon">${s.area.icon}</span>
+              <div>
+                <h4>${s.area.name}</h4>
+                <span class="suggestion-gap">
+                  Actual: ${s.current}/10 → Deseado: ${s.desired}/10
+                </span>
+              </div>
+            </div>
+            ${s.reflection ? `<p class="suggestion-reflection">"${s.reflection}"</p>` : ''}
+            <button class="btn btn--secondary btn--small create-value-from-area"
+                    data-area-name="${s.area.name}"
+                    data-area-icon="${s.area.icon}">
+              <span class="material-symbols-outlined icon-sm">add</span>
+              Crear valor desde esta área
+            </button>
+          </div>
+        `).join('')}
+      </div>
+      <p class="suggestions-footer">
+        <a href="#life-wheel" data-view="life-wheel">
+          <span class="material-symbols-outlined icon-sm">donut_large</span>
+          Ver Rueda de la Vida completa
+        </a>
+      </p>
+    </section>
+  `;
+};
+
+/**
+ * Configura los botones de crear valor desde sugerencia
+ */
+const setupSuggestionButtons = () => {
+  document.querySelectorAll('.create-value-from-area').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const areaName = btn.dataset.areaName;
+      const areaIcon = btn.dataset.areaIcon;
+
+      // Pre-llenar el modal con datos del área
+      const modal = document.getElementById('value-modal');
+      document.getElementById('value-id').value = '';
+      document.getElementById('value-name').value = areaName;
+      document.getElementById('value-description').value = '';
+      document.getElementById('value-icon').value = getEmojiForArea(areaIcon);
+      document.getElementById('modal-title').textContent = 'Nuevo Valor';
+
+      modal.showModal();
+    });
+  });
+};
+
+/**
+ * Mapea iconos Material a emojis sugeridos
+ */
+const getEmojiForArea = (icon) => {
+  const emojiMap = {
+    'fitness_center': '💪',
+    'psychology': '🧠',
+    'school': '📚',
+    'favorite': '❤️',
+    'groups': '👥',
+    'work': '💼',
+    'savings': '💰',
+    'spa': '🌿'
+  };
+  return emojiMap[icon] || '⭐';
 };

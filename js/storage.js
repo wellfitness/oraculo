@@ -4,7 +4,7 @@
  */
 
 const STORAGE_KEY = 'oraculo_data';
-const STORAGE_VERSION = '1.3';
+const STORAGE_VERSION = '1.4';
 const MAX_ACTIVE_PROJECTS = 4;
 
 // Estructura inicial de datos
@@ -91,6 +91,62 @@ const getDefaultData = () => ({
     dailySetupEnabled: true,       // Mostrar modal de setup diario
     atelicReminder: true,          // Recordar tomar descansos atélicos
     askValueOnPriority: true       // Preguntar valor al marcar roca principal
+  },
+
+  // ============================================================
+  // RUEDA DE LA VIDA (v1.4)
+  // ============================================================
+
+  // Sistema de evaluación de áreas de vida
+  lifeWheel: {
+    // Áreas personalizables (8 por defecto)
+    areas: [
+      { id: 'health', name: 'Salud física', icon: 'fitness_center', order: 0, linkedValueId: null },
+      { id: 'emotional', name: 'Estado emocional', icon: 'psychology', order: 1, linkedValueId: null },
+      { id: 'growth', name: 'Desarrollo personal', icon: 'school', order: 2, linkedValueId: null },
+      { id: 'family', name: 'Familia/Pareja', icon: 'favorite', order: 3, linkedValueId: null },
+      { id: 'social', name: 'Relaciones sociales', icon: 'groups', order: 4, linkedValueId: null },
+      { id: 'career', name: 'Profesión', icon: 'work', order: 5, linkedValueId: null },
+      { id: 'finances', name: 'Finanzas', icon: 'savings', order: 6, linkedValueId: null },
+      { id: 'leisure', name: 'Ocio/Tiempo libre', icon: 'spa', order: 7, linkedValueId: null }
+    ],
+
+    // Histórico de evaluaciones trimestrales
+    // Cada evaluación: { id, date, quarter, scores: {areaId: {current, desired, reflection: {why, improve, actions}}}, overallReflection, createdAt }
+    evaluations: [],
+
+    // Configuración de la rueda
+    settings: {
+      reminderEnabled: true,           // Recordar evaluación trimestral
+      lastReminderDismissed: null      // Fecha último recordatorio ignorado
+    }
+  },
+
+  // Sistema de evaluación de objetivos (10 criterios ponderados)
+  objectiveEvaluation: {
+    // Criterios con pesos para calcular puntuación
+    criteria: [
+      { id: 'relevance', name: 'Relevancia para mis valores', weight: 1.5, icon: 'explore' },
+      { id: 'intrinsic', name: 'Valor intrínseco (disfrute)', weight: 1.2, icon: 'mood' },
+      { id: 'utility', name: 'Utilidad práctica', weight: 1.0, icon: 'construction' },
+      { id: 'opportunity', name: 'Coste de oportunidad', weight: 1.3, icon: 'compare_arrows' },
+      { id: 'timeEffect', name: 'Tiempo hasta ver efectos', weight: 1.0, icon: 'schedule' },
+      { id: 'capability', name: 'Capacidad actual', weight: 1.1, icon: 'psychology_alt' },
+      { id: 'support', name: 'Soporte social disponible', weight: 0.9, icon: 'handshake' },
+      { id: 'timeAvailable', name: 'Tiempo disponible', weight: 1.2, icon: 'hourglass_empty' },
+      { id: 'resources', name: 'Recursos necesarios', weight: 1.0, icon: 'inventory_2' },
+      { id: 'strength', name: 'Fortaleza/Motivación', weight: 1.2, icon: 'bolt' }
+    ],
+
+    // Historial de evaluaciones de objetivos
+    // { id, objectiveId, objectiveText, date, scores: {criterionId: 1-10}, totalScore, recommendation, notes, createdAt }
+    evaluations: [],
+
+    // Umbrales para recomendación
+    thresholds: {
+      proceed: 75,    // >= 75% = adelante
+      review: 50      // >= 50% y < 75% = revisar, < 50% = reconsiderar
+    }
   }
 });
 
@@ -284,6 +340,30 @@ const migrateData = (oldData) => {
       ...event,
       isSincronia: event.isSincronia || false
     }));
+  }
+
+  // ============================================================
+  // Migración v1.3 → v1.4 (Rueda de la Vida)
+  // ============================================================
+
+  // Migrar lifeWheel si existe (en caso de migración parcial)
+  if (oldData.lifeWheel) {
+    newData.lifeWheel = {
+      ...newData.lifeWheel,
+      areas: oldData.lifeWheel.areas || newData.lifeWheel.areas,
+      evaluations: oldData.lifeWheel.evaluations || [],
+      settings: { ...newData.lifeWheel.settings, ...oldData.lifeWheel.settings }
+    };
+  }
+
+  // Migrar objectiveEvaluation si existe
+  if (oldData.objectiveEvaluation) {
+    newData.objectiveEvaluation = {
+      ...newData.objectiveEvaluation,
+      criteria: oldData.objectiveEvaluation.criteria || newData.objectiveEvaluation.criteria,
+      evaluations: oldData.objectiveEvaluation.evaluations || [],
+      thresholds: { ...newData.objectiveEvaluation.thresholds, ...oldData.objectiveEvaluation.thresholds }
+    };
   }
 
   saveData(newData);
