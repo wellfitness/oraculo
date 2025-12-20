@@ -28,6 +28,7 @@ const ENTRY_TYPES = {
   'letting-go': { name: 'Lista Soltar', icon: 'delete_sweep', iconClass: 'icon-muted' },
   'control-analysis': { name: 'Análisis de Control', icon: 'tune', iconClass: 'icon-primary' },
   'compassionate-reflection': { name: 'Reflexión Compasiva', icon: 'spa', iconClass: 'icon-primary' },
+  legacy: { name: 'Legado', icon: 'volunteer_activism', iconClass: 'icon-primary' },
   free: { name: 'Escritura libre', icon: 'edit_note', iconClass: 'icon-muted' }
 };
 
@@ -65,6 +66,13 @@ const PROMPTS = {
   'letting-go': getHerramienta('letting-go')?.prompts || [],
   'control-analysis': getHerramienta('control-analysis')?.prompts || [],
   'compassionate-reflection': getHerramienta('compassionate-reflection')?.prompts || [],
+  legacy: [
+    '¿Qué quieres que diga tu pareja o familia cercana sobre cómo les hiciste sentir?',
+    '¿Qué quieres que digan tus hijos, sobrinos o las personas que cuidas?',
+    '¿Qué quieres que digan tus amigas?',
+    '¿Qué quieres que digan en tu comunidad o trabajo?',
+    '¿Hay algo que HOY no estás haciendo para que eso sea verdad?'
+  ],
   jung: getPreguntasJung(),
   free: []
 };
