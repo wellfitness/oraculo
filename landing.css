@@ -715,7 +715,7 @@ section {
 }
 
 .feature-card:hover {
-  background: var(--color-white);
+  background: var(--turquesa-100);
   box-shadow: var(--shadow-lg);
 }
 
@@ -992,7 +992,7 @@ section {
 
 @media (min-width: 768px) {
   .citas-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -1036,6 +1036,10 @@ section {
   margin-bottom: var(--space-4);
 }
 
+.cta-final .highlight {
+  color: var(--gris-900);
+}
+
 .cta-subtitle {
   font-size: var(--text-xl);
   opacity: 0.9;
@@ -1049,15 +1053,15 @@ section {
 }
 
 .cta-final .btn-primary {
-  background: var(--color-white);
-  color: var(--turquesa-700);
-  border-color: var(--color-white);
+  background: var(--tulip-tree-400);
+  color: var(--gris-900);
+  border-color: var(--tulip-tree-500);
 }
 
 .cta-final .btn-primary:hover {
-  background: var(--gris-100);
+  background: var(--tulip-tree-500);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(234, 179, 8, 0.4);
 }
 
 .cta-note {
@@ -1182,7 +1186,7 @@ section {
 
 /* Paso 1: Input de fecha */
 .semanas-input-step {
-  max-width: 400px;
+  max-width: 550px;
   margin: 0 auto;
 }
 

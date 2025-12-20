@@ -5,7 +5,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Made with Vanilla JS](https://img.shields.io/badge/Made%20with-Vanilla%20JS-f7df1e.svg)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 
-![Oráculo Screenshot](dist/landing/images/hero_oraculo.png)
+![Oráculo Screenshot](portada.webp)
 
 ## ¿Qué es Oráculo?
 
