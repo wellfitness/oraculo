@@ -15,9 +15,14 @@ import {
   initSpontaneousModal,
   openSpontaneousModal
 } from './components/spontaneous-achievement.js';
+import {
+  renderEveningCheckInModal,
+  initEveningCheckInModal,
+  openEveningCheckIn
+} from './components/evening-check-in.js';
 
 // Exportar funciones para uso en otros módulos
-export { openCalmTimer, openSpontaneousModal };
+export { openCalmTimer, openSpontaneousModal, openEveningCheckIn };
 
 // Estado global de la aplicación
 const state = {
@@ -71,6 +76,9 @@ export const init = () => {
 
   // Inyectar modal de logros espontáneos
   injectSpontaneousModal();
+
+  // Inyectar modal de evening check-in
+  injectEveningCheckInModal();
 
   // Verificar si necesita Daily Setup (página en lugar de modal)
   const setupEnabled = state.data.burkemanSettings?.dailySetupEnabled !== false;
@@ -169,6 +177,18 @@ const injectSpontaneousModal = () => {
 
   document.body.appendChild(modalContainer);
   initSpontaneousModal(state.data, updateData);
+};
+
+/**
+ * Inyecta e inicializa el modal de evening check-in
+ */
+const injectEveningCheckInModal = () => {
+  const modalContainer = document.createElement('div');
+  modalContainer.id = 'evening-check-in-container';
+  modalContainer.innerHTML = renderEveningCheckInModal();
+
+  document.body.appendChild(modalContainer);
+  initEveningCheckInModal(state.data, updateData);
 };
 
 /**

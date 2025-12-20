@@ -184,6 +184,32 @@ const HERRAMIENTA_CONTROL = {
   ]
 };
 
+/**
+ * HERRAMIENTA 4: Reflexión Compasiva
+ * Procesar días difíciles con autocompasión
+ */
+const HERRAMIENTA_COMPASION = {
+  id: 'compassionate-reflection',
+  titulo: "Reflexión Compasiva",
+  subtitulo: "Habla contigo como hablarías con alguien a quien amas",
+  descripcion: "Cuando tenemos un día difícil, solemos ser muy duras con nosotras mismas. Esta herramienta te ayuda a procesar lo ocurrido desde la compasión, no desde la crítica.",
+  instruccion: "Responde a cada pregunta con honestidad. No hay respuestas correctas. El objetivo es entenderte y tratarte con amabilidad.",
+  icono: "spa",
+  ejemplos: [
+    "Me siento frustrada porque no logré hacer todo lo que quería",
+    "Estoy siendo muy dura conmigo misma por un error en el trabajo",
+    "No tengo energía y me siento culpable por descansar",
+    "Me comparo con otras personas y me siento menos"
+  ],
+  prompts: [
+    "¿Qué pasó hoy? Describe los hechos, sin juzgarte.",
+    "¿Qué te estás diciendo a ti misma sobre esto?",
+    "¿Qué le dirías a una amiga que estuviera pasando por lo mismo?",
+    "¿Qué puedes aprender de esta experiencia?",
+    "Escribe un mensaje de compasión para ti misma."
+  ]
+};
+
 // ============================================================
 // GUÍA DE VALORES
 // ============================================================
@@ -320,7 +346,8 @@ export const getHerramienta = (id) => {
   const herramientas = {
     'gratitude': HERRAMIENTA_GRATITUD,
     'letting-go': HERRAMIENTA_SOLTAR,
-    'control-analysis': HERRAMIENTA_CONTROL
+    'control-analysis': HERRAMIENTA_CONTROL,
+    'compassionate-reflection': HERRAMIENTA_COMPASION
   };
   return herramientas[id] || null;
 };
@@ -332,7 +359,8 @@ export const getHerramienta = (id) => {
 export const getHerramientas = () => [
   HERRAMIENTA_GRATITUD,
   HERRAMIENTA_SOLTAR,
-  HERRAMIENTA_CONTROL
+  HERRAMIENTA_CONTROL,
+  HERRAMIENTA_COMPASION
 ];
 
 /**
@@ -358,6 +386,79 @@ export const getPreguntasCoherencia = () => PREGUNTAS_COHERENCIA;
  * @returns {Object} El triángulo con sus áreas
  */
 export const getTrianguloFelicidad = () => TRIANGULO_FELICIDAD;
+
+// ============================================================
+// 6 HÁBITOS NADA SEXIS (para Laboratorio de Hábitos)
+// ============================================================
+
+const HABITOS_MANSON = [
+  {
+    id: 'ejercicio',
+    nombre: 'Ejercicio',
+    icono: 'fitness_center',
+    area: 'ejercicio',
+    descripcion: 'Empieza de forma sencilla. No sobreestimes el esfuerzo necesario.',
+    microVersion: '30 minutos caminando al día',
+    identidad: 'Soy una persona que mueve su cuerpo cada día',
+    beneficios: ['Más energía', 'Mejor humor', 'Claridad mental']
+  },
+  {
+    id: 'cocinar',
+    nombre: 'Cocinar',
+    icono: 'cooking',
+    area: 'alimentacion',
+    descripcion: 'Control sobre qué y cuánto comes.',
+    microVersion: 'Preparar una comida casera al día',
+    identidad: 'Soy una persona que nutre su cuerpo con comida real',
+    beneficios: ['Más energía', 'Mejor concentración', 'Mejor humor']
+  },
+  {
+    id: 'meditacion',
+    nombre: 'Meditación',
+    icono: 'self_improvement',
+    area: 'descanso',
+    descripcion: 'Incluso 1 minuto al día produce beneficios.',
+    microVersion: '1 minuto de respiración consciente',
+    identidad: 'Soy una persona que cultiva la calma interior',
+    beneficios: ['Autoconocimiento', 'Reducción del estrés', 'Claridad']
+  },
+  {
+    id: 'lectura',
+    nombre: 'Lectura',
+    icono: 'menu_book',
+    area: 'descanso',
+    descripcion: 'Te hace más empático e informado. Si no disfrutas un libro, déjalo.',
+    microVersion: '10 páginas al día (o 15 minutos)',
+    identidad: 'Soy una persona que alimenta su mente con buenas lecturas',
+    beneficios: ['Empatía', 'Conocimiento', 'Relajación']
+  },
+  {
+    id: 'escribir',
+    nombre: 'Escribir',
+    icono: 'edit_note',
+    area: 'organizacion',
+    descripcion: 'Herramienta de autodescubrimiento. Terapéutico.',
+    microVersion: '5 minutos de escritura libre',
+    identidad: 'Soy una persona que procesa sus pensamientos escribiendo',
+    beneficios: ['Autodescubrimiento', 'Claridad mental', 'Terapéutico']
+  },
+  {
+    id: 'relacionarse',
+    nombre: 'Relacionarse',
+    icono: 'groups',
+    area: 'descanso',
+    descripcion: 'La soledad es tan nociva como fumar.',
+    microVersion: 'Escribir a un amigo diferente cada día',
+    identidad: 'Soy una persona que cultiva sus relaciones',
+    beneficios: ['Conexión', 'Apoyo social', 'Bienestar emocional']
+  }
+];
+
+/**
+ * Obtiene los 6 hábitos recomendados por Manson
+ * @returns {Object[]} Array de hábitos con sus propiedades
+ */
+export const getHabitosManson = () => HABITOS_MANSON;
 
 // ============================================================
 // MAPEO DE CONTEXTOS
@@ -391,7 +492,8 @@ export const MANSON = {
   herramientas: {
     gratitud: HERRAMIENTA_GRATITUD,
     soltar: HERRAMIENTA_SOLTAR,
-    control: HERRAMIENTA_CONTROL
+    control: HERRAMIENTA_CONTROL,
+    compasion: HERRAMIENTA_COMPASION
   },
 
   // Guía de valores
@@ -403,6 +505,9 @@ export const MANSON = {
   // Triángulo de la felicidad
   trianguloFelicidad: TRIANGULO_FELICIDAD,
 
+  // 6 Hábitos Nada Sexis
+  habitosManson: HABITOS_MANSON,
+
   // Funciones de utilidad
   getReflexion,
   getReflexionDelDia,
@@ -412,7 +517,8 @@ export const MANSON = {
   getBuenosValores,
   getMalosValores,
   getPreguntasCoherencia,
-  getTrianguloFelicidad
+  getTrianguloFelicidad,
+  getHabitosManson
 };
 
 export default MANSON;
