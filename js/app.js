@@ -20,9 +20,15 @@ import {
   initEveningCheckInModal,
   openEveningCheckIn
 } from './components/evening-check-in.js';
+import {
+  renderVoiceCaptureModal,
+  initVoiceCaptureModal,
+  openVoiceCapture
+} from './components/voice-capture-modal.js';
+import { getSpeechHandler, isSpeechSupported } from './utils/speech-handler.js';
 
 // Exportar funciones para uso en otros módulos
-export { openCalmTimer, openSpontaneousModal, openEveningCheckIn };
+export { openCalmTimer, openSpontaneousModal, openEveningCheckIn, openVoiceCapture };
 
 // Estado global de la aplicación
 const state = {
@@ -30,6 +36,9 @@ const state = {
   data: null,
   initialized: false
 };
+
+// Variable para rastrear último campo de texto activo (para dictado por voz)
+let lastActiveTextField = null;
 
 // Vistas disponibles
 const VIEWS = {
@@ -79,6 +88,12 @@ export const init = () => {
 
   // Inyectar modal de evening check-in
   injectEveningCheckInModal();
+
+  // Inyectar modal de captura por voz
+  injectVoiceCaptureModal();
+
+  // Configurar botón de voz en header
+  setupVoiceButton();
 
   // Verificar si necesita Daily Setup (página en lugar de modal)
   const setupEnabled = state.data.burkemanSettings?.dailySetupEnabled !== false;
@@ -153,6 +168,34 @@ const setupGlobalEvents = () => {
       saveData(state.data);
     }
   });
+
+  // Menú hamburguesa para tablets/móviles
+  const navToggle = document.querySelector('.nav-toggle');
+  const appNav = document.querySelector('.app-nav');
+
+  if (navToggle && appNav) {
+    navToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = appNav.classList.toggle('is-open');
+      navToggle.setAttribute('aria-expanded', isOpen);
+    });
+
+    // Cerrar al hacer click en un link
+    appNav.querySelectorAll('.nav-link').forEach((link) => {
+      link.addEventListener('click', () => {
+        appNav.classList.remove('is-open');
+        navToggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+
+    // Cerrar al hacer click fuera
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.app-header')) {
+        appNav.classList.remove('is-open');
+        navToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
 };
 
 /**
@@ -189,6 +232,120 @@ const injectEveningCheckInModal = () => {
 
   document.body.appendChild(modalContainer);
   initEveningCheckInModal(state.data, updateData);
+};
+
+/**
+ * Inyecta e inicializa el modal de captura por voz
+ */
+const injectVoiceCaptureModal = () => {
+  const modalContainer = document.createElement('div');
+  modalContainer.id = 'voice-capture-container';
+  modalContainer.innerHTML = renderVoiceCaptureModal();
+
+  document.body.appendChild(modalContainer);
+  initVoiceCaptureModal(state.data, updateData);
+};
+
+/**
+ * Configura el botón de voz en el header
+ * Comportamiento:
+ * - Si hay campo de texto activo → dicta ahí
+ * - Si no hay campo → abre modal de captura rápida
+ *
+ * Nota: Usamos lastActiveTextField porque al hacer clic en el botón,
+ * el campo de texto pierde el foco ANTES del evento click.
+ */
+const setupVoiceButton = () => {
+  const voiceBtn = document.getElementById('global-voice-btn');
+  if (!voiceBtn) return;
+
+  // Verificar soporte
+  if (!isSpeechSupported()) {
+    voiceBtn.classList.add('btn--disabled');
+    voiceBtn.title = 'Dictado no disponible en este navegador';
+    voiceBtn.addEventListener('click', () => {
+      showNotification('Dictado por voz no disponible en este navegador', 'warning');
+    });
+    return;
+  }
+
+  const speechHandler = getSpeechHandler();
+
+  // Rastrear campos de texto cuando reciben foco
+  document.addEventListener('focusin', (e) => {
+    const el = e.target;
+    if (
+      (el.tagName === 'INPUT' && ['text', 'search', 'url', 'tel', 'email'].includes(el.type)) ||
+      el.tagName === 'TEXTAREA' ||
+      el.isContentEditable
+    ) {
+      lastActiveTextField = el;
+    }
+  });
+
+  // Limpiar referencia cuando el foco va a otro lugar que no sea el botón de voz
+  document.addEventListener('focusout', (e) => {
+    // Pequeño delay para que el nuevo foco se establezca
+    setTimeout(() => {
+      const newFocus = document.activeElement;
+      // Solo limpiar si el nuevo foco no es el botón de voz ni el campo anterior
+      if (newFocus !== voiceBtn && newFocus !== lastActiveTextField) {
+        lastActiveTextField = null;
+      }
+    }, 10);
+  });
+
+  // Click en botón de voz - usar lastActiveTextField
+  voiceBtn.addEventListener('click', () => {
+    if (lastActiveTextField && document.body.contains(lastActiveTextField)) {
+      // Hay campo guardado → dictar directamente ahí
+      startInlineDictation(lastActiveTextField, voiceBtn, speechHandler);
+    } else {
+      // No hay campo → abrir modal de captura
+      lastActiveTextField = null;
+      openVoiceCapture();
+    }
+  });
+};
+
+/**
+ * Inicia dictado directo en un campo de texto
+ */
+const startInlineDictation = (field, voiceBtn, speechHandler) => {
+  // Actualizar estado visual del botón
+  voiceBtn.classList.add('btn--listening');
+
+  // Listeners temporales para esta sesión
+  const onResult = ({ final }) => {
+    if (final) {
+      speechHandler.insertAtCursor(field, final);
+    }
+  };
+
+  const onEnd = () => {
+    voiceBtn.classList.remove('btn--listening');
+    cleanup();
+  };
+
+  const onError = ({ message }) => {
+    voiceBtn.classList.remove('btn--listening');
+    showNotification(message, 'warning');
+    cleanup();
+  };
+
+  const cleanup = () => {
+    speechHandler.off('result', onResult);
+    speechHandler.off('end', onEnd);
+    speechHandler.off('error', onError);
+  };
+
+  // Registrar listeners
+  speechHandler.on('result', onResult);
+  speechHandler.on('end', onEnd);
+  speechHandler.on('error', onError);
+
+  // Iniciar
+  speechHandler.start();
 };
 
 /**

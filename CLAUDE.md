@@ -76,7 +76,7 @@ oraculo/
 │   ├── modules/
 │   │   ├── dashboard.js    # Vista inicial + logros de hoy + Burkeman
 │   │   ├── values.js       # Brújula de valores
-│   │   ├── kanban.js       # Tablero por horizontes + backlog + filtros
+│   │   ├── kanban.js       # Tablero por horizontes + pendientes + filtros
 │   │   ├── projects.js     # Gestión de proyectos
 │   │   ├── habits.js       # Laboratorio de hábitos + auditoría + wizard + atélicas
 │   │   ├── calendar.js     # Calendario y eventos + sincronía
@@ -187,7 +187,7 @@ Tres secciones diferenciadas:
 - Contadores "X/Límite"
 - Drag & drop respetando límites
 
-**BACKLOG** (Colapsable):
+**PENDIENTES** (Colapsable):
 - Sin límite, captura de ideas
 - Expandible/colapsable
 
@@ -390,7 +390,7 @@ const oraculoData = {
 
   // Objetivos por horizonte temporal
   objectives: {
-    backlog: [],      // Sin límite
+    backlog: [],      // "Pendientes" en UI - Sin límite
     quarterly: [],    // Máx 3
     monthly: [],      // Máx 6
     weekly: [],       // Máx 10

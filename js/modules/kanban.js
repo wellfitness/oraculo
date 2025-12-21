@@ -3,7 +3,7 @@
  * Gestión de objetivos con layout de 3 secciones:
  * - En Foco: Tareas del día con slots dinámicos (Volumen Fijo)
  * - Horizontes: Trimestre → Mes → Semana
- * - Backlog: Captura de ideas sin límite
+ * - Pendientes: Captura de ideas sin límite
  */
 
 import { generateId, showNotification } from '../app.js';
@@ -60,7 +60,7 @@ const getActiveTasksCount = (items) => {
 
 // Nombres para mostrar
 const COLUMN_NAMES = {
-  backlog: 'Backlog',
+  backlog: 'Pendientes',
   quarterly: 'Trimestre',
   monthly: 'Mes',
   weekly: 'Semana',
@@ -302,17 +302,20 @@ const renderHorizonItem = (item, projects, evaluations = []) => {
  * SECCIÓN 3: BACKLOG
  * Renderiza el backlog colapsable para capturar ideas
  */
+const SOFT_LIMIT_PENDIENTES = 10;
+
 const renderBacklogSection = (items, projects, data) => {
   const count = items.length;
   const evaluations = data.objectiveEvaluation?.evaluations || [];
+  const showSoftLimitWarning = count >= SOFT_LIMIT_PENDIENTES;
 
   return `
     <section class="kanban-section kanban-section--backlog ${isBacklogExpanded ? 'expanded' : ''}" data-section="backlog">
       <header class="section-header section-header--backlog" id="backlog-toggle">
         <h2 class="section-title">
           <span class="material-symbols-outlined">inbox</span>
-          Backlog
-          <span class="backlog-count">${count}</span>
+          Pendientes
+          <span class="backlog-count ${showSoftLimitWarning ? 'backlog-count--warning' : ''}">${count}</span>
         </h2>
         <button class="backlog-expand-btn" type="button">
           <span class="material-symbols-outlined">
@@ -322,9 +325,21 @@ const renderBacklogSection = (items, projects, data) => {
       </header>
 
       <div class="backlog-content ${isBacklogExpanded ? 'expanded' : ''}">
-        <p class="section-hint section-hint--backlog">
-          Captura aquí todas las ideas. Sin filtro, sin límite.
-        </p>
+        ${showSoftLimitWarning ? `
+          <div class="backlog-soft-limit">
+            <span class="material-symbols-outlined">lightbulb</span>
+            <p>
+              Tienes ${count} ideas esperando.
+              <a href="#" class="backlog-process-link" data-action="expand-horizons">
+                ¿Buen momento para procesarlas?
+              </a>
+            </p>
+          </div>
+        ` : `
+          <p class="section-hint section-hint--backlog">
+            Captura aquí todas las ideas. Sin filtro, sin límite.
+          </p>
+        `}
 
         <ul class="backlog-items kanban-column__items" data-column="backlog">
           ${items.map(item => renderBacklogItem(item, projects, evaluations)).join('')}
@@ -404,7 +419,7 @@ export const render = (data) => {
           <div>
             <h1 class="page-title">Horizontes</h1>
             <p class="page-description">
-              Elige tu foco del día, planifica en los horizontes y captura ideas en el backlog.
+              Elige tu foco del día, planifica en los horizontes y captura ideas en Pendientes.
             </p>
             <a href="#daily-setup" data-view="daily-setup" class="dashboard__reconfigure" title="Reconfigurar mi día">
               <span class="material-symbols-outlined">tune</span>
@@ -540,9 +555,28 @@ export const init = (data, updateData) => {
   setupProjectFilter(data);
   setupBacklogToggle();
   setupEvaluateButtons(data);
+  setupSoftLimitLink();
 
   // Inicializar el evaluador de objetivos
   initObjectiveEvaluator(data, updateData);
+};
+
+/**
+ * Configura el link de "procesarlas" cuando hay 10+ pendientes
+ */
+const setupSoftLimitLink = () => {
+  const processLink = document.querySelector('.backlog-process-link');
+  if (!processLink) return;
+
+  processLink.addEventListener('click', (e) => {
+    e.preventDefault();
+
+    // Hacer scroll suave a la sección de Horizontes
+    const horizonsSection = document.querySelector('.kanban-section--horizons');
+    if (horizonsSection) {
+      horizonsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
 };
 
 /**
@@ -828,7 +862,7 @@ const handleDrop = (e, data) => {
     const remainingMsg = remaining > 0 ? ` (${remaining} slot${remaining > 1 ? 's' : ''} libre${remaining > 1 ? 's' : ''})` : '';
     showNotification(`¡Añadido al foco!${remainingMsg}`, 'success');
   } else if (targetColumn === 'backlog') {
-    showNotification('Guardado en el backlog', 'info');
+    showNotification('Guardado en Pendientes', 'info');
   } else {
     showNotification(`Movido a ${COLUMN_NAMES[targetColumn]}`, 'success');
   }
