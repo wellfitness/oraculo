@@ -2823,6 +2823,115 @@ a.entry-type-btn {
   .laws-grid {
     grid-template-columns: 1fr;
   }
+
+  /* ═══════════════════════════════════════════════════════════════
+     OPTIMIZACIÓN MÓVIL - Maximizar ancho útil
+     ═══════════════════════════════════════════════════════════════ */
+
+  /* --- PRIORIDAD 1: Contenedores Principales --- */
+
+  /* Contenedor principal - reducir de 16px a 8px */
+  .app-main {
+    padding: var(--space-1); /* 8px en todos los lados */
+  }
+
+  /* Header - reducir padding lateral */
+  .app-header {
+    padding: var(--space-1) var(--space-2); /* 8px vert, 16px horiz */
+  }
+
+  /* Dashboard - reducir gaps y padding */
+  .dashboard {
+    gap: var(--space-2); /* 16px entre secciones */
+  }
+
+  .dashboard__header {
+    margin-bottom: var(--space-2); /* 16px */
+  }
+
+  .dashboard__section {
+    padding: var(--space-2); /* 16px */
+    margin-bottom: var(--space-2);
+  }
+
+  /* Footer */
+  .app-footer {
+    padding: var(--space-2); /* 16px */
+  }
+
+  /* --- PRIORIDAD 2: Modales --- */
+
+  /* Modales - reducir padding interno */
+  .modal-content {
+    padding: var(--space-2); /* 16px */
+  }
+
+  .modal-header {
+    padding: var(--space-2);
+  }
+
+  .modal-footer {
+    padding: var(--space-2);
+  }
+
+  /* Modal setup - ajustar ancho */
+  .modal--setup .setup-content {
+    padding: var(--space-2);
+  }
+
+  /* --- PRIORIDAD 3: Kanban y Tarjetas --- */
+
+  /* Kanban */
+  .kanban-sections {
+    padding: var(--space-1); /* 8px */
+    gap: var(--space-2);
+  }
+
+  .kanban-column {
+    padding: var(--space-1);
+  }
+
+  .kanban-card {
+    padding: var(--space-2);
+  }
+
+  /* Habits */
+  .habit-card {
+    padding: var(--space-2);
+  }
+
+  /* Projects */
+  .project-card {
+    padding: var(--space-2);
+  }
+
+  /* Values */
+  .value-card {
+    padding: var(--space-2);
+  }
+
+  /* Calendario */
+  .calendar-week {
+    gap: var(--space-1);
+  }
+
+  .calendar-day {
+    padding: var(--space-1);
+  }
+
+  /* Journal */
+  .journal-entry {
+    padding: var(--space-2);
+  }
+
+  /* Achievements */
+  .achievement-card {
+    padding: var(--space-2);
+  }
+
+  .stats-grid {
+    gap: var(--space-2);
+  }
 }
 
 /* ==========================================================================
@@ -13765,4 +13874,78 @@ select,
 
 .backlog-process-link:hover {
   text-decoration: underline;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BREAKPOINT 360px - Móviles muy pequeños (iPhone SE, Galaxy A)
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 360px) {
+  /* Contenedor principal - mínimo indispensable */
+  .app-main {
+    padding: 6px;
+  }
+
+  /* Header - compacto */
+  .app-header {
+    padding: 6px 8px;
+  }
+
+  /* Dashboard */
+  .dashboard__section {
+    padding: 12px;
+  }
+
+  /* Modales - pantalla completa */
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .modal-content {
+    padding: 12px;
+  }
+
+  /* Kanban - máximo aprovechamiento */
+  .kanban-sections {
+    padding: 4px;
+  }
+
+  .kanban-column {
+    padding: 4px;
+  }
+
+  /* Tarjetas */
+  .kanban-card,
+  .habit-card,
+  .project-card,
+  .value-card,
+  .journal-entry,
+  .achievement-card {
+    padding: 12px;
+  }
+
+  /* Tipografía reducida */
+  .section-title {
+    font-size: 1.1rem;
+  }
+
+  .dashboard__title {
+    font-size: 1.25rem;
+  }
+
+  /* Footer compacto */
+  .app-footer {
+    padding: 12px;
+  }
+
+  /* Stats */
+  .stats-grid {
+    gap: 8px;
+  }
+
+  .stat-card {
+    padding: 12px;
+  }
 }
