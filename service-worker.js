@@ -3,8 +3,8 @@
  * Estrategia: Network-first para HTML/JS, Cache-first para CSS/imágenes
  */
 
-const CACHE_NAME = 'oraculo-v1.5';
-const STATIC_CACHE = 'oraculo-static-v1.5';
+const CACHE_NAME = 'oraculo-v1.6';
+const STATIC_CACHE = 'oraculo-static-v1.6';
 
 // Archivos a cachear en la instalación
 const STATIC_ASSETS = [
@@ -87,6 +87,19 @@ self.addEventListener('activate', (event) => {
       .then(() => {
         // Tomar control de todas las páginas inmediatamente
         return self.clients.claim();
+      })
+      .then(() => {
+        // Forzar recarga de todos los clientes (para usuarios con SW antiguo)
+        return self.clients.matchAll({ type: 'window' });
+      })
+      .then((clients) => {
+        clients.forEach((client) => {
+          // navigate() fuerza recarga con el nuevo SW activo
+          if (client.url && 'navigate' in client) {
+            console.log('[SW] Recargando cliente:', client.url);
+            client.navigate(client.url);
+          }
+        });
       })
   );
 });
