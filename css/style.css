@@ -2517,6 +2517,59 @@ a.entry-type-btn {
   margin: var(--space-3) 0 0;
 }
 
+/* Zona de peligro con borrado parcial */
+.danger-zone {
+  background: var(--rosa-50);
+  border: 1px solid var(--rosa-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.danger-zone h3 {
+  color: var(--rosa-700);
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-lg);
+}
+
+.danger-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+
+.danger-buttons button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  text-align: center;
+}
+
+.danger-buttons button small {
+  font-size: var(--font-size-xs);
+  opacity: 0.8;
+  font-weight: normal;
+}
+
+.danger-divider {
+  border: none;
+  border-top: 1px solid var(--rosa-200);
+  margin: var(--space-4) 0;
+}
+
+.btn--warning {
+  border-color: var(--rosa-400);
+  color: var(--rosa-700);
+}
+
+.btn--warning:hover {
+  background: var(--rosa-100);
+  border-color: var(--rosa-500);
+}
+
 .settings-actions {
   display: flex;
   gap: var(--space-2);
@@ -2584,6 +2637,32 @@ a.entry-type-btn {
 
 .notification--error {
   background: var(--color-danger);
+}
+
+/* Toast de actualización del Service Worker */
+.notification--update {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--turquesa-600);
+  padding: var(--space-3) var(--space-4);
+}
+
+.notification__btn {
+  background: white;
+  color: var(--turquesa-700);
+  border: none;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  font-family: inherit;
+  font-size: var(--text-sm);
+}
+
+.notification__btn:hover {
+  background: var(--turquesa-100);
 }
 
 /* --------------------------------------------------------------------------

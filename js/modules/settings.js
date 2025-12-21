@@ -9,6 +9,9 @@ import {
   importData,
   getStorageUsage,
   clearAllData,
+  clearIdentityData,
+  clearProductivityData,
+  clearJournalData,
   archiveCurrentYear,
   startNewYear,
   loadArchivedYear,
@@ -159,13 +162,41 @@ export const render = (data) => {
           <span class="material-symbols-outlined">warning</span>
           Zona de peligro
         </h2>
-        <p class="section-description">
-          Estas acciones no se pueden deshacer.
-        </p>
-        <button class="btn btn--danger" id="clear-data-btn">
-          <span class="material-symbols-outlined">delete_forever</span>
-          Borrar todos los datos
-        </button>
+
+        <div class="danger-zone">
+          <h3>Borrado parcial</h3>
+          <p class="text-muted">Elige qué datos limpiar sin perder el resto.</p>
+
+          <div class="danger-buttons">
+            <button class="btn btn--outline btn--warning" id="clear-identity-btn">
+              <span class="material-symbols-outlined">person_off</span>
+              Borrar Identidad
+              <small>Valores, hábitos, rueda</small>
+            </button>
+
+            <button class="btn btn--outline btn--warning" id="clear-productivity-btn">
+              <span class="material-symbols-outlined">task_alt</span>
+              Borrar Productividad
+              <small>Tareas, proyectos, logros</small>
+            </button>
+
+            <button class="btn btn--outline btn--warning" id="clear-journal-btn">
+              <span class="material-symbols-outlined">auto_stories</span>
+              Borrar Diario
+              <small>Todas las entradas</small>
+            </button>
+          </div>
+
+          <hr class="danger-divider">
+
+          <button class="btn btn--danger" id="clear-data-btn">
+            <span class="material-symbols-outlined">delete_forever</span>
+            Borrar TODO
+          </button>
+          <p class="text-muted text-center" style="margin-top: var(--space-2);">
+            Esto borra absolutamente todo y no se puede deshacer.
+          </p>
+        </div>
       </section>
 
       <!-- Modal de confirmación de archivado -->
@@ -255,10 +286,34 @@ export const init = (data, updateData) => {
     }
   });
 
-  // Borrar datos
+  // Borrado parcial: Identidad
+  document.getElementById('clear-identity-btn')?.addEventListener('click', () => {
+    if (clearIdentityData()) {
+      showNotification('Identidad borrada (valores, hábitos, rueda)', 'info');
+      location.reload();
+    }
+  });
+
+  // Borrado parcial: Productividad
+  document.getElementById('clear-productivity-btn')?.addEventListener('click', () => {
+    if (clearProductivityData()) {
+      showNotification('Productividad borrada (tareas, proyectos, logros)', 'info');
+      location.reload();
+    }
+  });
+
+  // Borrado parcial: Diario
+  document.getElementById('clear-journal-btn')?.addEventListener('click', () => {
+    if (clearJournalData()) {
+      showNotification('Diario borrado', 'info');
+      location.reload();
+    }
+  });
+
+  // Borrar TODO
   document.getElementById('clear-data-btn')?.addEventListener('click', () => {
     if (clearAllData()) {
-      showNotification('Datos borrados', 'info');
+      showNotification('Todos los datos borrados', 'info');
       location.reload();
     }
   });
