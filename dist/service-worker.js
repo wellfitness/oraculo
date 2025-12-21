@@ -3,8 +3,8 @@
  * Estrategia: Network-first para HTML/JS, Cache-first para CSS/imágenes
  */
 
-const CACHE_NAME = 'oraculo-v1.6';
-const STATIC_CACHE = 'oraculo-static-v1.6';
+const CACHE_NAME = 'oraculo-v1.7';
+const STATIC_CACHE = 'oraculo-static-v1.7';
 
 // Archivos a cachear en la instalación
 const STATIC_ASSETS = [
@@ -63,41 +63,45 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activación: limpiar caches antiguas
+// Activación: limpiar caches antiguas y forzar recarga
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activando Service Worker...');
+  console.log('[SW] Activando Service Worker v1.7...');
 
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
+        // Eliminar TODAS las caches antiguas (no solo oraculo-)
         return Promise.all(
           cacheNames
             .filter((cacheName) => {
-              // Eliminar caches que no sean la versión actual
-              return cacheName.startsWith('oraculo-') &&
-                     cacheName !== STATIC_CACHE &&
-                     cacheName !== CACHE_NAME;
+              return cacheName !== STATIC_CACHE && cacheName !== CACHE_NAME;
             })
             .map((cacheName) => {
-              console.log('[SW] Eliminando cache antigua:', cacheName);
+              console.log('[SW] Eliminando cache:', cacheName);
               return caches.delete(cacheName);
             })
         );
       })
       .then(() => {
-        // Tomar control de todas las páginas inmediatamente
+        console.log('[SW] Caches limpiadas, tomando control...');
         return self.clients.claim();
       })
       .then(() => {
-        // Forzar recarga de todos los clientes (para usuarios con SW antiguo)
-        return self.clients.matchAll({ type: 'window' });
+        // Pequeño delay para asegurar que claim() se complete
+        return new Promise(resolve => setTimeout(resolve, 100));
+      })
+      .then(() => {
+        return self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       })
       .then((clients) => {
+        console.log('[SW] Clientes encontrados:', clients.length);
         clients.forEach((client) => {
-          // navigate() fuerza recarga con el nuevo SW activo
           if (client.url && 'navigate' in client) {
-            console.log('[SW] Recargando cliente:', client.url);
-            client.navigate(client.url);
+            console.log('[SW] Forzando recarga:', client.url);
+            // Añadir timestamp para forzar bypass de cualquier cache
+            const url = new URL(client.url);
+            url.searchParams.set('_swv', '1.7');
+            client.navigate(url.toString());
           }
         });
       })
