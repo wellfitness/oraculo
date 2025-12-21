@@ -407,8 +407,66 @@ const migrateData = (oldData) => {
  * Limpia todos los datos (con confirmación)
  */
 export const clearAllData = () => {
-  if (confirm('¿Estás segura de que quieres borrar todos los datos? Esta acción no se puede deshacer.')) {
+  if (confirm('¿Estás segura de que quieres borrar TODOS los datos? Esta acción no se puede deshacer.')) {
     localStorage.removeItem(STORAGE_KEY);
+    return true;
+  }
+  return false;
+};
+
+/**
+ * Borrado parcial: Identidad (valores, hábitos, rueda de la vida)
+ */
+export const clearIdentityData = () => {
+  if (confirm('¿Borrar valores, hábitos y rueda de la vida?\n\nLas tareas, proyectos y diario se mantienen.')) {
+    const data = getData();
+    data.values = [];
+    data.habits = {
+      active: null,
+      graduated: [],
+      history: [],
+      audit: { activities: [], lastAuditAt: null }
+    };
+    if (data.lifeWheel) data.lifeWheel = null;
+    data.updatedAt = new Date().toISOString();
+    saveData(data);
+    return true;
+  }
+  return false;
+};
+
+/**
+ * Borrado parcial: Productividad (tareas, proyectos, logros)
+ */
+export const clearProductivityData = () => {
+  if (confirm('¿Borrar tareas, proyectos y logros?\n\nValores, hábitos y diario se mantienen.')) {
+    const data = getData();
+    data.objectives = {
+      backlog: [],
+      quarterly: [],
+      monthly: [],
+      weekly: [],
+      daily: []
+    };
+    data.projects = [];
+    data.spontaneousAchievements = [];
+    data.dailySetup = null;
+    data.updatedAt = new Date().toISOString();
+    saveData(data);
+    return true;
+  }
+  return false;
+};
+
+/**
+ * Borrado parcial: Diario
+ */
+export const clearJournalData = () => {
+  if (confirm('¿Borrar todas las entradas del diario?\n\nTodo lo demás se mantiene.')) {
+    const data = getData();
+    data.journal = [];
+    data.updatedAt = new Date().toISOString();
+    saveData(data);
     return true;
   }
   return false;

@@ -1,10 +1,10 @@
 /**
  * Service Worker para Oráculo PWA
- * Estrategia: Cache-first para assets estáticos, Network-first para datos
+ * Estrategia: Network-first para HTML/JS, Cache-first para CSS/imágenes
  */
 
-const CACHE_NAME = 'oraculo-v1.4';
-const STATIC_CACHE = 'oraculo-static-v1.4';
+const CACHE_NAME = 'oraculo-v1.5';
+const STATIC_CACHE = 'oraculo-static-v1.5';
 
 // Archivos a cachear en la instalación
 const STATIC_ASSETS = [
@@ -102,40 +102,54 @@ self.addEventListener('fetch', (event) => {
   // Ignorar extensiones de Chrome, etc.
   if (!url.protocol.startsWith('http')) return;
 
-  // Para recursos locales: Cache-first
+  // Para recursos locales
   if (url.origin === location.origin) {
+    // HTML y JS: Network-first (siempre obtener la última versión)
+    const isHtmlOrJs = request.url.endsWith('.html') ||
+                       request.url.endsWith('.js') ||
+                       request.url === url.origin + '/';
+
+    if (isHtmlOrJs) {
+      event.respondWith(
+        fetch(request)
+          .then((response) => {
+            // Guardar copia en cache para offline
+            const responseToCache = response.clone();
+            caches.open(STATIC_CACHE).then((cache) => {
+              cache.put(request, responseToCache);
+            });
+            return response;
+          })
+          .catch(() => {
+            // Si falla la red, usar cache (offline)
+            return caches.match(request).then((cached) => {
+              if (cached) return cached;
+              // Fallback a app.html para rutas HTML
+              if (request.headers.get('accept')?.includes('text/html')) {
+                return caches.match('/app.html');
+              }
+            });
+          })
+      );
+      return;
+    }
+
+    // CSS, imágenes, fonts locales: Cache-first (no cambian tan seguido)
     event.respondWith(
       caches.match(request)
         .then((cachedResponse) => {
           if (cachedResponse) {
-            // Devolver desde cache
             return cachedResponse;
           }
-
-          // Si no está en cache, buscar en red y cachear
-          return fetch(request)
-            .then((response) => {
-              // No cachear respuestas no válidas
-              if (!response || response.status !== 200 || response.type !== 'basic') {
-                return response;
-              }
-
-              // Clonar respuesta (se consume una vez)
+          return fetch(request).then((response) => {
+            if (response.status === 200) {
               const responseToCache = response.clone();
-
-              caches.open(CACHE_NAME)
-                .then((cache) => {
-                  cache.put(request, responseToCache);
-                });
-
-              return response;
-            })
-            .catch(() => {
-              // Offline fallback para HTML
-              if (request.headers.get('accept').includes('text/html')) {
-                return caches.match('/app.html');
-              }
-            });
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, responseToCache);
+              });
+            }
+            return response;
+          });
         })
     );
     return;
