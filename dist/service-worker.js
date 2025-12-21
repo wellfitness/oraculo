@@ -1,10 +1,10 @@
 /**
  * Service Worker para Oráculo PWA
- * Estrategia: Network-first para HTML/JS, Cache-first para CSS/imágenes
+ * Estrategia: Network-first para HTML/JS/CSS, Cache-first para imágenes
  */
 
-const CACHE_NAME = 'oraculo-v1.7';
-const STATIC_CACHE = 'oraculo-static-v1.7';
+const CACHE_NAME = 'oraculo-v1.8';
+const STATIC_CACHE = 'oraculo-static-v1.8';
 
 // Archivos a cachear en la instalación
 const STATIC_ASSETS = [
@@ -100,7 +100,7 @@ self.addEventListener('activate', (event) => {
             console.log('[SW] Forzando recarga:', client.url);
             // Añadir timestamp para forzar bypass de cualquier cache
             const url = new URL(client.url);
-            url.searchParams.set('_swv', '1.7');
+            url.searchParams.set('_swv', '1.8');
             client.navigate(url.toString());
           }
         });
@@ -121,12 +121,13 @@ self.addEventListener('fetch', (event) => {
 
   // Para recursos locales
   if (url.origin === location.origin) {
-    // HTML y JS: Network-first (siempre obtener la última versión)
-    const isHtmlOrJs = request.url.endsWith('.html') ||
-                       request.url.endsWith('.js') ||
-                       request.url === url.origin + '/';
+    // HTML, JS y CSS: Network-first (siempre obtener la última versión)
+    const isHtmlJsCss = request.url.endsWith('.html') ||
+                        request.url.endsWith('.js') ||
+                        request.url.endsWith('.css') ||
+                        request.url === url.origin + '/';
 
-    if (isHtmlOrJs) {
+    if (isHtmlJsCss) {
       event.respondWith(
         fetch(request)
           .then((response) => {
@@ -151,7 +152,7 @@ self.addEventListener('fetch', (event) => {
       return;
     }
 
-    // CSS, imágenes, fonts locales: Cache-first (no cambian tan seguido)
+    // Imágenes y fonts locales: Cache-first (no cambian tan seguido)
     event.respondWith(
       caches.match(request)
         .then((cachedResponse) => {
