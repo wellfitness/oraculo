@@ -22,8 +22,15 @@ export const render = (data) => {
   const suggestions = getWheelSuggestions(wheelAreas, evaluations, values);
 
   return `
-    <div class="values-page">
-      <header class="page-header">
+    <div class="values-page values-page--layout">
+      <!-- Sidebar: Guía de Valores (solo PC) -->
+      <aside class="values-sidebar">
+        ${renderValuesGuideSidebar()}
+      </aside>
+
+      <!-- Contenido principal -->
+      <main class="values-main">
+        <header class="page-header">
         <h1 class="page-title">Brújula de Valores</h1>
         <p class="page-description">
           Tus valores son tu brújula. Te ayudan a decidir qué merece tu tiempo
@@ -77,6 +84,8 @@ export const render = (data) => {
           </blockquote>
         </section>
       ` : ''}
+
+      </main>
 
       <!-- Modal para añadir/editar valor -->
       <dialog id="value-modal" class="modal">
@@ -189,6 +198,59 @@ export const init = (data, updateData) => {
 };
 
 /**
+ * Renderiza el sidebar con la guía de valores de Mark Manson (PC)
+ */
+const renderValuesGuideSidebar = () => {
+  const buenos = getBuenosValores();
+  const malos = getMalosValores();
+
+  return `
+    <div class="values-guide-sidebar">
+      <h2 class="values-guide-sidebar__title">
+        <span class="material-symbols-outlined">help_outline</span>
+        Buenos Valores
+      </h2>
+      <p class="values-guide-sidebar__quote">
+        "Buenos valores te hacen mejor persona y no dependen de nada externo."
+      </p>
+
+      <div class="values-guide-sidebar__comparison">
+        <div class="values-guide-sidebar__column values-guide-sidebar__column--good">
+          <h4>
+            <span class="material-symbols-outlined icon-success">check_circle</span>
+            Buenos
+          </h4>
+          <ul>${buenos.caracteristicas.map(c => `<li>${c}</li>`).join('')}</ul>
+          <div class="values-guide-sidebar__tags">
+            ${buenos.ejemplos.slice(0, 4).map(e =>
+              `<span class="value-tag value-tag--good">${e}</span>`
+            ).join('')}
+          </div>
+        </div>
+
+        <div class="values-guide-sidebar__column values-guide-sidebar__column--bad">
+          <h4>
+            <span class="material-symbols-outlined icon-warning">warning</span>
+            Malos
+          </h4>
+          <ul>${malos.caracteristicas.map(c => `<li>${c}</li>`).join('')}</ul>
+          <div class="values-guide-sidebar__tags">
+            ${malos.ejemplos.slice(0, 3).map(e =>
+              `<span class="value-tag value-tag--bad">${e}</span>`
+            ).join('')}
+          </div>
+        </div>
+      </div>
+
+      <p class="values-guide-sidebar__footer">
+        <span class="material-symbols-outlined icon-xs">auto_awesome</span>
+        Mark Manson
+      </p>
+    </div>
+  `;
+};
+
+/**
  * Renderiza la guía de valores de Mark Manson
  * Buenos valores vs Malos valores
  */
@@ -197,7 +259,7 @@ const renderValuesGuide = () => {
   const malos = getMalosValores();
 
   return `
-    <section class="values-guide">
+    <section class="values-guide values-guide--mobile">
       <p class="values-guide__intro">
         Mark Manson: "Buenos valores te hacen mejor persona y no dependen de nada externo."
       </p>

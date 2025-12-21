@@ -50,14 +50,47 @@ const reRender = () => {
 };
 
 /**
- * Renderiza el Triángulo de la Felicidad de Mark Manson
+ * Renderiza el Triángulo de la Felicidad para el SIDEBAR (versión compacta)
+ * Las 3 dimensiones clave: Libertad, Relaciones, Salud
+ */
+const renderTrianguloSidebar = () => {
+  const triangulo = getTrianguloFelicidad();
+
+  return `
+    <div class="triangle-sidebar">
+      <h2 class="triangle-sidebar__title">
+        <span class="material-symbols-outlined">change_history</span>
+        El Triángulo
+      </h2>
+      <p class="triangle-sidebar__quote">"${triangulo.conexion}"</p>
+      <div class="triangle-sidebar__areas">
+        ${triangulo.areas.map(area => `
+          <div class="triangle-sidebar__area">
+            <span class="material-symbols-outlined">${area.icono}</span>
+            <div class="triangle-sidebar__area-content">
+              <strong>${area.nombre}</strong>
+              <span>${area.descripcion}</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <p class="triangle-sidebar__footer">
+        <span class="material-symbols-outlined icon-xs">auto_awesome</span>
+        Mark Manson
+      </p>
+    </div>
+  `;
+};
+
+/**
+ * Renderiza el Triángulo de la Felicidad de Mark Manson (versión completa para móvil)
  * Las 3 dimensiones clave: Libertad, Relaciones, Salud
  */
 const renderTrianguloFelicidad = () => {
   const triangulo = getTrianguloFelicidad();
 
   return `
-    <section class="happiness-triangle">
+    <section class="happiness-triangle happiness-triangle--mobile">
       <details class="happiness-triangle__details" open>
         <summary>
           <span class="material-symbols-outlined">change_history</span>
@@ -114,8 +147,15 @@ const renderMainPage = (data) => {
   const hasCurrentQuarterEval = evaluations.some(e => e.quarter === currentQuarter);
 
   return `
-    <div class="life-wheel-page">
-      <header class="page-header">
+    <div class="life-wheel-page life-wheel-page--layout">
+      <!-- Sidebar: Triángulo de la Felicidad (solo PC) -->
+      <aside class="life-wheel-sidebar">
+        ${renderTrianguloSidebar()}
+      </aside>
+
+      <!-- Contenido principal -->
+      <main class="life-wheel-main">
+        <header class="page-header">
         <h1 class="page-title">
           <span class="material-symbols-outlined icon-lg">donut_large</span>
           Rueda de la Vida
@@ -184,7 +224,7 @@ const renderMainPage = (data) => {
         </section>
       ` : ''}
 
-      <!-- Triángulo de la Felicidad (Mark Manson) -->
+      <!-- Triángulo de la Felicidad (solo móvil/tablet, se oculta en PC) -->
       ${renderTrianguloFelicidad()}
 
       <!-- Gestión de áreas -->
@@ -203,6 +243,7 @@ const renderMainPage = (data) => {
 
       <!-- Modal de editar área -->
       ${renderEditAreaModal()}
+      </main>
     </div>
   `;
 };
