@@ -2683,6 +2683,87 @@ a.entry-type-btn {
 }
 
 /* --------------------------------------------------------------------------
+   Menú Hamburguesa - Botón toggle
+   -------------------------------------------------------------------------- */
+.app-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: var(--space-2);
+  font-size: 28px;
+}
+
+.nav-toggle:hover {
+  color: var(--turquesa-300);
+}
+
+.nav-toggle:focus-visible {
+  outline: 2px solid var(--turquesa-400);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Tablet y móvil: mostrar hamburguesa, ocultar nav */
+@media (max-width: 900px) {
+  .nav-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .app-header {
+    position: relative;
+  }
+
+  .app-nav {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 220px;
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    flex-direction: column;
+    padding: var(--space-2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    z-index: 1000;
+  }
+
+  .app-nav.is-open {
+    display: flex;
+  }
+
+  .app-nav .nav-link {
+    width: 100%;
+    justify-content: flex-start;
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+  }
+
+  .app-nav .nav-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .app-nav .nav-text {
+    display: inline;
+  }
+
+  .header-actions {
+    margin-left: auto;
+  }
+}
+
+/* --------------------------------------------------------------------------
    Responsive
    -------------------------------------------------------------------------- */
 @media (max-width: 768px) {
@@ -2691,19 +2772,8 @@ a.entry-type-btn {
     gap: var(--space-2);
   }
 
-  .app-nav {
-    order: 3;
-    width: 100%;
-    overflow-x: auto;
-    padding-bottom: var(--space-1);
-  }
-
-  .nav-text {
-    display: none;
-  }
-
-  .nav-link {
-    padding: var(--space-1);
+  .app-nav .nav-link {
+    padding: var(--space-2);
   }
 
   .app-main {
@@ -13010,4 +13080,339 @@ select,
   padding: var(--space-2);
   background: var(--color-primary-subtle);
   border-radius: var(--radius-sm);
+}
+
+/* --------------------------------------------------------------------------
+   v1.6 - Voice Capture (Dictado Universal)
+   -------------------------------------------------------------------------- */
+
+/* Botón de voz en header */
+.btn--voice {
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+.btn--voice:hover {
+  color: var(--turquesa-400) !important;
+}
+
+/* Estado: Escuchando (animación pulso) */
+.btn--listening {
+  color: var(--turquesa-400) !important;
+  animation: voice-btn-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes voice-btn-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.4);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 8px rgba(6, 182, 212, 0);
+  }
+}
+
+/* Estado: No soportado */
+.btn--voice.btn--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--voice.btn--disabled:hover {
+  color: var(--gris-400) !important;
+  background: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   Voice Capture Modal
+   -------------------------------------------------------------------------- */
+.voice-capture-modal {
+  background: transparent;
+  border: none;
+  padding: 0;
+  max-width: 440px;
+  width: 90vw;
+}
+
+.voice-capture-modal::backdrop {
+  background: rgba(30, 41, 59, 0.85);
+}
+
+.voice-capture-content {
+  background: linear-gradient(180deg, var(--turquesa-50), white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  position: relative;
+}
+
+.voice-capture-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.voice-capture-header .modal-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-family-headings);
+  font-size: var(--font-size-lg);
+  color: var(--gris-800);
+  margin: 0;
+}
+
+.voice-capture-header .modal-title .material-symbols-outlined {
+  color: var(--turquesa-600);
+  font-size: 24px;
+}
+
+.voice-capture-close {
+  color: var(--gris-400);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.voice-capture-close:hover {
+  color: var(--gris-600);
+  background: var(--gris-100);
+}
+
+/* Estados del micrófono */
+.voice-capture-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.voice-capture-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.voice-capture-state.hidden {
+  display: none;
+}
+
+/* Botón grande de micrófono */
+.voice-capture-mic-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--turquesa-600);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-normal);
+  position: relative;
+}
+
+.voice-capture-mic-btn:hover {
+  background: var(--turquesa-700);
+  transform: scale(1.05);
+}
+
+.voice-capture-mic-btn .material-symbols-outlined {
+  font-size: 36px;
+  color: white;
+}
+
+/* Estado: Escuchando */
+.voice-capture-mic-btn--listening {
+  cursor: default;
+  background: var(--turquesa-500);
+}
+
+.voice-capture-mic-btn--listening:hover {
+  transform: none;
+}
+
+/* Animación de pulso */
+.voice-pulse {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 3px solid var(--turquesa-400);
+  animation: voice-pulse-ring 1.5s ease-out infinite;
+}
+
+@keyframes voice-pulse-ring {
+  0% {
+    transform: scale(0.9);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+/* Estado: Deshabilitado */
+.voice-capture-mic-btn--disabled {
+  background: var(--gris-300);
+  cursor: not-allowed;
+}
+
+.voice-capture-mic-btn--disabled:hover {
+  background: var(--gris-300);
+  transform: none;
+}
+
+.voice-capture-mic-btn--disabled .material-symbols-outlined {
+  color: var(--gris-500);
+}
+
+/* Hint y texto */
+.voice-capture-hint {
+  color: var(--gris-600);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  margin: 0;
+}
+
+.voice-capture-hint--error {
+  color: var(--rosa-600);
+}
+
+/* Texto interim (mientras se habla) */
+.voice-capture-interim {
+  color: var(--gris-400);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+  text-align: center;
+  min-height: 1.5em;
+  margin: 0;
+  animation: voice-interim-fade 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes voice-interim-fade {
+  from { opacity: 0.6; }
+  to { opacity: 1; }
+}
+
+/* Área de texto */
+.voice-capture-text-area {
+  width: 100%;
+}
+
+.voice-capture-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--gris-600);
+  margin-bottom: var(--space-1);
+}
+
+.voice-capture-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: var(--space-2);
+  border: 1px solid var(--gris-300);
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-base);
+  resize: vertical;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.voice-capture-textarea:focus {
+  outline: none;
+  border-color: var(--turquesa-500);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+}
+
+.voice-capture-textarea::placeholder {
+  color: var(--gris-400);
+}
+
+/* Footer con botones */
+.voice-capture-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--gris-200);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .voice-capture-content {
+    padding: var(--space-3);
+  }
+
+  .voice-capture-mic-btn {
+    width: 70px;
+    height: 70px;
+  }
+
+  .voice-capture-mic-btn .material-symbols-outlined {
+    font-size: 32px;
+  }
+
+  .voice-capture-footer {
+    flex-direction: column;
+  }
+
+  .voice-capture-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Pendientes - Límite Suave (10+ items)
+   -------------------------------------------------------------------------- */
+
+/* Badge contador con warning */
+.backlog-count--warning {
+  background: var(--tulip-tree-200) !important;
+  color: var(--gris-800) !important;
+}
+
+/* Aviso amable */
+.backlog-soft-limit {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  margin-bottom: var(--space-2);
+  background: var(--tulip-tree-50);
+  border: 1px solid var(--tulip-tree-200);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--tulip-tree-500);
+}
+
+.backlog-soft-limit .material-symbols-outlined {
+  color: var(--tulip-tree-500);
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.backlog-soft-limit p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--gris-700);
+  line-height: 1.4;
+}
+
+.backlog-process-link {
+  color: var(--turquesa-600);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.backlog-process-link:hover {
+  text-decoration: underline;
 }
