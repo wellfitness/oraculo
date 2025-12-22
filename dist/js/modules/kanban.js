@@ -15,6 +15,7 @@ import {
   getEvaluationBadge,
   getObjectiveEvaluation
 } from '../components/objective-evaluator.js';
+import { escapeHTML } from '../utils/sanitizer.js';
 
 let updateDataCallback = null;
 let draggedItem = null;
@@ -170,14 +171,14 @@ const renderFocusItem = (item, projects, isRoca = false, evaluations = []) => {
 
       <div class="focus-item__content">
         <div class="focus-item__title-row">
-          <span class="focus-item__text ${item.completed ? 'text--completed' : ''}">${item.text}</span>
+          <span class="focus-item__text ${item.completed ? 'text--completed' : ''}">${escapeHTML(item.text)}</span>
           ${evaluation ? getEvaluationBadge(evaluation) : ''}
         </div>
-        ${item.notes ? `<p class="focus-item__notes">${item.notes}</p>` : ''}
+        ${item.notes ? `<p class="focus-item__notes">${escapeHTML(item.notes)}</p>` : ''}
         ${project ? `
           <span class="focus-item__project" style="--project-color: ${project.color}">
             <span class="project-dot" style="background-color: ${project.color}"></span>
-            ${project.name}
+            ${escapeHTML(project.name)}
           </span>
         ` : ''}
       </div>
@@ -273,12 +274,12 @@ const renderHorizonItem = (item, projects, evaluations = []) => {
       <div class="horizon-item__content">
         <label class="horizon-item__checkbox">
           <input type="checkbox" ${item.completed ? 'checked' : ''} data-id="${item.id}">
-          <span class="horizon-item__text">${item.text}</span>
+          <span class="horizon-item__text">${escapeHTML(item.text)}</span>
           ${evaluation ? getEvaluationBadge(evaluation) : ''}
         </label>
         ${project ? `
           <span class="horizon-item__project" style="background-color: ${project.color}15; color: ${project.color}">
-            ${project.name}
+            ${escapeHTML(project.name)}
           </span>
         ` : ''}
       </div>
@@ -369,11 +370,11 @@ const renderBacklogItem = (item, projects, evaluations = []) => {
       draggable="true"
     >
       <div class="backlog-item__content">
-        <span class="backlog-item__text">${item.text}</span>
+        <span class="backlog-item__text">${escapeHTML(item.text)}</span>
         ${evaluation ? getEvaluationBadge(evaluation) : ''}
         ${project ? `
           <span class="backlog-item__project" style="--project-color: ${project.color}">
-            ${project.name}
+            ${escapeHTML(project.name)}
           </span>
         ` : ''}
       </div>
@@ -742,13 +743,13 @@ const renderItem = (item, columnKey, projects = []) => {
       <div class="kanban-item__content">
         <label class="kanban-item__checkbox">
           <input type="checkbox" ${item.completed ? 'checked' : ''} data-id="${item.id}">
-          <span class="kanban-item__text">${item.text}</span>
+          <span class="kanban-item__text">${escapeHTML(item.text)}</span>
         </label>
-        ${item.notes ? `<p class="kanban-item__notes">${item.notes}</p>` : ''}
+        ${item.notes ? `<p class="kanban-item__notes">${escapeHTML(item.notes)}</p>` : ''}
         ${project ? `
           <span class="kanban-item__project" style="--project-color: ${project.color}">
             <span class="project-dot" style="background-color: ${project.color}"></span>
-            ${project.name}
+            ${escapeHTML(project.name)}
           </span>
         ` : ''}
       </div>

@@ -4,6 +4,7 @@
  */
 
 import { generateId, showNotification } from '../app.js';
+import { escapeHTML } from '../utils/sanitizer.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
 
 let updateDataCallback = null;
@@ -257,7 +258,7 @@ const renderDayColumn = (day, events, recurring) => {
             <div class="event-item__content">
               ${event.isSincronia ? '<span class="material-symbols-outlined event-sincronia-icon" title="Evento de sincronía">group</span>' : ''}
               ${event.time ? `<span class="event-time">${event.time}</span>` : ''}
-              <span class="event-name">${event.name}</span>
+              <span class="event-name">${escapeHTML(event.name)}</span>
             </div>
             <button class="event-item__gcal btn--icon"
                     data-event='${JSON.stringify({ name: event.name, date: event.recurring ? day.dateStr : event.date, time: event.time, duration: event.duration, notes: event.notes })}'

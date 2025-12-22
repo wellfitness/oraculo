@@ -3,6 +3,8 @@
  * Gestiona localStorage con opción de migrar a SQLite
  */
 
+import { validateDataStructure } from './utils/validator.js';
+
 const STORAGE_KEY = 'oraculo_data';
 const STORAGE_VERSION = '1.5';
 const MAX_ACTIVE_PROJECTS = 4;
@@ -253,8 +255,9 @@ export const importData = (file) => {
         const importedData = JSON.parse(e.target.result);
 
         // Validar estructura básica
-        if (!importedData.version || !importedData.objectives) {
-          throw new Error('Archivo no válido');
+        const validation = validateDataStructure(importedData);
+        if (!validation.valid) {
+          throw new Error('Archivo no válido: ' + validation.error);
         }
 
         // Hacer backup antes de importar
