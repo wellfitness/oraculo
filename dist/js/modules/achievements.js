@@ -16,6 +16,7 @@ import {
   getMoodName,
   deleteSpontaneousAchievement
 } from '../components/spontaneous-achievement.js';
+import { escapeHTML } from '../utils/sanitizer.js';
 
 let currentPeriod = 'week';
 
@@ -149,7 +150,7 @@ export const render = (data) => {
             ${graduatedHabits.map(habit => `
               <div class="graduated-badge">
                 <span class="material-symbols-outlined badge-icon">check_circle</span>
-                <span class="badge-name">${habit.name}</span>
+                <span class="badge-name">${escapeHTML(habit.name)}</span>
                 <span class="badge-date">${formatShortDate(habit.graduatedAt)}</span>
               </div>
             `).join('')}
@@ -397,7 +398,7 @@ const renderSpontaneousItem = (achievement) => {
         <span class="material-symbols-outlined">${getMoodIcon(achievement.mood)}</span>
       </div>
       <div class="spontaneous-item__content">
-        <p class="spontaneous-item__text">${achievement.text}</p>
+        <p class="spontaneous-item__text">${escapeHTML(achievement.text)}</p>
         <span class="spontaneous-item__meta">
           ${formattedDate} · ${getMoodName(achievement.mood)}
         </span>

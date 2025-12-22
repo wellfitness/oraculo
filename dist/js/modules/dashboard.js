@@ -4,6 +4,7 @@
  */
 
 import { generateId, formatDate, showNotification, openCalmTimer, openSpontaneousModal, openEveningCheckIn } from '../app.js';
+import { escapeHTML } from '../utils/sanitizer.js';
 import { isEveningTime, hasEveningCheckIn } from '../components/evening-check-in.js';
 import { getAchievementsStats, isHabitCompletedToday } from '../utils/achievements-calculator.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
@@ -81,7 +82,7 @@ export const render = (data) => {
             ${todayEvents.map(event => `
               <li class="event-item">
                 <span class="event-time">${event.time}</span>
-                <span class="event-name">${event.name}</span>
+                <span class="event-name">${escapeHTML(event.name)}</span>
               </li>
             `).join('')}
           </ul>
@@ -210,7 +211,7 @@ const renderFocusTask = (task) => {
           ${task.completed ? 'checked' : ''}
         >
         ${isRock ? '<span class="material-symbols-outlined icon-rock filled">diamond</span>' : ''}
-        <span class="focus-text">${task.text}</span>
+        <span class="focus-text">${escapeHTML(task.text)}</span>
       </label>
       <div class="focus-actions">
         <button
@@ -238,11 +239,11 @@ const renderActiveHabit = (habit, history) => {
   return `
     <div class="habit-card ${completedToday ? 'habit-card--completed' : ''}">
       <div class="habit-card__header">
-        <span class="habit-identity">${habit.identity || ''}</span>
+        <span class="habit-identity">${escapeHTML(habit.identity || '')}</span>
       </div>
 
-      <p class="habit-name">${habit.name}</p>
-      <p class="habit-trigger">${habit.trigger || ''}</p>
+      <p class="habit-name">${escapeHTML(habit.name)}</p>
+      <p class="habit-trigger">${escapeHTML(habit.trigger || '')}</p>
 
       <div class="habit-card__footer">
         <div class="habit-streak">

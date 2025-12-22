@@ -4,6 +4,7 @@
  */
 
 import { generateId, showNotification } from '../app.js';
+import { escapeHTML } from '../utils/sanitizer.js';
 import { MAX_ACTIVE_PROJECTS } from '../storage.js';
 
 let updateDataCallback = null;
@@ -267,14 +268,14 @@ const renderProjectCard = (project, objectives, compact = false) => {
       data-id="${project.id}" style="--project-color: ${project.color}">
       <header class="project-card__header">
         <div class="project-card__color" style="background-color: ${project.color}"></div>
-        <h3 class="project-card__name">${project.name}</h3>
+        <h3 class="project-card__name">${escapeHTML(project.name)}</h3>
         <button class="btn btn--icon btn--ghost project-card__menu" data-id="${project.id}" title="Opciones">
           <span class="material-symbols-outlined">more_vert</span>
         </button>
       </header>
 
       ${!compact && project.description ? `
-        <p class="project-card__description">${project.description}</p>
+        <p class="project-card__description">${escapeHTML(project.description)}</p>
       ` : ''}
 
       <div class="project-card__progress">
@@ -352,7 +353,7 @@ const renderProjectDetail = (project) => {
         <span class="material-symbols-outlined">close</span>
       </button>
       <div class="project-detail__color" style="background-color: ${project.color}"></div>
-      <h2 class="project-detail__name">${project.name}</h2>
+      <h2 class="project-detail__name">${escapeHTML(project.name)}</h2>
       <span class="status-badge status-badge--${project.status}">
         <span class="material-symbols-outlined icon-sm ${statusInfo.iconClass}">${statusInfo.icon}</span>
         ${statusInfo.name}
@@ -360,7 +361,7 @@ const renderProjectDetail = (project) => {
     </header>
 
     ${project.description ? `
-      <p class="project-detail__description">${project.description}</p>
+      <p class="project-detail__description">${escapeHTML(project.description)}</p>
     ` : ''}
 
     <div class="project-detail__meta">
@@ -404,7 +405,7 @@ const renderProjectDetail = (project) => {
               ${pendingTasks.map(task => `
                 <li class="task-item">
                   <span class="task-item__checkbox"></span>
-                  <span class="task-item__text">${task.text}</span>
+                  <span class="task-item__text">${escapeHTML(task.text)}</span>
                   <span class="task-item__horizon">${task.horizonName}</span>
                 </li>
               `).join('')}
@@ -421,7 +422,7 @@ const renderProjectDetail = (project) => {
                   <span class="task-item__checkbox task-item__checkbox--checked">
                     <span class="material-symbols-outlined icon-xs">check</span>
                   </span>
-                  <span class="task-item__text">${task.text}</span>
+                  <span class="task-item__text">${escapeHTML(task.text)}</span>
                   <span class="task-item__horizon">${task.horizonName}</span>
                 </li>
               `).join('')}

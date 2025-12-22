@@ -17,6 +17,7 @@ import {
   loadArchivedYear,
   generateYearSummary
 } from '../storage.js';
+import { escapeHTML } from '../utils/sanitizer.js';
 
 let updateDataCallback = null;
 let archivedYearData = null; // Para el visor de años anteriores
@@ -505,7 +506,7 @@ const openArchivedViewer = (data) => {
         <div class="viewer-section">
           <h3>Valores del año</h3>
           <ul class="viewer-list">
-            ${data.values.map(v => `<li>${v.name}</li>`).join('')}
+            ${data.values.map(v => `<li>${escapeHTML(v.name)}</li>`).join('')}
           </ul>
         </div>
       ` : ''}
@@ -516,8 +517,8 @@ const openArchivedViewer = (data) => {
           <ul class="viewer-list">
             ${data.habits.graduated.map(h => `
               <li>
-                <strong>${h.name}</strong>
-                ${h.identity ? `<span class="viewer-subtitle">${h.identity}</span>` : ''}
+                <strong>${escapeHTML(h.name)}</strong>
+                ${h.identity ? `<span class="viewer-subtitle">${escapeHTML(h.identity)}</span>` : ''}
               </li>
             `).join('')}
           </ul>
@@ -529,7 +530,7 @@ const openArchivedViewer = (data) => {
           <h3>Proyectos completados</h3>
           <ul class="viewer-list">
             ${data.projects.filter(p => p.status === 'completed').map(p => `
-              <li>${p.name}</li>
+              <li>${escapeHTML(p.name)}</li>
             `).join('')}
           </ul>
         </div>

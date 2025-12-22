@@ -5,6 +5,7 @@
  */
 
 import { generateId, showNotification } from '../app.js';
+import { escapeHTML } from '../utils/sanitizer.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
 import { getBuenosValores, getMalosValores } from '../data/markmanson.js';
 
@@ -76,7 +77,7 @@ export const render = (data) => {
           <p>Cuando tengas que decidir a qué dedicar tu tiempo, pregúntate:</p>
           <blockquote class="reflection-prompt">
             "¿Esto me acerca a vivir según mis valores de
-            <strong>${values.map(v => v.name).join(', ')}</strong>?"
+            <strong>${values.map(v => escapeHTML(v.name)).join(', ')}</strong>?"
           </blockquote>
           <blockquote class="quote quote--secondary">
             <p>"${getReflexionDelDia('values')}"</p>
@@ -316,12 +317,12 @@ const renderValueCard = (value, wheelAreas = []) => {
   return `
     <article class="value-card" data-id="${value.id}">
       <div class="value-card__header">
-        <span class="value-icon">${value.icon || ''}</span>
+        <span class="value-icon">${escapeHTML(value.icon || '')}</span>
         <span class="material-symbols-outlined icon-lg icon-primary value-icon-symbol">star</span>
-        <h3 class="value-name">${value.name}</h3>
+        <h3 class="value-name">${escapeHTML(value.name)}</h3>
       </div>
 
-      <p class="value-description">${value.description || ''}</p>
+      <p class="value-description">${escapeHTML(value.description || '')}</p>
 
       ${linkedAreas.length > 0 ? `
         <div class="value-linked-areas">
@@ -333,7 +334,7 @@ const renderValueCard = (value, wheelAreas = []) => {
             ${linkedAreas.map(area => `
               <span class="linked-area-tag">
                 <span class="material-symbols-outlined icon-xs">${area.icon}</span>
-                ${area.name}
+                ${escapeHTML(area.name)}
               </span>
             `).join('')}
           </div>
@@ -483,15 +484,15 @@ const renderWheelSuggestions = (suggestions) => {
             <div class="suggestion-header">
               <span class="material-symbols-outlined suggestion-icon">${s.area.icon}</span>
               <div>
-                <h4>${s.area.name}</h4>
+                <h4>${escapeHTML(s.area.name)}</h4>
                 <span class="suggestion-gap">
                   Actual: ${s.current}/10 → Deseado: ${s.desired}/10
                 </span>
               </div>
             </div>
-            ${s.reflection ? `<p class="suggestion-reflection">"${s.reflection}"</p>` : ''}
+            ${s.reflection ? `<p class="suggestion-reflection">"${escapeHTML(s.reflection)}"</p>` : ''}
             <button class="btn btn--secondary btn--small create-value-from-area"
-                    data-area-name="${s.area.name}"
+                    data-area-name="${escapeHTML(s.area.name)}"
                     data-area-icon="${s.area.icon}">
               <span class="material-symbols-outlined icon-sm">add</span>
               Crear valor desde esta área

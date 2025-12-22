@@ -4,6 +4,7 @@
  */
 
 import { generateId, showNotification, formatDate } from '../app.js';
+import { escapeHTML } from '../utils/sanitizer.js';
 import {
   getReflexionDelDia,
   getPromptsIncomodidad,
@@ -170,7 +171,8 @@ const renderList = (data) => {
  */
 const renderEntryCard = (entry) => {
   const typeInfo = ENTRY_TYPES[entry.type] || ENTRY_TYPES.free;
-  const preview = entry.content.substring(0, 150) + (entry.content.length > 150 ? '...' : '');
+  const safeContent = escapeHTML(entry.content);
+  const preview = safeContent.substring(0, 150) + (safeContent.length > 150 ? '...' : '');
 
   return `
     <a href="#journal/edit/${entry.id}" class="entry-card">
@@ -265,7 +267,7 @@ const renderEditor = (data, entry, type) => {
               class="editor-textarea"
               placeholder="Escribe aquí... Tómate tu tiempo."
               autofocus
-            >${entry?.content || ''}</textarea>
+            >${escapeHTML(entry?.content || '')}</textarea>
 
             <input type="hidden" id="journal-id" value="${entry?.id || ''}">
             <input type="hidden" id="journal-type" value="${type}">

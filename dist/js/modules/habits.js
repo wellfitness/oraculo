@@ -4,6 +4,7 @@
  */
 
 import { generateId, showNotification } from '../app.js';
+import { escapeHTML } from '../utils/sanitizer.js';
 import { getReflexionDelDia, getReflexionPorPilar } from '../data/burkeman.js';
 import { getHabitosManson } from '../data/markmanson.js';
 
@@ -150,7 +151,7 @@ export const render = (data) => {
             ${graduatedHabits.map(h => `
               <li class="graduated-item">
                 <span class="material-symbols-outlined icon-success">check_circle</span>
-                <span class="graduated-name">${h.name}</span>
+                <span class="graduated-name">${escapeHTML(h.name)}</span>
                 <span class="graduated-date">Desde ${formatShortDate(h.graduatedAt)}</span>
               </li>
             `).join('')}
@@ -911,22 +912,22 @@ const renderActiveHabit = (habit, history) => {
             ${areaInfo.name}
           </div>
         ` : ''}
-        ${habit.identity ? `<p class="habit-identity">"${habit.identity}"</p>` : ''}
-        <h3 class="habit-name">${habit.name}</h3>
+        ${habit.identity ? `<p class="habit-identity">"${escapeHTML(habit.identity)}"</p>` : ''}
+        <h3 class="habit-name">${escapeHTML(habit.name)}</h3>
         ${(habit.scheduledTime || habit.location) ? `
           <p class="habit-when-where">
             ${habit.scheduledTime ? `<span class="material-symbols-outlined icon-sm">schedule</span> ${habit.scheduledTime}` : ''}
-            ${habit.location ? `<span class="material-symbols-outlined icon-sm">location_on</span> ${habit.location}` : ''}
+            ${habit.location ? `<span class="material-symbols-outlined icon-sm">location_on</span> ${escapeHTML(habit.location)}` : ''}
           </p>
         ` : ''}
       </div>
 
       <div class="habit-formula">
-        ${habit.trigger ? `<p><strong>Señal:</strong> ${habit.trigger}</p>` : ''}
-        ${habit.micro ? `<p><strong>Micro-versión:</strong> ${habit.micro}</p>` : ''}
-        ${habit.attractive ? `<p><strong>Lo hago atractivo:</strong> ${habit.attractive}</p>` : ''}
-        ${habit.easy ? `<p><strong>Lo hago fácil:</strong> ${habit.easy}</p>` : ''}
-        ${habit.reward ? `<p><strong>Recompensa:</strong> ${habit.reward}</p>` : ''}
+        ${habit.trigger ? `<p><strong>Señal:</strong> ${escapeHTML(habit.trigger)}</p>` : ''}
+        ${habit.micro ? `<p><strong>Micro-versión:</strong> ${escapeHTML(habit.micro)}</p>` : ''}
+        ${habit.attractive ? `<p><strong>Lo hago atractivo:</strong> ${escapeHTML(habit.attractive)}</p>` : ''}
+        ${habit.easy ? `<p><strong>Lo hago fácil:</strong> ${escapeHTML(habit.easy)}</p>` : ''}
+        ${habit.reward ? `<p><strong>Recompensa:</strong> ${escapeHTML(habit.reward)}</p>` : ''}
       </div>
 
       <div class="habit-stats">

@@ -1157,7 +1157,7 @@ a:hover {
     grid-template-columns: 1fr;
     gap: var(--space-2);
     overflow-y: auto;
-    padding: var(--space-2);
+    padding: var(--space-2) 8px; /* Laterales minimos */
   }
 
   .setup-2col__left {
@@ -1177,14 +1177,29 @@ a:hover {
   }
 
   .setup-2col__right {
-    min-height: 200px;
-    max-height: 40vh;
+    min-height: 150px;
+    padding: var(--space-2) 8px; /* Laterales minimos */
+  }
+
+  .setup-2col__right .setup-tasks__list {
+    padding: var(--space-1) 4px;
+  }
+
+  .setup-obstacles {
+    margin-top: var(--space-2);
+    padding-top: var(--space-2);
+  }
+
+  .setup-obstacles__summary {
+    padding: var(--space-1) 4px;
   }
 
   .setup-2col__footer {
-    padding: var(--space-2);
+    order: 99; /* Al final */
+    padding: var(--space-2) 8px; /* Laterales minimos */
     flex-direction: column-reverse;
     gap: var(--space-2);
+    background: var(--gris-50);
   }
 
   .setup-2col__footer .btn--primary {
@@ -2846,9 +2861,9 @@ a.entry-type-btn {
 
   /* --- PRIORIDAD 1: Contenedores Principales --- */
 
-  /* Contenedor principal - reducir de 16px a 8px */
+  /* Contenedor principal - padding lateral respirable */
   .app-main {
-    padding: var(--space-1); /* 8px en todos los lados */
+    padding: var(--space-2) 12px; /* 16px arriba/abajo, 12px lados */
   }
 
   /* Header - reducir padding lateral */
@@ -2863,6 +2878,7 @@ a.entry-type-btn {
 
   .dashboard__header {
     margin-bottom: var(--space-2); /* 16px */
+    text-align: center;
   }
 
   .dashboard__section {
@@ -6948,11 +6964,11 @@ a.entry-type-btn {
 .daily-setup-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--header-height, 64px) - var(--footer-height, 48px));
+  min-height: calc(100vh - var(--header-height, 64px) - var(--footer-height, 48px));
   padding: var(--space-2);
   max-width: 1000px;
   margin: 0 auto;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 /* Header compacto */
@@ -13013,6 +13029,14 @@ select,
   animation: fadeIn 0.2s ease;
 }
 
+/* Responsive: reducir padding en móvil para evitar corte */
+@media (max-width: 480px) {
+  .setup-obstacles__content {
+    padding-left: var(--space-2);
+    padding-right: var(--space-1);
+  }
+}
+
 .setup-obstacles[open] .setup-obstacles__summary {
   color: var(--turquesa-600);
   margin-bottom: var(--space-1);
@@ -13546,23 +13570,16 @@ select,
 .happiness-triangle__intro {
   font-style: italic;
   color: var(--color-text-muted);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
   padding: var(--space-3);
   background: var(--color-bg);
   border-radius: var(--radius-md);
-  border-left: 3px solid var(--color-primary);
 }
 
 .triangle-areas {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-4);
-}
-
-@media (max-width: 768px) {
-  .triangle-areas {
-    grid-template-columns: 1fr;
-  }
 }
 
 .triangle-area {
@@ -13597,6 +13614,46 @@ select,
   padding: var(--space-2);
   background: var(--color-primary-subtle);
   border-radius: var(--radius-sm);
+}
+
+/* Responsive: Triángulo de la Felicidad - breakpoints progresivos */
+@media (max-width: 768px) {
+  .happiness-triangle__content {
+    padding: var(--space-3);
+  }
+
+  .triangle-areas {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+
+  .triangle-area {
+    padding: var(--space-3);
+  }
+
+  .happiness-triangle__intro {
+    padding: var(--space-2);
+  }
+}
+
+@media (max-width: 480px) {
+  .happiness-triangle__content {
+    padding: var(--space-2);
+  }
+
+  .triangle-areas {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+
+  .triangle-area {
+    padding: var(--space-2);
+  }
+
+  .happiness-triangle__intro {
+    padding: var(--space-2);
+    margin-bottom: var(--space-2);
+  }
 }
 
 /* --------------------------------------------------------------------------
