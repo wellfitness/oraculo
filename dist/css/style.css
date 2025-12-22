@@ -13583,6 +13583,13 @@ select,
   background: transparent;
 }
 
+/* Ocultar en móvil/tablet - usar micrófono del teclado nativo */
+@media (max-width: 1024px) {
+  #global-voice-btn {
+    display: none;
+  }
+}
+
 /* --------------------------------------------------------------------------
    Voice Capture Modal
    -------------------------------------------------------------------------- */
