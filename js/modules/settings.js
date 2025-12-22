@@ -3,7 +3,7 @@
  * Gestión de datos, cuadernos anuales y preferencias
  */
 
-import { showNotification } from '../app.js';
+import { showNotification, autoBackup } from '../app.js';
 import {
   exportData,
   importData,
@@ -113,6 +113,9 @@ export const render = (data) => {
           </label>
         </div>
       </section>
+
+      <!-- Respaldo Automático -->
+      ${renderAutoBackupSection()}
 
       <!-- Datos -->
       <section class="settings-section">
@@ -379,6 +382,55 @@ export const init = (data, updateData) => {
       archivedYearData = null;
     }
   });
+
+  // === Respaldo Automático ===
+
+  // Vincular/cambiar carpeta de backup
+  document.getElementById('link-folder-btn')?.addEventListener('click', async () => {
+    try {
+      const folderName = await autoBackup.linkFolder();
+      if (folderName) {
+        showNotification(`Carpeta vinculada: ${folderName}`, 'success');
+        // Guardar backup inicial
+        const result = await autoBackup.saveBackup(data);
+        if (result.success) {
+          showNotification(`Primer backup guardado: ${result.filename}`, 'success');
+        }
+        // Re-renderizar la sección para reflejar el cambio
+        location.reload();
+      }
+    } catch (error) {
+      showNotification('Error al vincular carpeta: ' + error.message, 'warning');
+    }
+  });
+
+  // Guardar backup ahora
+  document.getElementById('save-backup-now-btn')?.addEventListener('click', async () => {
+    try {
+      const result = await autoBackup.saveBackup(data);
+      if (result.success) {
+        showNotification(`Backup guardado: ${result.filename}`, 'success');
+        // Actualizar info del último backup
+        const detailEl = document.querySelector('.backup-detail');
+        if (detailEl) {
+          detailEl.textContent = 'Último backup: hace unos segundos';
+        }
+      } else {
+        showNotification('No se pudo guardar el backup', 'warning');
+      }
+    } catch (error) {
+      showNotification('Error: ' + error.message, 'warning');
+    }
+  });
+
+  // Desvincular carpeta
+  document.getElementById('unlink-folder-btn')?.addEventListener('click', async () => {
+    if (confirm('¿Desvincular la carpeta de backup? Tus datos seguirán en el navegador.')) {
+      await autoBackup.unlinkFolder();
+      showNotification('Carpeta desvinculada', 'info');
+      location.reload();
+    }
+  });
 };
 
 /**
@@ -486,6 +538,93 @@ const openArchivedViewer = (data) => {
   `;
 
   modal.showModal();
+};
+
+/**
+ * Renderiza la sección de respaldo automático
+ */
+const renderAutoBackupSection = () => {
+  const isSupported = autoBackup.isSupported();
+  const hasFolder = autoBackup.hasLinkedFolder();
+  const folderName = autoBackup.getFolderName();
+  const lastBackup = autoBackup.getTimeSinceLastBackup();
+
+  if (!isSupported) {
+    return `
+      <section class="settings-section">
+        <h2>
+          <span class="material-symbols-outlined">cloud_off</span>
+          Respaldo Automático
+        </h2>
+        <p class="section-description">
+          Tu navegador no soporta el respaldo automático a carpeta.
+          Usa Chrome o Edge para esta función.
+        </p>
+        <p class="text-muted">
+          Puedes usar el botón "Exportar backup" de la sección Datos para guardar manualmente.
+        </p>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="settings-section">
+      <h2>
+        <span class="material-symbols-outlined">${hasFolder ? 'cloud_done' : 'cloud_upload'}</span>
+        Respaldo Automático
+      </h2>
+      <p class="section-description">
+        Guarda copias de seguridad automáticas en una carpeta de tu ordenador.
+      </p>
+
+      <div class="backup-status">
+        ${hasFolder ? `
+          <div class="backup-linked">
+            <span class="material-symbols-outlined status-icon status-icon--success">folder_open</span>
+            <div class="backup-info">
+              <strong>Carpeta vinculada: ${folderName}</strong>
+              <span class="backup-detail">
+                ${lastBackup ? `Último backup: ${lastBackup}` : 'Sin backups aún'}
+              </span>
+            </div>
+          </div>
+        ` : `
+          <div class="backup-unlinked">
+            <span class="material-symbols-outlined status-icon status-icon--warning">folder_off</span>
+            <div class="backup-info">
+              <strong>Sin carpeta vinculada</strong>
+              <span class="backup-detail">
+                Tus datos solo están en el navegador
+              </span>
+            </div>
+          </div>
+        `}
+      </div>
+
+      <div class="settings-actions">
+        <button class="btn ${hasFolder ? 'btn--secondary' : 'btn--primary'}" id="link-folder-btn">
+          <span class="material-symbols-outlined">${hasFolder ? 'folder_copy' : 'create_new_folder'}</span>
+          ${hasFolder ? 'Cambiar carpeta' : 'Vincular carpeta'}
+        </button>
+        ${hasFolder ? `
+          <button class="btn btn--secondary" id="save-backup-now-btn">
+            <span class="material-symbols-outlined">save</span>
+            Guardar ahora
+          </button>
+          <button class="btn btn--outline btn--warning" id="unlink-folder-btn">
+            <span class="material-symbols-outlined">link_off</span>
+            Desvincular
+          </button>
+        ` : ''}
+      </div>
+
+      <p class="action-hint">
+        ${hasFolder
+          ? 'Los backups se guardan automáticamente cuando haces cambios.'
+          : 'Al vincular una carpeta, tus datos se guardarán automáticamente.'}
+      </p>
+    </section>
+  `;
 };
 
 /**

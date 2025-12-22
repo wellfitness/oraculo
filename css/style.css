@@ -4272,6 +4272,48 @@ a.entry-type-btn {
   background: linear-gradient(135deg, white, var(--turquesa-100) 150%);
 }
 
+/* Respaldo automático */
+.backup-status {
+  background: white;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
+}
+
+.backup-linked,
+.backup-unlinked {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.status-icon {
+  font-size: 28px;
+}
+
+.status-icon--success {
+  color: var(--turquesa-500);
+}
+
+.status-icon--warning {
+  color: var(--amarillo-500);
+}
+
+.backup-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.backup-info strong {
+  font-size: var(--font-size-base);
+}
+
+.backup-detail {
+  font-size: var(--font-size-sm);
+  color: var(--gris-500);
+}
+
 .current-notebook {
   background: white;
   padding: var(--space-2);
@@ -13602,6 +13644,54 @@ select,
 /* Ocultar en móvil/tablet - usar micrófono del teclado nativo */
 @media (max-width: 1024px) {
   #global-voice-btn {
+    display: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Global Save Button - Auto-Backup
+   -------------------------------------------------------------------------- */
+#global-save-btn {
+  position: relative;
+}
+
+/* Estado: Guardando */
+#global-save-btn.saving .material-symbols-outlined {
+  animation: spin 1s linear infinite;
+}
+
+#global-save-btn.saving .material-symbols-outlined::before {
+  content: 'sync';
+}
+
+/* Estado: Guardado exitoso */
+#global-save-btn.saved {
+  color: var(--turquesa-500);
+}
+
+#global-save-btn.saved .material-symbols-outlined::before {
+  content: 'cloud_done';
+}
+
+/* Estado: Sin carpeta vinculada (indicador sutil) */
+#global-save-btn.unlinked {
+  opacity: 0.7;
+}
+
+/* Estado: Error */
+#global-save-btn.error {
+  color: var(--rosa-500);
+}
+
+/* Animación de rotación */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Ocultar en móvil/tablet - File System API no funciona */
+@media (max-width: 1024px) {
+  #global-save-btn {
     display: none;
   }
 }
