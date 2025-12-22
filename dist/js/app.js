@@ -26,6 +26,10 @@ import {
   openVoiceCapture
 } from './components/voice-capture-modal.js';
 import { getSpeechHandler, isSpeechSupported } from './utils/speech-handler.js';
+import * as autoBackup from './utils/auto-backup.js';
+
+// Exportar módulo de auto-backup para uso en settings
+export { autoBackup };
 
 // Exportar funciones para uso en otros módulos
 export { openCalmTimer, openSpontaneousModal, openEveningCheckIn, openVoiceCapture };
@@ -95,6 +99,12 @@ export const init = () => {
   // Configurar botón de voz en header
   setupVoiceButton();
 
+  // Configurar botón de guardar backup en header
+  setupSaveButton();
+
+  // Inicializar auto-backup
+  initAutoBackup();
+
   // Verificar si necesita Daily Setup (página en lugar de modal)
   const setupEnabled = state.data.burkemanSettings?.dailySetupEnabled !== false;
   const needsSetup = setupEnabled && needsDailySetup(state.data);
@@ -163,9 +173,17 @@ const setupGlobalEvents = () => {
   });
 
   // Guardar antes de cerrar
-  window.addEventListener('beforeunload', () => {
+  window.addEventListener('beforeunload', (event) => {
     if (state.data) {
       saveData(state.data);
+    }
+
+    // Mostrar advertencia si no hay carpeta de backup vinculada
+    // Solo en navegadores con soporte de File System API
+    if (autoBackup.isSupported() && !autoBackup.hasLinkedFolder()) {
+      event.preventDefault();
+      // El navegador mostrará su diálogo genérico
+      event.returnValue = 'Tus datos están guardados en el navegador. ¿Quieres vincular una carpeta para tener una copia de seguridad externa?';
     }
   });
 
@@ -346,6 +364,133 @@ const startInlineDictation = (field, voiceBtn, speechHandler) => {
 
   // Iniciar
   speechHandler.start();
+};
+
+/**
+ * Configura el botón de guardar backup en el header
+ */
+const setupSaveButton = () => {
+  const saveBtn = document.getElementById('global-save-btn');
+  if (!saveBtn) return;
+
+  // Verificar soporte de File System Access API
+  if (!autoBackup.isSupported()) {
+    // Fallback: el botón descargará el archivo
+    saveBtn.title = 'Descargar copia de seguridad';
+  }
+
+  // Actualizar estado visual inicial
+  updateSaveButtonState(saveBtn);
+
+  // Click en botón de guardar
+  saveBtn.addEventListener('click', async () => {
+    // Evitar doble click
+    if (saveBtn.classList.contains('saving')) return;
+
+    try {
+      // Estado: guardando
+      saveBtn.classList.add('saving');
+      saveBtn.classList.remove('saved', 'error', 'unlinked');
+
+      // Guardar datos actuales
+      const result = await autoBackup.smartSave(state.data);
+
+      saveBtn.classList.remove('saving');
+
+      if (result.success) {
+        // Estado: guardado exitoso
+        saveBtn.classList.add('saved');
+
+        const message = result.method === 'download'
+          ? `Backup descargado: ${result.filename}`
+          : `Backup guardado en ${result.folder}`;
+        showNotification(message, 'success');
+
+        // Volver al estado normal después de 2 segundos
+        setTimeout(() => {
+          saveBtn.classList.remove('saved');
+          updateSaveButtonState(saveBtn);
+        }, 2000);
+      } else if (result.error === 'CANCELLED') {
+        // Usuario canceló
+        updateSaveButtonState(saveBtn);
+      } else {
+        // Error
+        saveBtn.classList.add('error');
+        showNotification('No se pudo guardar el backup', 'warning');
+
+        setTimeout(() => {
+          saveBtn.classList.remove('error');
+          updateSaveButtonState(saveBtn);
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('[SaveButton] Error:', error);
+      saveBtn.classList.remove('saving');
+      saveBtn.classList.add('error');
+      showNotification('Error al guardar: ' + error.message, 'warning');
+
+      setTimeout(() => {
+        saveBtn.classList.remove('error');
+        updateSaveButtonState(saveBtn);
+      }, 2000);
+    }
+  });
+
+  // Escuchar eventos de backup automático
+  window.addEventListener('backup-saved', (e) => {
+    const { filename, folder } = e.detail;
+    console.log(`[AutoBackup] Guardado automático: ${filename} en ${folder}`);
+    // Pequeño feedback visual
+    saveBtn.classList.add('saved');
+    setTimeout(() => {
+      saveBtn.classList.remove('saved');
+    }, 1000);
+  });
+};
+
+/**
+ * Actualiza el estado visual del botón de guardar
+ */
+const updateSaveButtonState = (btn) => {
+  btn.classList.remove('saving', 'saved', 'error');
+
+  if (autoBackup.hasLinkedFolder()) {
+    btn.classList.remove('unlinked');
+    btn.title = `Guardar backup (${autoBackup.getFolderName()})`;
+  } else if (autoBackup.isSupported()) {
+    btn.classList.add('unlinked');
+    btn.title = 'Vincular carpeta para backups';
+  } else {
+    btn.classList.remove('unlinked');
+    btn.title = 'Descargar copia de seguridad';
+  }
+};
+
+/**
+ * Inicializa el sistema de auto-backup
+ */
+const initAutoBackup = async () => {
+  const hasFolder = await autoBackup.init(() => state.data);
+
+  if (hasFolder) {
+    console.log('[AutoBackup] Sistema inicializado con carpeta:', autoBackup.getFolderName());
+
+    // Programar auto-guardado cuando los datos cambien
+    window.addEventListener('data-updated', () => {
+      autoBackup.scheduleAutoSave();
+    });
+  } else if (autoBackup.isSupported()) {
+    console.log('[AutoBackup] Sistema listo, sin carpeta vinculada');
+  } else {
+    console.log('[AutoBackup] File System API no soportada, usando fallback');
+  }
+
+  // Actualizar botón
+  const saveBtn = document.getElementById('global-save-btn');
+  if (saveBtn) {
+    updateSaveButtonState(saveBtn);
+  }
 };
 
 /**
