@@ -3,8 +3,8 @@
  * Estrategia: Network-first para HTML/JS/CSS, Cache-first para imágenes
  */
 
-const CACHE_NAME = 'oraculo-v1.8';
-const STATIC_CACHE = 'oraculo-static-v1.8';
+const CACHE_NAME = 'oraculo-v2.0';
+const STATIC_CACHE = 'oraculo-static-v2.0';
 
 // Archivos a cachear en la instalación
 const STATIC_ASSETS = [
@@ -34,7 +34,9 @@ const STATIC_ASSETS = [
   '/js/components/calm-timer.js',
   // Data y utils
   '/js/data/burkeman.js',
-  '/js/utils/achievements-calculator.js'
+  '/js/utils/achievements-calculator.js',
+  '/js/utils/dates.js',
+  '/js/utils/ics.js'
 ];
 
 // Recursos externos que queremos cachear
@@ -65,7 +67,7 @@ self.addEventListener('install', (event) => {
 
 // Activación: limpiar caches antiguas y forzar recarga
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activando Service Worker v1.7...');
+  console.log('[SW] Activando Service Worker v2.0...');
 
   event.waitUntil(
     caches.keys()
@@ -100,7 +102,7 @@ self.addEventListener('activate', (event) => {
             console.log('[SW] Forzando recarga:', client.url);
             // Añadir timestamp para forzar bypass de cualquier cache
             const url = new URL(client.url);
-            url.searchParams.set('_swv', '1.8');
+            url.searchParams.set('_swv', '2.0');
             client.navigate(url.toString());
           }
         });
