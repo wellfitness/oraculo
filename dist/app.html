@@ -24,6 +24,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#06b6d4">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Oráculo">
@@ -109,6 +110,10 @@
       <p class="footer-small">
         No puedes hacerlo todo. Y está bien.
       </p>
+      <p class="footer-version" id="app-version">
+        <span class="material-symbols-outlined" style="font-size: 14px;">verified</span>
+        v<span id="version-number">2.0</span>
+      </p>
     </footer>
   </div>
 
@@ -117,6 +122,7 @@
 
   <!-- Service Worker Registration -->
   <script>
+    const SW_VERSION = '2.0';
     const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
     // Limpiar parámetro de versión SW y mostrar toast de actualización
@@ -137,7 +143,7 @@
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
+        navigator.serviceWorker.register('/service-worker.js?v=' + SW_VERSION)
           .then((registration) => {
             console.log('SW registrado:', registration.scope);
 
@@ -173,6 +179,18 @@
         if (!refreshing) {
           refreshing = true;
           window.location.reload();
+        }
+      });
+
+      // Verificar actualizaciones al volver de segundo plano (crítico para móvil)
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          navigator.serviceWorker.getRegistration().then((registration) => {
+            if (registration) {
+              console.log('[SW] Verificando actualizaciones...');
+              registration.update();
+            }
+          });
         }
       });
     }
