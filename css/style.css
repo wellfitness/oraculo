@@ -6605,11 +6605,75 @@ a.entry-type-btn {
 /* Cards de ayuda */
 .help-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: 1fr;
   gap: var(--space-2);
 }
 
+/* FAQ Cards - Layout simple: pregunta arriba, respuesta abajo */
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.faq-card {
+  background: white;
+  border: 1px solid var(--gris-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  transition: all var(--transition-fast);
+}
+
+.faq-card:hover {
+  border-color: var(--turquesa-300);
+  box-shadow: var(--shadow-sm);
+}
+
+.faq-question {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--gris-100);
+}
+
+.faq-question .material-symbols-outlined {
+  font-size: 24px;
+  color: var(--turquesa-600);
+  flex-shrink: 0;
+}
+
+.faq-question h3 {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--gris-800);
+}
+
+.faq-answer {
+  color: var(--gris-700);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+.faq-answer p {
+  margin: var(--space-1) 0;
+}
+
+.faq-answer ul,
+.faq-answer ol {
+  padding-left: var(--space-3);
+  margin: var(--space-1) 0;
+}
+
+.faq-answer li {
+  margin-bottom: 4px;
+}
+
+
 .help-card {
+  display: block;
   background: white;
   border: 1px solid var(--gris-200);
   border-radius: var(--radius-lg);
@@ -6921,6 +6985,31 @@ a.entry-type-btn {
   color: white;
 }
 
+/* Cita de filosofía - usa turquesa como el resto */
+.philosophy-quote {
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 4px solid var(--turquesa-400);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  font-style: italic;
+}
+
+.philosophy-quote p {
+  margin: 0 0 var(--space-2) 0;
+  color: var(--gris-200);
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+}
+
+.philosophy-quote cite {
+  display: block;
+  font-style: normal;
+  font-size: var(--font-size-sm);
+  color: var(--turquesa-400);
+  font-weight: 500;
+}
+
 /* Tips rápidos */
 .help-tips-grid {
   display: grid;
@@ -6956,6 +7045,90 @@ a.entry-type-btn {
   color: var(--gris-700);
   line-height: 1.4;
 }
+
+/* Elemento kbd para teclas de teclado */
+kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  color: var(--gris-800);
+  background: var(--gris-100);
+  border: 1px solid var(--gris-300);
+  border-radius: 4px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1), inset 0 1px 0 white;
+  white-space: nowrap;
+}
+
+/* Pasos compactos para FAQ */
+.help-steps-compact {
+  margin: var(--space-2) 0;
+  padding: var(--space-2);
+  background: var(--gris-50);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+}
+
+.help-steps-compact p {
+  margin: var(--space-1) 0;
+}
+
+.help-steps-compact ol {
+  margin: var(--space-1) 0 var(--space-2);
+  padding-left: var(--space-4);
+}
+
+.help-steps-compact li {
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+/* Advertencia importante (para datos) */
+.help-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+  padding: var(--space-2);
+  background: var(--rosa-50);
+  border-left: 4px solid var(--rosa-500);
+  border-radius: var(--radius-md);
+}
+
+.help-warning .material-symbols-outlined {
+  color: var(--rosa-600);
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.help-warning p {
+  margin: 0;
+  color: var(--rosa-700);
+  font-size: var(--font-size-sm);
+}
+
+.help-warning strong {
+  color: var(--rosa-800);
+}
+
+/* Atajo rápido destacado */
+.help-shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  background: var(--turquesa-50);
+  border: 1px solid var(--turquesa-200);
+  border-radius: var(--radius-md);
+  margin: var(--space-1) 0;
+}
+
+.help-shortcut-label {
+  font-size: var(--font-size-xs);
+  color: var(--turquesa-700);
+  font-weight: 500;
+}
+
 
 /* Footer de ayuda */
 .help-section--footer {
