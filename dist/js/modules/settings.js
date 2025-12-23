@@ -3,7 +3,7 @@
  * Gestión de datos, cuadernos anuales y preferencias
  */
 
-import { showNotification, autoBackup } from '../app.js';
+import { showNotification, autoBackup, reloadStateFromStorage } from '../app.js';
 import {
   exportData,
   importData,
@@ -115,7 +115,10 @@ export const render = (data) => {
         </div>
       </section>
 
-      <!-- Respaldo Automático -->
+      <!-- Sincronizar entre Dispositivos -->
+      ${renderSyncSection()}
+
+      <!-- Respaldo Automático (local) -->
       ${renderAutoBackupSection()}
 
       <!-- Datos -->
@@ -268,7 +271,44 @@ export const render = (data) => {
  * Inicializa eventos del módulo
  */
 export const init = (data, updateData) => {
+  console.log('[Settings] Módulo inicializado');
   updateDataCallback = updateData;
+
+  // Verificar que los inputs existen
+  const importDataInput = document.getElementById('import-data-input');
+  const importSyncInput = document.getElementById('import-sync-input');
+  console.log('[Settings] import-data-input encontrado:', !!importDataInput);
+  console.log('[Settings] import-sync-input encontrado:', !!importSyncInput);
+
+  // === Sincronización entre dispositivos ===
+
+  // Exportar (botón de sincronización)
+  document.getElementById('export-sync-btn')?.addEventListener('click', () => {
+    exportData();
+    showNotification('Backup descargado. ¡Súbelo a tu nube!', 'success');
+  });
+
+  // Importar (botón de sincronización)
+  document.getElementById('import-sync-input')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Resetear el input para permitir re-seleccionar el mismo archivo
+    e.target.value = '';
+
+    try {
+      await importData(file);
+      // Sincronizar state.data con localStorage para evitar que beforeunload sobrescriba
+      reloadStateFromStorage();
+      showNotification('¡Datos sincronizados correctamente!', 'success');
+      location.reload();
+    } catch (error) {
+      console.error('[Settings] Error sincronizando:', error);
+      showNotification('Error: ' + error.message, 'error');
+    }
+  });
+
+  // === Datos (exportar/importar tradicional) ===
 
   // Exportar datos
   document.getElementById('export-data-btn')?.addEventListener('click', () => {
@@ -281,12 +321,18 @@ export const init = (data, updateData) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Resetear el input para permitir re-seleccionar el mismo archivo
+    e.target.value = '';
+
     try {
       await importData(file);
+      // Sincronizar state.data con localStorage para evitar que beforeunload sobrescriba
+      reloadStateFromStorage();
       showNotification('Datos importados correctamente', 'success');
       location.reload();
     } catch (error) {
-      showNotification(error.message, 'error');
+      console.error('[Settings] Error importando:', error);
+      showNotification('Error: ' + error.message, 'error');
     }
   });
 
@@ -294,6 +340,7 @@ export const init = (data, updateData) => {
   document.getElementById('clear-identity-btn')?.addEventListener('click', () => {
     if (clearIdentityData()) {
       showNotification('Identidad borrada (valores, hábitos, rueda)', 'info');
+      window.oraculoSkipUnloadWarning = true;
       location.reload();
     }
   });
@@ -302,6 +349,7 @@ export const init = (data, updateData) => {
   document.getElementById('clear-productivity-btn')?.addEventListener('click', () => {
     if (clearProductivityData()) {
       showNotification('Productividad borrada (tareas, proyectos, logros)', 'info');
+      window.oraculoSkipUnloadWarning = true;
       location.reload();
     }
   });
@@ -310,6 +358,7 @@ export const init = (data, updateData) => {
   document.getElementById('clear-journal-btn')?.addEventListener('click', () => {
     if (clearJournalData()) {
       showNotification('Diario borrado', 'info');
+      window.oraculoSkipUnloadWarning = true;
       location.reload();
     }
   });
@@ -318,6 +367,7 @@ export const init = (data, updateData) => {
   document.getElementById('clear-data-btn')?.addEventListener('click', () => {
     if (clearAllData()) {
       showNotification('Todos los datos borrados', 'info');
+      window.oraculoSkipUnloadWarning = true;
       location.reload();
     }
   });
@@ -361,10 +411,14 @@ export const init = (data, updateData) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Resetear el input para permitir re-seleccionar el mismo archivo
+    e.target.value = '';
+
     try {
       archivedYearData = await loadArchivedYear(file);
       openArchivedViewer(archivedYearData);
     } catch (error) {
+      console.error('[Settings] Error cargando año archivado:', error);
       showNotification(error.message, 'error');
     }
   });
@@ -392,15 +446,12 @@ export const init = (data, updateData) => {
       const folderName = await autoBackup.linkFolder();
       if (folderName) {
         showNotification(`Carpeta vinculada: ${folderName}`, 'success');
-        // Guardar backup inicial
-        const result = await autoBackup.saveBackup(data);
-        if (result.success) {
-          showNotification(`Primer backup guardado: ${result.filename}`, 'success');
-        }
-        // Re-renderizar la sección para reflejar el cambio
+        // Reload inmediato para actualizar la UI
         location.reload();
+        // El backup inicial se hará automáticamente después del reload
       }
     } catch (error) {
+      console.error('[Settings] Error vinculando carpeta:', error);
       showNotification('Error al vincular carpeta: ' + error.message, 'warning');
     }
   });
@@ -539,6 +590,63 @@ const openArchivedViewer = (data) => {
   `;
 
   modal.showModal();
+};
+
+/**
+ * Renderiza la sección de sincronización entre dispositivos
+ */
+const renderSyncSection = () => {
+  return `
+    <section class="settings-section">
+      <h2>
+        <span class="material-symbols-outlined">sync</span>
+        Sincronizar entre Dispositivos
+      </h2>
+      <p class="section-description">
+        Lleva tus datos a otro ordenador, tablet o móvil.
+      </p>
+
+      <div class="sync-instructions">
+        <div class="sync-step">
+          <span class="step-number">1</span>
+          <div class="step-content">
+            <strong>Exporta tus datos</strong>
+            <p>Descarga un archivo JSON con todo tu contenido.</p>
+            <button class="btn btn--primary" id="export-sync-btn">
+              <span class="material-symbols-outlined">download</span>
+              Descargar backup
+            </button>
+          </div>
+        </div>
+
+        <div class="sync-step">
+          <span class="step-number">2</span>
+          <div class="step-content">
+            <strong>Súbelo a tu nube</strong>
+            <p>Google Drive, Dropbox, OneDrive, o envíatelo por email.</p>
+          </div>
+        </div>
+
+        <div class="sync-step">
+          <span class="step-number">3</span>
+          <div class="step-content">
+            <strong>Importa en el otro dispositivo</strong>
+            <p>Abre Oráculo e importa el archivo.</p>
+            <label class="btn btn--secondary">
+              <span class="material-symbols-outlined">upload</span>
+              Importar backup
+              <input type="file" id="import-sync-input" accept=".json" hidden>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="sync-tip">
+        <span class="material-symbols-outlined">lightbulb</span>
+        <p><strong>Consejo:</strong> Si vinculas una carpeta de Google Drive o Dropbox en tu ordenador (sección de abajo), los backups se sincronizarán automáticamente con la nube.</p>
+      </div>
+    </section>
+  `;
 };
 
 /**

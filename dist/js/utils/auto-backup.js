@@ -383,7 +383,14 @@ export const hasLinkedFolder = () => !!directoryHandle;
 /**
  * Obtiene el nombre de la carpeta vinculada
  */
-export const getFolderName = () => directoryHandle?.name || null;
+export const getFolderName = () => {
+  const name = directoryHandle?.name;
+  // Validar que sea un nombre válido (no vacío, no caracteres de escape)
+  if (!name || name === '\\' || name === '/' || name.trim() === '') {
+    return directoryHandle ? 'Carpeta vinculada' : null;
+  }
+  return name;
+};
 
 /**
  * Obtiene la última hora de backup
