@@ -3,8 +3,8 @@
  * Estrategia: Network-first para HTML/JS/CSS, Cache-first para imágenes
  */
 
-const CACHE_NAME = 'oraculo-v2.0';
-const STATIC_CACHE = 'oraculo-static-v2.0';
+const CACHE_NAME = 'oraculo-v2.3';
+const STATIC_CACHE = 'oraculo-static-v2.3';
 
 // Archivos a cachear en la instalación
 const STATIC_ASSETS = [
@@ -65,14 +65,14 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activación: limpiar caches antiguas y forzar recarga
+// Activación: limpiar caches antiguas
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activando Service Worker v2.0...');
+  console.log('[SW] Activando Service Worker v2.3...');
 
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
-        // Eliminar TODAS las caches antiguas (no solo oraculo-)
+        // Eliminar TODAS las caches antiguas
         return Promise.all(
           cacheNames
             .filter((cacheName) => {
@@ -87,25 +87,6 @@ self.addEventListener('activate', (event) => {
       .then(() => {
         console.log('[SW] Caches limpiadas, tomando control...');
         return self.clients.claim();
-      })
-      .then(() => {
-        // Pequeño delay para asegurar que claim() se complete
-        return new Promise(resolve => setTimeout(resolve, 100));
-      })
-      .then(() => {
-        return self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      })
-      .then((clients) => {
-        console.log('[SW] Clientes encontrados:', clients.length);
-        clients.forEach((client) => {
-          if (client.url && 'navigate' in client) {
-            console.log('[SW] Forzando recarga:', client.url);
-            // Añadir timestamp para forzar bypass de cualquier cache
-            const url = new URL(client.url);
-            url.searchParams.set('_swv', '2.0');
-            client.navigate(url.toString());
-          }
-        });
       })
   );
 });

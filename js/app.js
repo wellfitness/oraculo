@@ -172,19 +172,15 @@ const setupGlobalEvents = () => {
     );
   });
 
-  // Guardar antes de cerrar
-  window.addEventListener('beforeunload', (event) => {
+  // Guardar antes de cerrar (sin diálogo - los datos siempre se guardan automáticamente)
+  window.addEventListener('beforeunload', () => {
     if (state.data) {
       saveData(state.data);
     }
-
-    // Mostrar advertencia si no hay carpeta de backup vinculada
-    // Solo en navegadores con soporte de File System API
-    if (autoBackup.isSupported() && !autoBackup.hasLinkedFolder()) {
-      event.preventDefault();
-      // El navegador mostrará su diálogo genérico
-      event.returnValue = 'Tus datos están guardados en el navegador. ¿Quieres vincular una carpeta para tener una copia de seguridad externa?';
-    }
+    // NOTA: No mostramos diálogo de confirmación porque:
+    // 1. Los datos siempre se guardan automáticamente en localStorage
+    // 2. El mensaje genérico "los cambios no se guardarán" confunde a los usuarios
+    // 3. Si queremos recordar sobre el backup, mejor usar notificaciones en la app
   });
 
   // Menú hamburguesa para tablets/móviles
@@ -590,6 +586,15 @@ export const updateData = (section, newData) => {
  * Obtiene los datos actuales
  */
 export const getData = () => state.data;
+
+/**
+ * Recarga el estado desde localStorage
+ * Útil después de importar datos para sincronizar state.data
+ */
+export const reloadStateFromStorage = () => {
+  state.data = loadData();
+  return state.data;
+};
 
 /**
  * Muestra una notificación

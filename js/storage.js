@@ -248,31 +248,50 @@ export const exportData = () => {
  */
 export const importData = (file) => {
   return new Promise((resolve, reject) => {
+    console.log('[Storage] Iniciando importación de:', file.name);
     const reader = new FileReader();
 
     reader.onload = (e) => {
       try {
+        console.log('[Storage] Archivo leído, parseando JSON...');
         const importedData = JSON.parse(e.target.result);
+        console.log('[Storage] JSON parseado correctamente, campos:', Object.keys(importedData));
 
         // Validar estructura básica
+        console.log('[Storage] Validando estructura...');
         const validation = validateDataStructure(importedData);
+        console.log('[Storage] Resultado validación:', validation);
+
         if (!validation.valid) {
           throw new Error('Archivo no válido: ' + validation.error);
         }
 
         // Hacer backup antes de importar
+        console.log('[Storage] Guardando backup de datos actuales...');
         const currentData = loadData();
         localStorage.setItem(STORAGE_KEY + '_backup', JSON.stringify(currentData));
 
         // Importar
-        saveData(importedData);
-        resolve(importedData);
+        console.log('[Storage] Guardando datos importados...');
+        const saved = saveData(importedData);
+        console.log('[Storage] Datos guardados:', saved);
+
+        if (saved) {
+          console.log('[Storage] Importación completada con éxito');
+          resolve(importedData);
+        } else {
+          throw new Error('No se pudieron guardar los datos');
+        }
       } catch (error) {
+        console.error('[Storage] Error en importación:', error);
         reject(new Error('Error al importar: ' + error.message));
       }
     };
 
-    reader.onerror = () => reject(new Error('Error leyendo archivo'));
+    reader.onerror = () => {
+      console.error('[Storage] Error leyendo archivo');
+      reject(new Error('Error leyendo archivo'));
+    };
     reader.readAsText(file);
   });
 };
@@ -422,7 +441,7 @@ export const clearAllData = () => {
  */
 export const clearIdentityData = () => {
   if (confirm('¿Borrar valores, hábitos y rueda de la vida?\n\nLas tareas, proyectos y diario se mantienen.')) {
-    const data = getData();
+    const data = loadData();
     data.values = [];
     data.habits = {
       active: null,
@@ -443,7 +462,7 @@ export const clearIdentityData = () => {
  */
 export const clearProductivityData = () => {
   if (confirm('¿Borrar tareas, proyectos y logros?\n\nValores, hábitos y diario se mantienen.')) {
-    const data = getData();
+    const data = loadData();
     data.objectives = {
       backlog: [],
       quarterly: [],
@@ -466,7 +485,7 @@ export const clearProductivityData = () => {
  */
 export const clearJournalData = () => {
   if (confirm('¿Borrar todas las entradas del diario?\n\nTodo lo demás se mantiene.')) {
-    const data = getData();
+    const data = loadData();
     data.journal = [];
     data.updatedAt = new Date().toISOString();
     saveData(data);
