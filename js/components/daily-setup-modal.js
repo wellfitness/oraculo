@@ -34,10 +34,17 @@ const ENERGY_OPTIONS = [
 ];
 
 /**
+ * Obtiene la fecha en formato YYYY-MM-DD usando la hora LOCAL del sistema
+ */
+const getLocalDateString = (date = new Date()) => {
+  return date.toLocaleDateString('en-CA');
+};
+
+/**
  * Verifica si el setup diario ya se ha hecho hoy
  */
 export const needsDailySetup = (data) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
   const setupDate = data.dailySetup?.date;
 
   if (!setupDate || setupDate !== today) {
@@ -447,7 +454,7 @@ export const initDailySetupModal = (data, updateData) => {
 
   // === OMITIR SETUP ===
   document.getElementById('skip-setup')?.addEventListener('click', () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
 
     data.dailySetup = {
       ...data.dailySetup,
@@ -463,7 +470,7 @@ export const initDailySetupModal = (data, updateData) => {
   document.getElementById('confirm-setup')?.addEventListener('click', () => {
     if (!selectedTime || !selectedEnergy) return;
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
 
     // Mover tareas seleccionadas a daily
     if (selectedTasks.length > 0) {

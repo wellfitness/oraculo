@@ -12,6 +12,13 @@ import { generateId, showNotification } from '../app.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
 
 /**
+ * Obtiene la fecha en formato YYYY-MM-DD usando la hora LOCAL del sistema
+ */
+const getLocalDateString = (date = new Date()) => {
+  return date.toLocaleDateString('en-CA');
+};
+
+/**
  * Verifica si es hora de mostrar el check-in vespertino (18:00+)
  */
 export const isEveningTime = () => {
@@ -23,7 +30,7 @@ export const isEveningTime = () => {
  * Verifica si ya se hizo el check-in vespertino hoy
  */
 export const hasEveningCheckIn = (data) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
   const todayEntries = (data.journal || []).filter(entry => {
     const entryDate = entry.createdAt?.split('T')[0];
     return entry.type === 'evening-check-in' && entryDate === today;

@@ -150,7 +150,8 @@ export const init = (data, updateData) => {
   // Botón de eliminar tarea
   document.querySelectorAll('.focus-delete').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      handleDeleteTask(e.target.dataset.id, data);
+      e.stopPropagation();
+      handleDeleteTask(btn.dataset.id, data);
     });
   });
 
@@ -372,12 +373,20 @@ const handleToggleRock = (taskId, data) => {
 };
 
 /**
+ * Obtiene la fecha en formato YYYY-MM-DD usando la hora LOCAL del sistema
+ * (evita toISOString() que convierte a UTC y causa desfases)
+ */
+const getLocalDateString = (date = new Date()) => {
+  return date.toLocaleDateString('en-CA'); // 'en-CA' devuelve YYYY-MM-DD
+};
+
+/**
  * Marca el hábito activo como completado hoy
  */
 const handleHabitCheckToday = (data) => {
   if (!data.habits.active) return;
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
   const habitId = data.habits.active.id;
 
   // Verificar si ya está marcado
@@ -416,13 +425,13 @@ const calculateStreak = (habitId, history) => {
   currentDate.setHours(0, 0, 0, 0);
 
   // Verificar si hoy está completado, si no, empezar desde ayer
-  const todayStr = currentDate.toISOString().split('T')[0];
+  const todayStr = getLocalDateString(currentDate);
   if (!habitHistory.includes(todayStr)) {
     currentDate.setDate(currentDate.getDate() - 1);
   }
 
   for (let i = 0; i < 365; i++) { // Máximo 1 año de racha
-    const dateStr = currentDate.toISOString().split('T')[0];
+    const dateStr = getLocalDateString(currentDate);
     if (habitHistory.includes(dateStr)) {
       streak++;
       currentDate.setDate(currentDate.getDate() - 1);
@@ -438,7 +447,7 @@ const calculateStreak = (habitId, history) => {
  * Verifica si el hábito se completó hoy
  */
 const isCompletedToday = (habitId, history) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
   return history.some(h => h.habitId === habitId && h.date === today);
 };
 
@@ -447,7 +456,7 @@ const isCompletedToday = (habitId, history) => {
  */
 const getTodayEvents = (events, recurring) => {
   const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = getLocalDateString(today);
   const dayOfWeek = today.getDay();
 
   const todayEvents = [];

@@ -1,6 +1,6 @@
 /**
- * Oráculo - Evaluador de Objetivos
- * Modal para evaluar objetivos contra 10 criterios ponderados
+ * Oráculo - Evaluador de Proyectos
+ * Modal para evaluar proyectos contra 10 criterios ponderados
  * Basado en filosofía Burkeman: priorizar lo esencial
  */
 
@@ -9,8 +9,13 @@ let evaluatorState = {
   isOpen: false,
   objective: null,
   scores: {},
-  onComplete: null
+  onComplete: null,
+  currentPage: 0
 };
+
+// Constantes de paginación
+const CRITERIA_PER_PAGE = 5;
+const TOTAL_PAGES = Math.ceil(10 / CRITERIA_PER_PAGE); // 2 páginas
 
 // Criterios de evaluación con pesos
 const EVALUATION_CRITERIA = [
@@ -99,21 +104,21 @@ const RESULT_MESSAGES = {
     title: 'ADELANTE',
     icon: 'check_circle',
     class: 'result--proceed',
-    description: 'Este objetivo está bien alineado con tus valores y recursos. Es un buen momento para avanzar.',
+    description: 'Este proyecto está bien alineado con tus valores y recursos. Es un buen momento para avanzar.',
     quote: '"Lo que hacemos hoy es lo que importa más" — Thich Nhat Hanh'
   },
   review: {
     title: 'REVISAR',
     icon: 'help_outline',
     class: 'result--review',
-    description: 'Este objetivo tiene potencial pero requiere ajustes. Considera qué aspectos podrías mejorar.',
+    description: 'Este proyecto tiene potencial pero requiere ajustes. Considera qué aspectos podrías mejorar.',
     quote: '"A veces hay que dar un paso atrás para dar dos adelante"'
   },
   reconsider: {
     title: 'RECONSIDERAR',
     icon: 'pause_circle',
     class: 'result--reconsider',
-    description: 'Quizás no sea el momento adecuado para este objetivo. No significa que sea malo, solo que ahora no.',
+    description: 'Quizás no sea el momento adecuado para este proyecto. No significa que sea malo, solo que ahora no.',
     quote: '"Decir no a algo es decir sí a otra cosa" — Oliver Burkeman'
   }
 };
@@ -129,7 +134,7 @@ export const renderObjectiveEvaluator = () => {
         <header class="evaluator-header">
           <div class="evaluator-title">
             <span class="material-symbols-outlined">balance</span>
-            <h2>Evaluar Objetivo</h2>
+            <h2>Evaluar Proyecto</h2>
           </div>
           <button class="btn btn--icon" data-action="close-evaluator" title="Cerrar">
             <span class="material-symbols-outlined">close</span>
@@ -153,20 +158,41 @@ export const renderObjectiveEvaluator = () => {
 };
 
 /**
- * Renderiza los criterios de evaluación
+ * Renderiza el indicador de paginación (dots)
  */
-const renderCriteria = () => {
+const renderPagination = () => {
+  const currentPage = evaluatorState.currentPage;
+
+  return `
+    <div class="evaluator-pagination">
+      ${Array.from({ length: TOTAL_PAGES }, (_, i) => `
+        <span class="pagination-dot ${i === currentPage ? 'active' : ''}"></span>
+      `).join('')}
+      <span class="page-indicator">${currentPage + 1} / ${TOTAL_PAGES}</span>
+    </div>
+  `;
+};
+
+/**
+ * Renderiza los criterios de la página actual
+ */
+const renderCurrentPage = () => {
+  const currentPage = evaluatorState.currentPage;
+  const startIndex = currentPage * CRITERIA_PER_PAGE;
+  const endIndex = startIndex + CRITERIA_PER_PAGE;
+  const pageCriteria = EVALUATION_CRITERIA.slice(startIndex, endIndex);
+
   return `
     <div class="evaluator-intro">
-      <p>Evalúa este objetivo del 1 al 10 en cada criterio.</p>
-      <p class="evaluator-hint">
-        <span class="material-symbols-outlined">lightbulb</span>
-        Sé honesto/a contigo mismo/a. No hay respuestas correctas.
-      </p>
+      <p>Evalúa este proyecto del 1 al 10 en cada criterio.</p>
     </div>
 
+    ${renderPagination()}
+
     <div class="criteria-list">
-      ${EVALUATION_CRITERIA.map(criterion => `
+      ${pageCriteria.map(criterion => {
+        const currentValue = evaluatorState.scores[criterion.id] || 5;
+        return `
         <div class="criterion-item" data-criterion="${criterion.id}">
           <div class="criterion-header">
             <span class="criterion-icon material-symbols-outlined">${criterion.icon}</span>
@@ -183,21 +209,28 @@ const renderCriteria = () => {
               type="range"
               min="1"
               max="10"
-              value="5"
+              value="${currentValue}"
               class="slider"
               id="criterion-${criterion.id}"
               data-criterion-id="${criterion.id}"
             >
             <div class="slider-labels">
               <span>1</span>
-              <span class="slider-value" id="value-${criterion.id}">5</span>
+              <span class="slider-value" id="value-${criterion.id}">${currentValue}</span>
               <span>10</span>
             </div>
           </div>
         </div>
-      `).join('')}
+      `}).join('')}
     </div>
   `;
+};
+
+/**
+ * Renderiza los criterios de evaluación (para compatibilidad)
+ */
+const renderCriteria = () => {
+  return renderCurrentPage();
 };
 
 /**
@@ -347,14 +380,86 @@ const calculateResult = (scores) => {
 };
 
 /**
- * Abre el evaluador para un objetivo
+ * Renderiza el footer según la página actual
+ */
+const renderFooter = () => {
+  const currentPage = evaluatorState.currentPage;
+  const isFirstPage = currentPage === 0;
+  const isLastPage = currentPage === TOTAL_PAGES - 1;
+
+  if (isLastPage) {
+    // Página 2: Anterior + Ver resultado
+    return `
+      <button class="btn btn--secondary" data-action="prev-page">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Anterior
+      </button>
+      <button class="btn btn--primary" data-action="calculate-result">
+        <span class="material-symbols-outlined">calculate</span>
+        Ver resultado
+      </button>
+    `;
+  } else {
+    // Página 1: Cancelar + Siguiente
+    return `
+      <button class="btn btn--secondary" data-action="close-evaluator">
+        Cancelar
+      </button>
+      <button class="btn btn--primary" data-action="next-page">
+        Siguiente
+        <span class="material-symbols-outlined">arrow_forward</span>
+      </button>
+    `;
+  }
+};
+
+/**
+ * Navega a la siguiente página
+ */
+const goToNextPage = () => {
+  if (evaluatorState.currentPage < TOTAL_PAGES - 1) {
+    evaluatorState.currentPage++;
+    updateEvaluatorView();
+  }
+};
+
+/**
+ * Navega a la página anterior
+ */
+const goToPrevPage = () => {
+  if (evaluatorState.currentPage > 0) {
+    evaluatorState.currentPage--;
+    updateEvaluatorView();
+  }
+};
+
+/**
+ * Actualiza la vista del evaluador (body + footer)
+ */
+const updateEvaluatorView = () => {
+  const bodyEl = document.getElementById('evaluator-body');
+  const footerEl = document.getElementById('evaluator-footer');
+
+  if (bodyEl) {
+    bodyEl.innerHTML = renderCurrentPage();
+    setupSliderListeners();
+  }
+
+  if (footerEl) {
+    footerEl.innerHTML = renderFooter();
+  }
+};
+
+/**
+ * Abre el evaluador para un proyecto
  */
 export const openObjectiveEvaluator = (objective, onComplete = null) => {
   evaluatorState = {
     isOpen: true,
     objective,
     scores: {},
-    onComplete
+    onComplete,
+    currentPage: 0
   };
 
   // Inicializar scores en 5
@@ -367,8 +472,6 @@ export const openObjectiveEvaluator = (objective, onComplete = null) => {
 
   // Actualizar contenido
   const nameEl = document.getElementById('evaluator-objective-name');
-  const bodyEl = document.getElementById('evaluator-body');
-  const footerEl = document.getElementById('evaluator-footer');
 
   if (nameEl) {
     nameEl.innerHTML = `
@@ -377,22 +480,8 @@ export const openObjectiveEvaluator = (objective, onComplete = null) => {
     `;
   }
 
-  if (bodyEl) {
-    bodyEl.innerHTML = renderCriteria();
-    setupSliderListeners();
-  }
-
-  if (footerEl) {
-    footerEl.innerHTML = `
-      <button class="btn btn--secondary" data-action="close-evaluator">
-        Cancelar
-      </button>
-      <button class="btn btn--primary" data-action="calculate-result">
-        <span class="material-symbols-outlined">calculate</span>
-        Ver resultado
-      </button>
-    `;
-  }
+  // Renderizar vista inicial
+  updateEvaluatorView();
 
   modal.classList.add('modal--visible');
 };
@@ -534,43 +623,22 @@ export const initObjectiveEvaluator = (data, updateData) => {
         closeObjectiveEvaluator();
         break;
 
+      case 'next-page':
+        goToNextPage();
+        break;
+
+      case 'prev-page':
+        goToPrevPage();
+        break;
+
       case 'calculate-result':
         showResult();
         break;
 
       case 'reevaluate':
-        // Volver a mostrar criterios
-        const bodyEl = document.getElementById('evaluator-body');
-        const footerEl = document.getElementById('evaluator-footer');
-
-        if (bodyEl) {
-          bodyEl.innerHTML = renderCriteria();
-          // Restaurar valores previos
-          Object.entries(evaluatorState.scores).forEach(([id, value]) => {
-            const slider = document.getElementById(`criterion-${id}`);
-            const valueDisplay = document.getElementById(`value-${id}`);
-            if (slider) {
-              slider.value = value;
-              updateSliderColor(slider, value);
-            }
-            if (valueDisplay) {
-              valueDisplay.textContent = value;
-            }
-          });
-          setupSliderListeners();
-        }
-
-        if (footerEl) {
-          footerEl.innerHTML = `
-            <button class="btn btn--secondary" data-action="close-evaluator">
-              Cancelar
-            </button>
-            <button class="btn btn--primary" data-action="calculate-result">
-              <span class="material-symbols-outlined">calculate</span>
-              Ver resultado
-            </button>
-          `;
-        }
+        // Volver a página 1 de criterios
+        evaluatorState.currentPage = 0;
+        updateEvaluatorView();
         break;
 
       case 'save-evaluation':
