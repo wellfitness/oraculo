@@ -4,6 +4,13 @@
  */
 
 /**
+ * Obtiene la fecha en formato YYYY-MM-DD usando la hora LOCAL del sistema
+ */
+const getLocalDateString = (date = new Date()) => {
+  return date.toLocaleDateString('en-CA');
+};
+
+/**
  * Obtiene el rango de fechas para un período
  */
 export const getPeriodRange = (period) => {
@@ -163,7 +170,7 @@ export const calculateStreak = (habitId, history) => {
  * Verifica si el hábito se completó hoy
  */
 export const isHabitCompletedToday = (habitId, history) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
   return (history || []).some(h => h.habitId === habitId && h.date === today);
 };
 
@@ -256,7 +263,7 @@ export const generateHeatmapGrid = (data, year = new Date().getFullYear()) => {
   for (let week = 0; week < 53; week++) {
     const weekDays = [];
     for (let day = 0; day < 7; day++) {
-      const dateStr = currentDate.toISOString().split('T')[0];
+      const dateStr = getLocalDateString(currentDate);
       const count = heatmapData[dateStr] || 0;
       const isCurrentYear = currentDate.getFullYear() === year;
       const isFuture = currentDate > today;
@@ -265,7 +272,7 @@ export const generateHeatmapGrid = (data, year = new Date().getFullYear()) => {
         date: dateStr,
         count,
         level: isCurrentYear && !isFuture ? getActivityLevel(count) : 0,
-        isToday: dateStr === today.toISOString().split('T')[0],
+        isToday: dateStr === getLocalDateString(today),
         isFuture,
         isCurrentYear
       });

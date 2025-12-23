@@ -714,6 +714,18 @@ const initWizardEvents = (data) => {
     }
   });
 
+  // Habilitar/deshabilitar botón siguiente en paso 3 cuando se escribe el nombre
+  const wizardNameInput = document.getElementById('wizard-name');
+  const wizardNextBtn = document.getElementById('wizard-next-btn');
+  if (wizardNameInput && wizardNextBtn && wizardStep === 3) {
+    wizardNameInput.addEventListener('input', () => {
+      const hasName = wizardNameInput.value.trim().length > 0;
+      wizardNextBtn.disabled = !hasName;
+      // Actualizar wizardData en tiempo real
+      wizardData.name = wizardNameInput.value.trim();
+    });
+  }
+
   // Selección de área
   document.querySelectorAll('.wizard-area-card').forEach(card => {
     card.addEventListener('click', () => {
@@ -1069,7 +1081,7 @@ const saveHabit = (data) => {
 const markHabitDone = (data) => {
   if (!data.habits.active) return;
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
   const habitId = data.habits.active.id;
 
   // Verificar si ya está marcado
@@ -1125,6 +1137,16 @@ const abandonHabit = (data) => {
 
 // --- Funciones auxiliares ---
 
+/**
+ * Obtiene la fecha en formato YYYY-MM-DD usando la hora LOCAL del sistema
+ * (evita toISOString() que convierte a UTC y causa desfases)
+ * @param {Date} date - Fecha opcional (por defecto hoy)
+ * @returns {string} Fecha en formato YYYY-MM-DD
+ */
+const getLocalDateString = (date = new Date()) => {
+  return date.toLocaleDateString('en-CA'); // 'en-CA' devuelve YYYY-MM-DD
+};
+
 const calculateStreak = (habitId, history) => {
   const habitHistory = history
     .filter(h => h.habitId === habitId)
@@ -1135,19 +1157,19 @@ const calculateStreak = (habitId, history) => {
   if (habitHistory.length === 0) return 0;
 
   let streak = 0;
-  let currentDate = new Date();
-  currentDate.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  const todayStr = currentDate.toISOString().split('T')[0];
+  const todayStr = getLocalDateString(today);
   if (!habitHistory.includes(todayStr)) {
-    currentDate.setDate(currentDate.getDate() - 1);
+    today.setDate(today.getDate() - 1);
   }
 
   for (let i = 0; i < 365; i++) {
-    const dateStr = currentDate.toISOString().split('T')[0];
+    const dateStr = getLocalDateString(today);
     if (habitHistory.includes(dateStr)) {
       streak++;
-      currentDate.setDate(currentDate.getDate() - 1);
+      today.setDate(today.getDate() - 1);
     } else {
       break;
     }
@@ -1157,7 +1179,7 @@ const calculateStreak = (habitId, history) => {
 };
 
 const isCompletedToday = (habitId, history) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
   return history.some(h => h.habitId === habitId && h.date === today);
 };
 
@@ -1171,6 +1193,7 @@ const calculateProgress = (habit, history) => {
 
 const generateCalendarDays = (habit, history) => {
   const today = new Date();
+  const todayDay = today.getDate();
   const year = today.getFullYear();
   const month = today.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -1182,13 +1205,13 @@ const generateCalendarDays = (habit, history) => {
   const days = [];
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month, d);
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = getLocalDateString(date);
 
     days.push({
       day: d,
       completed: habitDates.includes(dateStr),
-      isToday: d === today.getDate(),
-      isFuture: d > today.getDate()
+      isToday: d === todayDay,
+      isFuture: d > todayDay
     });
   }
 

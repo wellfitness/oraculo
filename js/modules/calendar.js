@@ -241,9 +241,16 @@ export const init = (data, updateData) => {
 /**
  * Renderiza una columna de día
  */
+/**
+ * Obtiene la fecha en formato YYYY-MM-DD usando la hora LOCAL del sistema
+ */
+const getLocalDateString = (date = new Date()) => {
+  return date.toLocaleDateString('en-CA');
+};
+
 const renderDayColumn = (day, events, recurring) => {
   const dayEvents = getDayEvents(day.dateStr, events, recurring, day.dayOfWeek);
-  const isToday = day.dateStr === new Date().toISOString().split('T')[0];
+  const isToday = day.dateStr === getLocalDateString();
 
   return `
     <div class="day-column ${isToday ? 'day-column--today' : ''}" data-date="${day.dateStr}">
@@ -309,7 +316,7 @@ const generateWeekDays = (weekStart) => {
 
     days.push({
       date,
-      dateStr: date.toISOString().split('T')[0],
+      dateStr: getLocalDateString(date),
       dayName: dayNames[date.getDay()],
       dayNumber: date.getDate(),
       dayOfWeek: date.getDay()
@@ -354,7 +361,7 @@ const openEventModal = (event = null, defaultDate = null) => {
 
   document.getElementById('event-id').value = event?.id || '';
   document.getElementById('event-name').value = event?.name || '';
-  document.getElementById('event-date').value = event?.date || defaultDate || new Date().toISOString().split('T')[0];
+  document.getElementById('event-date').value = event?.date || defaultDate || getLocalDateString();
   document.getElementById('event-time').value = event?.time || '';
   document.getElementById('event-duration').value = event?.duration || 60;
   document.getElementById('event-notes').value = event?.notes || '';

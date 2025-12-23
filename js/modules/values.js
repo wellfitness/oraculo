@@ -11,7 +11,7 @@ import { getBuenosValores, getMalosValores } from '../data/markmanson.js';
 
 let updateDataCallback = null;
 let currentData = null;
-const MAX_VALUES = 5;
+const MAX_VALUES = 4;
 
 /**
  * Renderiza la brújula de valores

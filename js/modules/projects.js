@@ -6,6 +6,13 @@
 import { generateId, showNotification } from '../app.js';
 import { escapeHTML } from '../utils/sanitizer.js';
 import { MAX_ACTIVE_PROJECTS } from '../storage.js';
+import {
+  renderObjectiveEvaluator,
+  initObjectiveEvaluator,
+  openObjectiveEvaluator,
+  getEvaluationBadge,
+  getObjectiveEvaluation
+} from '../components/objective-evaluator.js';
 
 let updateDataCallback = null;
 let currentData = null;
@@ -37,7 +44,7 @@ const calculateProgress = (projectId, objectives) => {
   let total = 0;
   let completed = 0;
 
-  ['quarterly', 'monthly', 'weekly', 'daily'].forEach(horizon => {
+  ['backlog', 'quarterly', 'monthly', 'weekly', 'daily'].forEach(horizon => {
     const tasks = objectives[horizon] || [];
     tasks.forEach(task => {
       if (task.projectId === projectId) {
@@ -60,13 +67,14 @@ const calculateProgress = (projectId, objectives) => {
 const getProjectTasks = (projectId, objectives) => {
   const tasks = [];
   const horizonNames = {
+    backlog: 'Pendientes',
     quarterly: 'Trimestre',
     monthly: 'Mes',
     weekly: 'Semana',
     daily: 'Hoy'
   };
 
-  ['quarterly', 'monthly', 'weekly', 'daily'].forEach(horizon => {
+  ['backlog', 'quarterly', 'monthly', 'weekly', 'daily'].forEach(horizon => {
     const horizonTasks = objectives[horizon] || [];
     horizonTasks.forEach(task => {
       if (task.projectId === projectId) {
@@ -249,6 +257,9 @@ export const render = (data) => {
           <!-- Contenido generado dinámicamente -->
         </div>
       </dialog>
+
+      <!-- Modal del evaluador de proyectos -->
+      ${renderObjectiveEvaluator()}
     </div>
   `;
 };
@@ -269,8 +280,8 @@ const renderProjectCard = (project, objectives, compact = false) => {
       <header class="project-card__header">
         <div class="project-card__color" style="background-color: ${project.color}"></div>
         <h3 class="project-card__name">${escapeHTML(project.name)}</h3>
-        <button class="btn btn--icon btn--ghost project-card__menu" data-id="${project.id}" title="Opciones">
-          <span class="material-symbols-outlined">more_vert</span>
+        <button class="btn btn--icon btn--ghost project-card__menu" data-id="${project.id}" title="Evaluar proyecto">
+          <span class="material-symbols-outlined">balance</span>
         </button>
       </header>
 
@@ -392,6 +403,44 @@ const renderProjectDetail = (project) => {
     <section class="project-detail__tasks">
       <h3>Tareas</h3>
 
+      ${project.status === 'active' ? `
+        <div class="project-add-task">
+          <button type="button" class="btn btn--secondary project-add-task-btn" id="add-task-to-project">
+            <span class="material-symbols-outlined icon-sm">add</span>
+            Añadir tarea
+          </button>
+
+          <form class="project-add-task-form" id="project-task-form" hidden>
+            <input
+              type="text"
+              class="input"
+              id="project-task-text"
+              placeholder="Descripción de la tarea..."
+              maxlength="150"
+              required
+            >
+            <label class="checkbox-label checkbox-label--important">
+              <input type="checkbox" id="project-task-important" class="checkbox">
+              <span class="material-symbols-outlined icon-sm" style="color: var(--rosa-600)">priority_high</span>
+              Importante
+            </label>
+            <div class="project-add-task-actions">
+              <button type="button" class="btn btn--tertiary btn--sm" id="cancel-project-task">
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn--primary btn--sm">
+                Guardar
+              </button>
+            </div>
+          </form>
+
+          <p class="project-add-task-hint" id="project-task-hint">
+            <span class="material-symbols-outlined icon-xs">info</span>
+            La tarea aparecerá en Pendientes del tablero
+          </p>
+        </div>
+      ` : ''}
+
       ${tasks.length === 0 ? `
         <p class="empty-message">
           Este proyecto no tiene tareas asignadas.<br>
@@ -487,10 +536,10 @@ export const init = (data, updateData) => {
     openProjectModal();
   });
 
-  // Click en tarjeta de proyecto -> ver detalle
+  // Click en tarjeta de proyecto -> abrir detalle del proyecto
   document.querySelectorAll('.project-card').forEach(card => {
     card.addEventListener('click', (e) => {
-      // No abrir si se hizo click en el menú
+      // Si es menú, no hacer nada (el menú tiene su propio handler)
       if (e.target.closest('.project-card__menu')) return;
 
       const projectId = card.dataset.id;
@@ -499,13 +548,24 @@ export const init = (data, updateData) => {
     });
   });
 
-  // Menú de opciones de proyecto
+  // Menú de opciones (⋮) -> abrir evaluador
   document.querySelectorAll('.project-card__menu').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const projectId = btn.dataset.id;
       const project = data.projects.find(p => p.id === projectId);
-      if (project) openProjectDetail(project);
+      if (!project) return;
+
+      // Abrir evaluador
+      const projectForEvaluator = {
+        id: project.id,
+        title: project.name,
+        text: project.name,
+        icon: 'folder_open'
+      };
+      openObjectiveEvaluator(projectForEvaluator, (evaluation) => {
+        saveProjectEvaluation(project.id, evaluation);
+      });
     });
   });
 
@@ -524,6 +584,9 @@ export const init = (data, updateData) => {
 
   setupProjectModal(data, modal);
   setupDetailModal(data, detailModal);
+
+  // Inicializar el evaluador de proyectos
+  initObjectiveEvaluator(data, updateData);
 };
 
 /**
@@ -643,6 +706,47 @@ const openProjectDetail = (project) => {
       modal.close();
     }
   });
+
+  // === Creación de tareas desde proyecto ===
+  const addTaskBtn = document.getElementById('add-task-to-project');
+  const taskForm = document.getElementById('project-task-form');
+  const taskInput = document.getElementById('project-task-text');
+  const taskHint = document.getElementById('project-task-hint');
+  const importantCheckbox = document.getElementById('project-task-important');
+
+  // Mostrar formulario
+  addTaskBtn?.addEventListener('click', () => {
+    addTaskBtn.hidden = true;
+    taskForm.hidden = false;
+    taskHint.hidden = true;
+    taskInput.focus();
+  });
+
+  // Cancelar
+  document.getElementById('cancel-project-task')?.addEventListener('click', () => {
+    taskForm.hidden = true;
+    addTaskBtn.hidden = false;
+    taskHint.hidden = false;
+    taskInput.value = '';
+    importantCheckbox.checked = false;
+  });
+
+  // Guardar tarea
+  taskForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const text = taskInput.value.trim();
+    const isImportant = importantCheckbox.checked;
+
+    if (addTaskFromProject(project.id, text, isImportant)) {
+      showNotification('Tarea añadida a Pendientes', 'success');
+
+      // Re-renderizar el detalle para mostrar la nueva tarea
+      content.innerHTML = renderProjectDetail(project);
+
+      // Re-configurar eventos (llamada recursiva)
+      openProjectDetail(project);
+    }
+  });
 };
 
 /**
@@ -714,6 +818,72 @@ const updateProjectStatus = (projectId, newStatus) => {
   updateDataCallback('projects', currentData.projects);
   showNotification(`Proyecto ${PROJECT_STATUS[newStatus].name.toLowerCase()}`, 'success');
   location.reload();
+};
+
+/**
+ * Guarda la evaluación de un proyecto
+ */
+const saveProjectEvaluation = (projectId, evaluation) => {
+  const project = currentData.projects.find(p => p.id === projectId);
+  if (!project) return;
+
+  project.lastEvaluation = evaluation;
+  project.updatedAt = new Date().toISOString();
+
+  updateDataCallback('projects', currentData.projects);
+
+  // Mensaje según el resultado
+  const resultMessages = {
+    proceed: '¡Adelante con este proyecto!',
+    review: 'Proyecto evaluado: considera ajustes',
+    reconsider: 'Quizás no sea el momento para este proyecto'
+  };
+  showNotification(resultMessages[evaluation.result.recommendation] || 'Evaluación guardada', 'success');
+  location.reload();
+};
+
+/**
+ * Añade una tarea al proyecto (va a backlog/pendientes)
+ */
+const addTaskFromProject = (projectId, text, isImportant) => {
+  // Validar texto
+  if (!text || !text.trim()) {
+    showNotification('La descripción es obligatoria', 'warning');
+    return false;
+  }
+
+  // Verificar que el proyecto existe y está activo
+  const project = currentData.projects.find(p => p.id === projectId);
+  if (!project || project.status !== 'active') {
+    showNotification('Solo puedes añadir tareas a proyectos activos', 'warning');
+    return false;
+  }
+
+  // Asegurar que backlog existe
+  if (!currentData.objectives.backlog) {
+    currentData.objectives.backlog = [];
+  }
+
+  // Crear la nueva tarea
+  const newTask = {
+    id: generateId(),
+    text: text.trim(),
+    notes: null,
+    projectId: projectId,
+    taskType: isImportant ? 'importante' : null,
+    completed: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: null,
+    completedAt: null,
+    movedAt: null,
+    movedFrom: null
+  };
+
+  // Guardar en backlog
+  currentData.objectives.backlog.push(newTask);
+  updateDataCallback('objectives', currentData.objectives);
+
+  return true;
 };
 
 /**

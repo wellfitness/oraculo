@@ -8,26 +8,19 @@
 
 import { generateId, showNotification } from '../app.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
-import {
-  renderObjectiveEvaluator,
-  initObjectiveEvaluator,
-  openObjectiveEvaluator,
-  getEvaluationBadge,
-  getObjectiveEvaluation
-} from '../components/objective-evaluator.js';
 import { escapeHTML } from '../utils/sanitizer.js';
 
 let updateDataCallback = null;
 let draggedItem = null;
 let currentData = null;
 let activeFilter = null; // null = todos, '' = sin proyecto, 'id' = proyecto específico
+let selectedHorizonItemId = null; // ID del item de horizonte seleccionado
+let selectedFocusItemId = null; // ID del item de En Foco seleccionado
+let selectedBacklogItemId = null; // ID del item de Pendientes seleccionado
 
-// Tipos de tarea (para etiquetas y filtros)
+// Tipos de tarea (simplificado a solo "importante")
 const TASK_TYPES = {
-  importante: { name: 'Importante', icon: 'priority_high', color: 'var(--rosa-600)' },
-  divertido: { name: 'Divertido', icon: 'mood', color: 'var(--tulip-tree-500)' },
-  atelico: { name: 'Ocio', icon: 'spa', color: 'var(--turquesa-600)' },
-  sincronia: { name: 'Sincronía', icon: 'group', color: 'var(--rosa-400)' }
+  importante: { name: 'Importante', icon: 'priority_high', color: 'var(--rosa-600)' }
 };
 
 // Límites por columna (null = sin límite)
@@ -40,11 +33,18 @@ const LIMITS = {
 };
 
 /**
+ * Obtiene la fecha en formato YYYY-MM-DD usando la hora LOCAL del sistema
+ */
+const getLocalDateString = (date = new Date()) => {
+  return date.toLocaleDateString('en-CA');
+};
+
+/**
  * Obtiene el límite diario dinámico según el Volumen Fijo configurado
  * Si no hay setup del día, usa el límite por defecto (3)
  */
 const getDailyLimit = (data) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
   if (data.dailySetup?.date === today && data.dailySetup?.dailyLimit) {
     return data.dailySetup.dailyLimit;
   }
@@ -110,8 +110,18 @@ const renderFocusSection = (items, projects, data) => {
           <span class="material-symbols-outlined">target</span>
           En Foco
         </h2>
-        <div class="section-meta">
-          <span class="slots-indicator ${isFull ? 'slots--full' : ''}">${activeCount}/${limit} activas</span>
+        <div class="section-header__right">
+          <div class="section-actions" id="focus-actions" hidden>
+            <button class="btn btn--icon" id="focus-action-edit" title="Editar">
+              <span class="material-symbols-outlined">edit</span>
+            </button>
+            <button class="btn btn--icon btn--danger" id="focus-action-delete" title="Eliminar">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <div class="section-meta">
+            <span class="slots-indicator ${isFull ? 'slots--full' : ''}">${activeCount}/${limit} activas</span>
+          </div>
         </div>
       </header>
 
@@ -125,12 +135,12 @@ const renderFocusSection = (items, projects, data) => {
             <span class="material-symbols-outlined icon-sm">diamond</span>
             Roca Principal
           </span>
-          ${renderFocusItem(rocaItem, projects, true, data.objectiveEvaluation?.evaluations || [])}
+          ${renderFocusItem(rocaItem, projects, true)}
         </div>
       ` : ''}
 
       <ul class="focus-items kanban-column__items" data-column="daily">
-        ${otherItems.map(item => renderFocusItem(item, projects, false, data.objectiveEvaluation?.evaluations || [])).join('')}
+        ${otherItems.map(item => renderFocusItem(item, projects, false)).join('')}
       </ul>
 
       ${!isFull ? `
@@ -151,9 +161,8 @@ const renderFocusSection = (items, projects, data) => {
  * Renderiza un item en la sección En Foco
  * (versión más prominente con checkboxes grandes)
  */
-const renderFocusItem = (item, projects, isRoca = false, evaluations = []) => {
+const renderFocusItem = (item, projects, isRoca = false) => {
   const project = item.projectId ? projects.find(p => p.id === item.projectId) : null;
-  const evaluation = getObjectiveEvaluation(item.id, evaluations);
 
   return `
     <li
@@ -172,7 +181,6 @@ const renderFocusItem = (item, projects, isRoca = false, evaluations = []) => {
       <div class="focus-item__content">
         <div class="focus-item__title-row">
           <span class="focus-item__text ${item.completed ? 'text--completed' : ''}">${escapeHTML(item.text)}</span>
-          ${evaluation ? getEvaluationBadge(evaluation) : ''}
         </div>
         ${item.notes ? `<p class="focus-item__notes">${escapeHTML(item.notes)}</p>` : ''}
         ${project ? `
@@ -181,18 +189,6 @@ const renderFocusItem = (item, projects, isRoca = false, evaluations = []) => {
             ${escapeHTML(project.name)}
           </span>
         ` : ''}
-      </div>
-
-      <div class="focus-item__actions">
-        <button class="btn btn--icon item-evaluate" data-id="${item.id}" title="Evaluar objetivo">
-          <span class="material-symbols-outlined icon-sm">balance</span>
-        </button>
-        <button class="btn btn--icon item-edit" data-id="${item.id}" title="Editar">
-          <span class="material-symbols-outlined icon-sm">edit</span>
-        </button>
-        <button class="btn btn--icon item-delete" data-id="${item.id}" title="Eliminar">
-          <span class="material-symbols-outlined icon-sm">close</span>
-        </button>
       </div>
     </li>
   `;
@@ -208,7 +204,6 @@ const renderHorizonsSection = (objectives, projects, data) => {
     { key: 'monthly', name: 'Mes', icon: 'calendar_today' },
     { key: 'weekly', name: 'Semana', icon: 'date_range' }
   ];
-  const evaluations = data.objectiveEvaluation?.evaluations || [];
 
   return `
     <section class="kanban-section kanban-section--horizons" data-section="horizons">
@@ -217,10 +212,18 @@ const renderHorizonsSection = (objectives, projects, data) => {
           <span class="material-symbols-outlined">leaderboard</span>
           Horizontes
         </h2>
+        <div class="horizons-actions" id="horizons-actions" hidden>
+          <button class="btn btn--icon" id="horizon-action-edit" title="Editar">
+            <span class="material-symbols-outlined">edit</span>
+          </button>
+          <button class="btn btn--icon btn--danger" id="horizon-action-delete" title="Eliminar">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
       </header>
 
       <div class="horizons-grid">
-        ${horizons.map(h => renderHorizonColumn(h.key, objectives[h.key] || [], LIMITS[h.key], projects, h.icon, evaluations)).join('')}
+        ${horizons.map(h => renderHorizonColumn(h.key, objectives[h.key] || [], LIMITS[h.key], projects, h.icon)).join('')}
       </div>
     </section>
   `;
@@ -229,7 +232,7 @@ const renderHorizonsSection = (objectives, projects, data) => {
 /**
  * Renderiza una columna de horizonte (trimestre/mes/semana)
  */
-const renderHorizonColumn = (columnKey, items, limit, projects, icon, evaluations = []) => {
+const renderHorizonColumn = (columnKey, items, limit, projects, icon) => {
   const count = items.length;
   const hasLimit = limit !== null;
   const isFull = hasLimit && count >= limit;
@@ -245,7 +248,7 @@ const renderHorizonColumn = (columnKey, items, limit, projects, icon, evaluation
       </header>
 
       <ul class="horizon-items kanban-column__items" data-column="${columnKey}">
-        ${items.map(item => renderHorizonItem(item, projects, evaluations)).join('')}
+        ${items.map(item => renderHorizonItem(item, projects)).join('')}
       </ul>
 
       ${!isFull ? `
@@ -260,9 +263,8 @@ const renderHorizonColumn = (columnKey, items, limit, projects, icon, evaluation
 /**
  * Renderiza un item en una columna de horizonte
  */
-const renderHorizonItem = (item, projects, evaluations = []) => {
+const renderHorizonItem = (item, projects) => {
   const project = item.projectId ? projects.find(p => p.id === item.projectId) : null;
-  const evaluation = getObjectiveEvaluation(item.id, evaluations);
 
   return `
     <li
@@ -271,30 +273,15 @@ const renderHorizonItem = (item, projects, evaluations = []) => {
       data-project="${item.projectId || ''}"
       draggable="true"
     >
-      <div class="horizon-item__content">
-        <label class="horizon-item__checkbox">
-          <input type="checkbox" ${item.completed ? 'checked' : ''} data-id="${item.id}">
-          <span class="horizon-item__text">${escapeHTML(item.text)}</span>
-          ${evaluation ? getEvaluationBadge(evaluation) : ''}
-        </label>
-        ${project ? `
-          <span class="horizon-item__project" style="background-color: ${project.color}15; color: ${project.color}">
-            ${escapeHTML(project.name)}
-          </span>
-        ` : ''}
-      </div>
-
-      <div class="horizon-item__actions">
-        <button class="btn btn--icon item-evaluate" data-id="${item.id}" title="Evaluar objetivo">
-          <span class="material-symbols-outlined icon-sm">balance</span>
-        </button>
-        <button class="btn btn--icon item-edit" data-id="${item.id}" title="Editar">
-          <span class="material-symbols-outlined icon-sm">edit</span>
-        </button>
-        <button class="btn btn--icon item-delete" data-id="${item.id}" title="Eliminar">
-          <span class="material-symbols-outlined icon-sm">close</span>
-        </button>
-      </div>
+      <label class="horizon-item__checkbox">
+        <input type="checkbox" ${item.completed ? 'checked' : ''} data-id="${item.id}">
+        <span class="horizon-item__text">${escapeHTML(item.text)}</span>
+      </label>
+      ${project ? `
+        <span class="horizon-item__project" style="background-color: ${project.color}15; color: ${project.color}">
+          ${escapeHTML(project.name)}
+        </span>
+      ` : ''}
     </li>
   `;
 };
@@ -307,7 +294,6 @@ const SOFT_LIMIT_PENDIENTES = 10;
 
 const renderBacklogSection = (items, projects, data) => {
   const count = items.length;
-  const evaluations = data.objectiveEvaluation?.evaluations || [];
   const showSoftLimitWarning = count >= SOFT_LIMIT_PENDIENTES;
 
   return `
@@ -318,11 +304,21 @@ const renderBacklogSection = (items, projects, data) => {
           Pendientes
           <span class="backlog-count ${showSoftLimitWarning ? 'backlog-count--warning' : ''}">${count}</span>
         </h2>
-        <button class="backlog-expand-btn" type="button">
-          <span class="material-symbols-outlined">
-            ${isBacklogExpanded ? 'expand_less' : 'expand_more'}
-          </span>
-        </button>
+        <div class="section-header__right">
+          <div class="section-actions" id="backlog-actions" hidden>
+            <button class="btn btn--icon" id="backlog-action-edit" title="Editar">
+              <span class="material-symbols-outlined">edit</span>
+            </button>
+            <button class="btn btn--icon btn--danger" id="backlog-action-delete" title="Eliminar">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <button class="backlog-expand-btn" type="button">
+            <span class="material-symbols-outlined">
+              ${isBacklogExpanded ? 'expand_less' : 'expand_more'}
+            </span>
+          </button>
+        </div>
       </header>
 
       <div class="backlog-content ${isBacklogExpanded ? 'expanded' : ''}">
@@ -343,7 +339,7 @@ const renderBacklogSection = (items, projects, data) => {
         `}
 
         <ul class="backlog-items kanban-column__items" data-column="backlog">
-          ${items.map(item => renderBacklogItem(item, projects, evaluations)).join('')}
+          ${items.map(item => renderBacklogItem(item, projects)).join('')}
         </ul>
 
         <button class="kanban-add-btn backlog-add-btn" data-column="backlog">
@@ -358,9 +354,8 @@ const renderBacklogSection = (items, projects, data) => {
 /**
  * Renderiza un item del backlog
  */
-const renderBacklogItem = (item, projects, evaluations = []) => {
+const renderBacklogItem = (item, projects) => {
   const project = item.projectId ? projects.find(p => p.id === item.projectId) : null;
-  const evaluation = getObjectiveEvaluation(item.id, evaluations);
 
   return `
     <li
@@ -371,24 +366,11 @@ const renderBacklogItem = (item, projects, evaluations = []) => {
     >
       <div class="backlog-item__content">
         <span class="backlog-item__text">${escapeHTML(item.text)}</span>
-        ${evaluation ? getEvaluationBadge(evaluation) : ''}
         ${project ? `
           <span class="backlog-item__project" style="--project-color: ${project.color}">
             ${escapeHTML(project.name)}
           </span>
         ` : ''}
-      </div>
-
-      <div class="backlog-item__actions">
-        <button class="btn btn--icon item-evaluate" data-id="${item.id}" title="Evaluar objetivo">
-          <span class="material-symbols-outlined icon-sm">balance</span>
-        </button>
-        <button class="btn btn--icon item-edit" data-id="${item.id}" title="Editar">
-          <span class="material-symbols-outlined icon-sm">edit</span>
-        </button>
-        <button class="btn btn--icon item-delete" data-id="${item.id}" title="Eliminar">
-          <span class="material-symbols-outlined icon-sm">close</span>
-        </button>
       </div>
     </li>
   `;
@@ -510,24 +492,15 @@ export const render = (data) => {
           ` : ''}
 
           <div class="form-group">
-            <label>Tipo de tarea (para Modo Menú)</label>
-            <div class="task-type-options" id="task-type-options">
-              <button type="button" class="task-type-btn" data-type="">
-                <span class="material-symbols-outlined">check_box_outline_blank</span>
-                Sin tipo
-              </button>
-              ${Object.entries(TASK_TYPES).map(([key, type]) => `
-                <button type="button" class="task-type-btn" data-type="${key}" style="--type-color: ${type.color}">
-                  <span class="material-symbols-outlined">${type.icon}</span>
-                  ${type.name}
-                </button>
-              `).join('')}
-            </div>
+            <label class="checkbox-label checkbox-label--important">
+              <input type="checkbox" id="item-important" class="checkbox">
+              <span class="material-symbols-outlined icon-sm" style="color: var(--rosa-600)">priority_high</span>
+              Marcar como importante
+            </label>
           </div>
 
           <input type="hidden" id="item-id">
           <input type="hidden" id="item-column">
-          <input type="hidden" id="item-task-type" value="">
 
           <div class="modal-actions">
             <button type="button" class="btn btn--tertiary" id="cancel-item">Cancelar</button>
@@ -536,10 +509,187 @@ export const render = (data) => {
         </form>
       </dialog>
 
-      <!-- Modal del evaluador de objetivos -->
-      ${renderObjectiveEvaluator()}
     </div>
   `;
+};
+
+/**
+ * Configura selección de items en Horizontes y barra de acciones
+ */
+const setupHorizonSelection = (data) => {
+  const actionsBar = document.getElementById('horizons-actions');
+  if (!actionsBar) return;
+
+  // Clic en items de horizonte para seleccionar
+  document.querySelectorAll('.kanban-section--horizons .horizon-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      // Si es clic en checkbox, no seleccionar
+      if (e.target.closest('.horizon-item__checkbox input')) return;
+
+      const itemId = item.dataset.id;
+
+      // Si ya está seleccionado, deseleccionar
+      if (selectedHorizonItemId === itemId) {
+        item.classList.remove('horizon-item--selected');
+        selectedHorizonItemId = null;
+        actionsBar.hidden = true;
+        return;
+      }
+
+      // Quitar selección anterior (de cualquier sección)
+      clearAllSelections();
+
+      // Seleccionar este
+      item.classList.add('horizon-item--selected');
+      selectedHorizonItemId = itemId;
+      actionsBar.hidden = false;
+    });
+  });
+
+  // Botón Editar
+  document.getElementById('horizon-action-edit')?.addEventListener('click', () => {
+    if (!selectedHorizonItemId) return;
+    const column = findItemColumn(selectedHorizonItemId, data.objectives);
+    const item = data.objectives[column]?.find(i => i.id === selectedHorizonItemId);
+    if (item) openItemModal(item, column);
+  });
+
+  // Botón Eliminar
+  document.getElementById('horizon-action-delete')?.addEventListener('click', () => {
+    if (!selectedHorizonItemId) return;
+    deleteItem(selectedHorizonItemId, data);
+    selectedHorizonItemId = null;
+    actionsBar.hidden = true;
+  });
+};
+
+/**
+ * Configura selección de items en En Foco y barra de acciones
+ */
+const setupFocusSelection = (data) => {
+  const actionsBar = document.getElementById('focus-actions');
+  if (!actionsBar) return;
+
+  // Clic en items de focus para seleccionar
+  document.querySelectorAll('.kanban-section--focus .focus-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      // Si es clic en checkbox, no seleccionar
+      if (e.target.closest('.focus-item__checkbox input')) return;
+
+      const itemId = item.dataset.id;
+
+      // Si ya está seleccionado, deseleccionar
+      if (selectedFocusItemId === itemId) {
+        item.classList.remove('focus-item--selected');
+        selectedFocusItemId = null;
+        actionsBar.hidden = true;
+        return;
+      }
+
+      // Quitar selección anterior (de cualquier sección)
+      clearAllSelections();
+
+      // Seleccionar este
+      item.classList.add('focus-item--selected');
+      selectedFocusItemId = itemId;
+      actionsBar.hidden = false;
+    });
+  });
+
+  // Botón Editar
+  document.getElementById('focus-action-edit')?.addEventListener('click', () => {
+    if (!selectedFocusItemId) return;
+    const item = data.objectives.daily?.find(i => i.id === selectedFocusItemId);
+    if (item) openItemModal(item, 'daily');
+  });
+
+  // Botón Eliminar
+  document.getElementById('focus-action-delete')?.addEventListener('click', () => {
+    if (!selectedFocusItemId) return;
+    deleteItem(selectedFocusItemId, data);
+    selectedFocusItemId = null;
+    actionsBar.hidden = true;
+  });
+};
+
+/**
+ * Configura selección de items en Pendientes y barra de acciones
+ */
+const setupBacklogSelection = (data) => {
+  const actionsBar = document.getElementById('backlog-actions');
+  if (!actionsBar) return;
+
+  // Clic en items de backlog para seleccionar
+  document.querySelectorAll('.kanban-section--backlog .backlog-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      const itemId = item.dataset.id;
+
+      // Si ya está seleccionado, deseleccionar
+      if (selectedBacklogItemId === itemId) {
+        item.classList.remove('backlog-item--selected');
+        selectedBacklogItemId = null;
+        actionsBar.hidden = true;
+        return;
+      }
+
+      // Quitar selección anterior (de cualquier sección)
+      clearAllSelections();
+
+      // Seleccionar este
+      item.classList.add('backlog-item--selected');
+      selectedBacklogItemId = itemId;
+      actionsBar.hidden = false;
+    });
+  });
+
+  // Botón Editar
+  document.getElementById('backlog-action-edit')?.addEventListener('click', () => {
+    if (!selectedBacklogItemId) return;
+    const item = data.objectives.backlog?.find(i => i.id === selectedBacklogItemId);
+    if (item) openItemModal(item, 'backlog');
+  });
+
+  // Botón Eliminar
+  document.getElementById('backlog-action-delete')?.addEventListener('click', () => {
+    if (!selectedBacklogItemId) return;
+    deleteItem(selectedBacklogItemId, data);
+    selectedBacklogItemId = null;
+    actionsBar.hidden = true;
+  });
+};
+
+/**
+ * Limpia todas las selecciones de las 3 secciones
+ */
+const clearAllSelections = () => {
+  // Limpiar Horizontes
+  document.querySelectorAll('.horizon-item--selected').forEach(i => i.classList.remove('horizon-item--selected'));
+  selectedHorizonItemId = null;
+  document.getElementById('horizons-actions')?.setAttribute('hidden', '');
+
+  // Limpiar Focus
+  document.querySelectorAll('.focus-item--selected').forEach(i => i.classList.remove('focus-item--selected'));
+  selectedFocusItemId = null;
+  document.getElementById('focus-actions')?.setAttribute('hidden', '');
+
+  // Limpiar Backlog
+  document.querySelectorAll('.backlog-item--selected').forEach(i => i.classList.remove('backlog-item--selected'));
+  selectedBacklogItemId = null;
+  document.getElementById('backlog-actions')?.setAttribute('hidden', '');
+};
+
+/**
+ * Configura deselección global al hacer clic fuera
+ */
+const setupGlobalDeselection = () => {
+  document.addEventListener('click', (e) => {
+    const isInsideItem = e.target.closest('.horizon-item, .focus-item, .backlog-item');
+    const isInsideActions = e.target.closest('.section-actions, .horizons-actions');
+
+    if (!isInsideItem && !isInsideActions) {
+      clearAllSelections();
+    }
+  });
 };
 
 /**
@@ -555,11 +705,11 @@ export const init = (data, updateData) => {
   setupModal(data);
   setupProjectFilter(data);
   setupBacklogToggle();
-  setupEvaluateButtons(data);
   setupSoftLimitLink();
-
-  // Inicializar el evaluador de objetivos
-  initObjectiveEvaluator(data, updateData);
+  setupHorizonSelection(data);
+  setupFocusSelection(data);
+  setupBacklogSelection(data);
+  setupGlobalDeselection();
 };
 
 /**
@@ -603,34 +753,6 @@ const setupBacklogToggle = () => {
         </span>
       `;
     }
-  });
-};
-
-/**
- * Configura los botones de evaluación de objetivos
- */
-const setupEvaluateButtons = (data) => {
-  document.querySelectorAll('.item-evaluate').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const itemId = btn.dataset.id;
-
-      // Encontrar el item en los objetivos
-      const column = findItemColumn(itemId, data.objectives);
-      if (!column) return;
-
-      const item = data.objectives[column].find(i => i.id === itemId);
-      if (!item) return;
-
-      // Abrir el evaluador con callback para refrescar la vista
-      openObjectiveEvaluator(
-        { id: item.id, title: item.text, text: item.text, icon: item.icon },
-        (evaluation) => {
-          showNotification(`Objetivo evaluado: ${evaluation.result.recommendation === 'proceed' ? 'Adelante' : evaluation.result.recommendation === 'review' ? 'Revisar' : 'Reconsiderar'}`, 'success');
-          location.reload();
-        }
-      );
-    });
   });
 };
 
@@ -910,7 +1032,8 @@ const setupItemActions = (data) => {
   // Editar
   document.querySelectorAll('.item-edit').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const itemId = e.target.dataset.id;
+      e.stopPropagation();
+      const itemId = btn.dataset.id;
       const column = findItemColumn(itemId, data.objectives);
       const item = data.objectives[column]?.find(i => i.id === itemId);
       if (item) openItemModal(item, column);
@@ -920,7 +1043,8 @@ const setupItemActions = (data) => {
   // Eliminar
   document.querySelectorAll('.item-delete').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const itemId = e.target.dataset.id;
+      e.stopPropagation();
+      const itemId = btn.dataset.id;
       deleteItem(itemId, data);
     });
   });
@@ -946,18 +1070,6 @@ const setupModal = (data) => {
     if (e.target === modal) modal.close();
   });
 
-  // Configurar botones de tipo de tarea
-  const taskTypeInput = document.getElementById('item-task-type');
-  document.querySelectorAll('.task-type-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      // Quitar selección anterior
-      document.querySelectorAll('.task-type-btn').forEach(b => b.classList.remove('selected'));
-      // Marcar este como seleccionado
-      btn.classList.add('selected');
-      // Guardar valor
-      taskTypeInput.value = btn.dataset.type;
-    });
-  });
 };
 
 /**
@@ -967,7 +1079,7 @@ const openItemModal = (item = null, column = 'weekly') => {
   const modal = document.getElementById('item-modal');
   const title = document.getElementById('item-modal-title');
   const projectSelect = document.getElementById('item-project');
-  const taskTypeInput = document.getElementById('item-task-type');
+  const importantCheckbox = document.getElementById('item-important');
 
   document.getElementById('item-id').value = item?.id || '';
   document.getElementById('item-column').value = column;
@@ -979,11 +1091,8 @@ const openItemModal = (item = null, column = 'weekly') => {
     projectSelect.value = item?.projectId || '';
   }
 
-  // Seleccionar tipo de tarea si existe
-  taskTypeInput.value = item?.taskType || '';
-  document.querySelectorAll('.task-type-btn').forEach(btn => {
-    btn.classList.toggle('selected', btn.dataset.type === (item?.taskType || ''));
-  });
+  // Marcar como importante si lo era
+  importantCheckbox.checked = item?.taskType === 'importante';
 
   const columnName = COLUMN_NAMES[column];
   title.textContent = item ? `Editar (${columnName})` : `Nuevo en ${columnName}`;
@@ -1002,7 +1111,8 @@ const saveItem = (data) => {
   const notes = document.getElementById('item-notes').value.trim();
   const projectSelect = document.getElementById('item-project');
   const projectId = projectSelect ? projectSelect.value || null : null;
-  const taskType = document.getElementById('item-task-type').value || null;
+  const isImportant = document.getElementById('item-important').checked;
+  const taskType = isImportant ? 'importante' : null;
 
   if (!text) {
     showNotification('La descripción es obligatoria', 'warning');

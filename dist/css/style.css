@@ -96,6 +96,14 @@
   /* Transiciones */
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
+
+  /* Dashboard UI Enhancements (v1.6) */
+  --dashboard-card-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --dashboard-card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --font-size-dashboard-base: 1.0625rem; /* 17px para audiencia 40+ */
+  --font-size-dashboard-secondary: 0.9375rem; /* 15px minimo */
+  --checkbox-size-lg: 24px;
+  --animation-celebration: 0.4s;
 }
 
 /* --------------------------------------------------------------------------
@@ -1250,8 +1258,22 @@ a:hover {
   font-size: var(--font-size-sm);
   color: var(--gris-500);
   background: var(--gris-100);
-  padding: 2px 8px;
+  padding: 4px 12px;
   border-radius: var(--radius-full);
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+/* Estado: slots disponibles */
+.section-limit--available {
+  background: var(--turquesa-100);
+  color: var(--turquesa-700);
+}
+
+/* Estado: limite alcanzado */
+.section-limit--full {
+  background: var(--rosa-100);
+  color: var(--rosa-700);
 }
 
 .section-description {
@@ -1261,12 +1283,31 @@ a:hover {
 }
 
 /* --------------------------------------------------------------------------
-   Empty State
+   Empty State - Diseño acogedor
    -------------------------------------------------------------------------- */
 .empty-state {
   text-align: center;
   padding: var(--space-4);
-  color: var(--gris-500);
+  color: var(--gris-600);
+  background: var(--gris-50);
+  border: 2px dashed var(--gris-200);
+  border-radius: var(--radius-md);
+}
+
+/* Icono decorativo circular */
+.empty-state::before {
+  content: '';
+  display: block;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto var(--space-2);
+  background: var(--gris-100);
+  border-radius: 50%;
+}
+
+.empty-state p {
+  font-size: var(--font-size-dashboard-secondary);
+  line-height: 1.6;
 }
 
 .empty-state--large {
@@ -1276,9 +1317,31 @@ a:hover {
   border: 2px dashed var(--gris-300);
 }
 
+.empty-state--large::before {
+  width: 64px;
+  height: 64px;
+}
+
 .empty-state h3 {
   color: var(--gris-700);
   margin-bottom: var(--space-2);
+}
+
+/* Variantes con colores de acento */
+.empty-state--habit {
+  border-color: var(--tulip-tree-200);
+}
+
+.empty-state--habit::before {
+  background: var(--tulip-tree-50);
+}
+
+.empty-state--events {
+  border-color: var(--gris-200);
+}
+
+.empty-state--events::before {
+  background: var(--turquesa-50);
 }
 
 /* --------------------------------------------------------------------------
@@ -1357,13 +1420,36 @@ a:hover {
   opacity: 1;
 }
 
-/* Roca Principal styles */
+/* Roca Principal styles - destacada visualmente */
 .focus-item--rock {
-  background: linear-gradient(135deg, var(--turquesa-50), var(--rosa-50));
-  border-left: 3px solid var(--color-primary);
+  background: linear-gradient(135deg,
+    var(--turquesa-50) 0%,
+    var(--rosa-50) 50%,
+    var(--tulip-tree-50) 100%
+  );
+  border: 2px solid var(--turquesa-400);
+  border-left: 5px solid var(--turquesa-500);
   border-radius: var(--radius-md);
-  margin: var(--space-1) 0;
+  margin: var(--space-2) 0;
   padding: var(--space-2) var(--space-3);
+  padding-top: var(--space-3);
+  position: relative;
+}
+
+/* Badge flotante "ROCA PRINCIPAL" */
+.focus-item--rock::before {
+  content: 'ROCA PRINCIPAL';
+  position: absolute;
+  top: -10px;
+  left: var(--space-2);
+  background: var(--turquesa-500);
+  color: white;
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 4px rgba(6, 182, 212, 0.3);
 }
 
 .focus-item--rock .focus-text {
@@ -1371,9 +1457,22 @@ a:hover {
   color: var(--gris-800);
 }
 
+/* Icono diamante con sparkle animado */
 .icon-rock {
-  color: var(--color-primary);
-  font-size: 1.1rem;
+  color: var(--turquesa-500);
+  font-size: 1.3rem;
+  animation: diamond-sparkle 3s ease-in-out infinite;
+}
+
+@keyframes diamond-sparkle {
+  0%, 100% {
+    filter: drop-shadow(0 0 0 transparent);
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 6px var(--turquesa-400));
+    transform: scale(1.1);
+  }
 }
 
 .focus-actions {
@@ -3663,6 +3762,62 @@ a.entry-type-btn {
   margin-bottom: var(--space-2);
 }
 
+/* Formulario inline para crear tarea desde proyecto */
+.project-add-task {
+  margin-bottom: var(--space-3);
+  padding: var(--space-2);
+  background: var(--gris-50);
+  border-radius: var(--radius-md);
+}
+
+.project-add-task-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.project-add-task-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.project-add-task-form .input {
+  width: 100%;
+}
+
+.project-add-task-form .checkbox-label {
+  font-size: var(--font-size-sm);
+}
+
+.project-add-task-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-1);
+}
+
+.project-add-task-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--gris-500);
+}
+
+.project-add-task-hint[hidden] {
+  display: none;
+}
+
+/* Checkbox importante en modales */
+.checkbox-label--important {
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label--important:hover {
+  color: var(--rosa-600);
+}
+
 .empty-message {
   text-align: center;
   padding: var(--space-3);
@@ -5911,6 +6066,7 @@ a.entry-type-btn {
   background: var(--gris-50);
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
+  position: relative;
 }
 
 .horizon-item:hover {
@@ -5918,21 +6074,18 @@ a.entry-type-btn {
   box-shadow: var(--shadow-sm);
 }
 
-.horizon-item__content {
-  flex: 1;
-  min-width: 0;
-}
-
 .horizon-item__checkbox {
   display: flex;
   align-items: flex-start;
-  gap: 4px;
+  gap: 6px;
+  flex: 1;
   cursor: pointer;
 }
 
 .horizon-item__checkbox input {
-  margin-top: 3px;
+  margin-top: 2px;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .horizon-item__text {
@@ -5942,31 +6095,93 @@ a.entry-type-btn {
 }
 
 .horizon-item__project {
-  display: inline-block;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 500;
-  padding: 1px 6px;
+  padding: 1px 4px;
   border-radius: var(--radius-sm);
-  margin-top: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
-.horizon-item__actions {
+/* Item seleccionado */
+.horizon-item--selected {
+  background: var(--turquesa-50);
+  box-shadow: 0 0 0 2px var(--turquesa-400);
+}
+
+/* Barra de acciones en header de Horizontes */
+.section-header--horizons {
   display: flex;
-  gap: 2px;
-  opacity: 0;
-  transition: opacity var(--transition-fast);
+  align-items: center;
+  justify-content: space-between;
 }
 
-.horizon-item:hover .horizon-item__actions {
-  opacity: 1;
+.horizons-actions {
+  display: flex;
+  gap: 4px;
 }
 
-.horizon-item__actions .btn--icon {
-  padding: 2px;
+.horizons-actions[hidden] {
+  display: none;
 }
 
-.horizon-item__actions .icon-sm {
-  font-size: 14px;
+.horizons-actions .btn--icon {
+  padding: 4px;
+}
+
+.horizons-actions .btn--danger {
+  color: var(--rosa-600);
+}
+
+.horizons-actions .btn--danger:hover {
+  background: var(--rosa-100);
+}
+
+/* Estilos comunes para section headers con acciones */
+.section-header--focus,
+.section-header--backlog {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-header__right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.section-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.section-actions[hidden] {
+  display: none;
+}
+
+.section-actions .btn--icon {
+  padding: 4px;
+}
+
+.section-actions .btn--danger {
+  color: var(--rosa-600);
+}
+
+.section-actions .btn--danger:hover {
+  background: var(--rosa-100);
+}
+
+/* Items seleccionados en Focus y Backlog */
+.focus-item--selected {
+  background: var(--turquesa-50) !important;
+  box-shadow: 0 0 0 2px var(--turquesa-400);
+  border-color: var(--turquesa-400) !important;
+}
+
+.backlog-item--selected {
+  background: var(--turquesa-50);
+  box-shadow: 0 0 0 2px var(--turquesa-400);
 }
 
 .horizon-add-btn {
@@ -7816,36 +8031,52 @@ body {
   font-weight: 500;
 }
 
-/* Secciones del dashboard con hover sutil */
+/* Secciones del dashboard con sistema visual coherente */
 .dashboard__section {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+
+/* Indicador de categoria mediante borde superior */
+.dashboard__section::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--card-accent-color, var(--gris-300));
 }
 
 .dashboard__section:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--dashboard-card-shadow-hover);
 }
 
-/* Seccion de foco con enfasis visual */
+/* Seccion de foco - turquesa (prioridades del dia) */
 .dashboard__focus {
-  border-left: 4px solid var(--turquesa-500);
+  --card-accent-color: var(--turquesa-500);
   background: linear-gradient(135deg, white 0%, var(--turquesa-50) 100%);
 }
 
-/* Seccion de habito con fondo calido */
+/* Seccion de habito - amarillo/tulip-tree (crecimiento) */
 .dashboard__habit {
+  --card-accent-color: var(--tulip-tree-500);
   background: linear-gradient(135deg, white 0%, var(--tulip-tree-50) 100%);
 }
 
-/* Seccion de eventos con indicador visual */
+/* Seccion de eventos - gris (informativo) */
 .dashboard__events {
-  border-top: 3px solid var(--gris-200);
+  --card-accent-color: var(--gris-400);
+  background: white;
 }
 
-/* Seccion de logros con celebracion */
+/* Seccion de logros - verde (celebracion) */
 .dashboard__achievements {
-  background: linear-gradient(135deg, var(--tulip-tree-50) 0%, white 100%);
-  border-left: 4px solid var(--tulip-tree-500);
+  --card-accent-color: var(--verde-500);
+  background: linear-gradient(135deg, var(--verde-50) 0%, white 100%);
 }
 
 /* Seccion de quote con estilo zen */
@@ -7874,9 +8105,9 @@ body {
 
 .dashboard__quote .quote p {
   color: rgba(255, 255, 255, 0.95);
-  font-size: var(--font-size-lg);
+  font-size: 1.125rem; /* 18px para mejor legibilidad */
   font-style: italic;
-  line-height: 1.7;
+  line-height: 1.8;
 }
 
 .dashboard__quote .quote cite {
@@ -7966,12 +8197,12 @@ body {
   background: var(--gris-50);
 }
 
-/* Checkbox estilizado */
+/* Checkbox estilizado con celebracion */
 .focus-checkbox {
   appearance: none;
   -webkit-appearance: none;
-  width: 22px;
-  height: 22px;
+  width: var(--checkbox-size-lg);
+  height: var(--checkbox-size-lg);
   border: 2px solid var(--gris-400);
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -7988,17 +8219,27 @@ body {
 .focus-checkbox:checked {
   background: var(--turquesa-600);
   border-color: var(--turquesa-500);
+  animation: check-celebration var(--animation-celebration) ease-out;
+}
+
+/* Animacion de celebracion al marcar */
+@keyframes check-celebration {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.2); }
+  50% { transform: scale(0.95); }
+  75% { transform: scale(1.05); }
+  100% { transform: scale(1); }
 }
 
 .focus-checkbox:checked::after {
   content: '';
   position: absolute;
-  top: 3px;
-  left: 7px;
-  width: 5px;
-  height: 10px;
+  top: 4px;
+  left: 8px;
+  width: 6px;
+  height: 11px;
   border: solid white;
-  border-width: 0 2px 2px 0;
+  border-width: 0 2.5px 2.5px 0;
   transform: rotate(45deg);
 }
 
@@ -8185,27 +8426,44 @@ body {
   margin-bottom: var(--space-1);
 }
 
-/* Trigger con estilo sutil */
+/* Trigger con estilo sutil - contraste mejorado para 40+ */
 .habit-trigger {
-  color: var(--gris-600);
-  font-size: var(--font-size-sm);
+  color: var(--gris-700);
+  font-size: var(--font-size-dashboard-secondary);
 }
 
-/* Streak con animacion de fuego */
+/* Streak con animacion de fuego mejorada */
 .habit-streak {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: var(--space-1);
+  background: linear-gradient(135deg, var(--tulip-tree-50), transparent);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
 }
 
 .streak-icon {
   color: var(--tulip-tree-500);
-  animation: flicker 1.5s ease-in-out infinite;
+  font-size: 1.4rem;
+  animation: flame-flicker 0.8s ease-in-out infinite alternate;
 }
 
-@keyframes flicker {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.85; transform: scale(1.05); }
+/* Animacion de fuego mas dinamica */
+@keyframes flame-flicker {
+  from {
+    transform: scale(1) rotate(-3deg);
+    filter: drop-shadow(0 0 2px var(--tulip-tree-300));
+  }
+  to {
+    transform: scale(1.1) rotate(3deg);
+    filter: drop-shadow(0 0 4px var(--tulip-tree-500));
+  }
+}
+
+/* Racha alta (7+ dias) - brillo extra */
+.habit-streak--hot .streak-icon {
+  filter: drop-shadow(0 0 8px var(--tulip-tree-500));
+  animation-duration: 0.5s;
 }
 
 .streak-count {
@@ -8870,6 +9128,55 @@ select,
 /* Modo oscuro automatico (preparacion futura) */
 @media (prefers-color-scheme: dark) {
   /* Placeholder para dark mode - no activado aun */
+}
+
+/* --------------------------------------------------------------------------
+   15.1 ACCESIBILIDAD DASHBOARD
+   Mejoras WCAG 2.1 AA para audiencia 40+
+   -------------------------------------------------------------------------- */
+
+/* Focus visible mejorado para elementos del dashboard */
+.focus-checkbox:focus-visible,
+.calm-trigger:focus-visible,
+.evening-trigger:focus-visible {
+  outline: 3px solid var(--turquesa-400);
+  outline-offset: 3px;
+}
+
+.dashboard__section:focus-within {
+  outline: 2px solid var(--turquesa-300);
+  outline-offset: 2px;
+}
+
+/* Areas tactiles expandidas (minimo 44px) */
+.focus-delete,
+.focus-rock {
+  padding: 10px;
+  margin: -10px;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Label del checkbox expande area clickeable */
+.focus-label {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Boton de habito con area tactil adecuada */
+#habit-check-today {
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+}
+
+/* Indicador visual de seccion activa */
+.dashboard__section[aria-current="true"] {
+  box-shadow: 0 0 0 2px var(--turquesa-400);
 }
 
 /* --------------------------------------------------------------------------
@@ -12380,14 +12687,66 @@ select,
   }
 }
 
-/* ===== EVALUADOR DE OBJETIVOS ===== */
+/* ===== EVALUADOR DE PROYECTOS ===== */
+
+/* Modal wrapper - oculto por defecto */
+.objective-evaluator-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  /* Sobrescribir estilos de .modal generico */
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.objective-evaluator-modal.modal--visible {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.objective-evaluator-modal .modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+.objective-evaluator-modal .modal__content {
+  position: relative;
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 1;
+}
 
 .objective-evaluator {
-  max-width: 700px;
+  max-width: 640px;
+  width: 95vw;
   max-height: 90vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+/* Móvil: Fullscreen */
+@media (max-width: 600px) {
+  .objective-evaluator {
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .objective-evaluator-modal .modal__content {
+    border-radius: 0;
+  }
 }
 
 .evaluator-header {
@@ -12477,65 +12836,57 @@ select,
   gap: var(--space-4);
 }
 
+/* Criterios - Diseño minimalista */
 .criterion-item {
-  background: white;
-  border: 1px solid var(--gris-200);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-  transition: border-color 0.2s;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--gris-100);
 }
 
-.criterion-item:hover {
-  border-color: var(--turquesa-300);
+.criterion-item:last-child {
+  border-bottom: none;
 }
 
 .criterion-header {
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  margin-bottom: var(--space-3);
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
 }
 
 .criterion-icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--turquesa-50);
-  color: var(--turquesa-600);
-  border-radius: var(--radius-md);
+  font-size: 20px;
+  color: var(--turquesa-500);
   flex-shrink: 0;
 }
 
 .criterion-info {
   flex: 1;
+  min-width: 0;
 }
 
 .criterion-name {
-  margin: 0 0 var(--space-1);
-  font-size: 1rem;
+  margin: 0;
+  font-size: 0.95rem;
   font-weight: 600;
+  color: var(--gris-800);
 }
 
 .criterion-description {
-  margin: 0;
-  font-size: 0.875rem;
+  margin: 2px 0 0;
+  font-size: 0.8rem;
   color: var(--gris-500);
+  line-height: 1.3;
 }
 
 .criterion-weight {
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .weight-badge {
-  display: inline-block;
-  padding: 2px 6px;
-  background: var(--violeta-100);
-  color: var(--violeta-700);
-  border-radius: var(--radius-sm);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.7rem;
+  color: var(--gris-400);
+  font-weight: 500;
 }
 
 /* Slider del criterio */
@@ -12561,13 +12912,13 @@ select,
 
 .criterion-slider .slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   background: white;
   border: 3px solid var(--slider-color, var(--turquesa-500));
   border-radius: 50%;
   cursor: grab;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
   transition: transform 0.15s;
 }
 
@@ -12756,6 +13107,61 @@ select,
 
 .breakdown--low .breakdown-fill {
   background: var(--rosa-500);
+}
+
+/* Paginación del evaluador */
+.evaluator-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--gris-100);
+}
+
+.pagination-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.pagination-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gris-300);
+  transition: all 0.2s;
+}
+
+.pagination-dot.active {
+  background: var(--turquesa-500);
+  width: 24px;
+  border-radius: 4px;
+}
+
+.pagination-label {
+  font-size: 0.75rem;
+  color: var(--gris-500);
+  margin-left: var(--space-2);
+}
+
+/* Navegación entre páginas */
+.evaluator-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--gris-100);
+  background: var(--gris-50);
+}
+
+.evaluator-nav .btn {
+  min-height: 44px;
+}
+
+.page-indicator {
+  font-size: 0.875rem;
+  color: var(--gris-500);
+  font-weight: 500;
 }
 
 /* Insights */
