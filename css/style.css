@@ -1520,42 +1520,91 @@ a:hover {
   margin-top: var(--space-2);
 }
 
-/* Habit Card */
+/* Habit Card - Dashboard */
 .habit-card {
-  background: linear-gradient(135deg, var(--turquesa-100) 0%, white 100%);
+  background: linear-gradient(135deg, var(--turquesa-50) 0%, white 50%, var(--turquesa-50) 100%);
   border-radius: var(--radius-lg);
   padding: var(--space-3);
-  border: 1px solid var(--turquesa-400);
+  border: 1px solid var(--turquesa-300);
+  box-shadow: var(--shadow-sm);
 }
 
 .habit-card--completed {
   border-color: var(--color-success);
+  background: linear-gradient(135deg, var(--verde-50) 0%, white 50%, var(--verde-50) 100%);
+}
+
+/* Header con identidad */
+.habit-card__header {
+  margin-bottom: var(--space-1);
 }
 
 .habit-identity {
   font-style: italic;
-  color: var(--gris-600);
+  color: var(--gris-500);
   font-size: var(--font-size-sm);
+  line-height: 1.4;
+  /* Truncar a 2 lineas maximo */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Body con nombre del habito */
+.habit-card__body {
+  margin-bottom: var(--space-2);
 }
 
 .habit-name {
+  font-family: var(--font-family-headings);
   font-size: var(--font-size-lg);
   font-weight: 500;
-  margin: var(--space-1) 0;
+  color: var(--gris-800);
+  margin: 0 0 var(--space-1) 0;
+  line-height: 1.3;
+  /* Truncar a 2 lineas maximo */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
+/* Trigger con icono de contexto */
 .habit-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   color: var(--gris-600);
   font-size: var(--font-size-sm);
+  background: var(--gris-100);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  max-width: 100%;
 }
 
+.habit-trigger__icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  color: var(--turquesa-600);
+}
+
+.habit-trigger__text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Footer con racha y boton */
 .habit-card__footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-top: var(--space-2);
   padding-top: var(--space-2);
-  border-top: 1px solid var(--turquesa-400);
+  border-top: 1px solid var(--turquesa-200);
+  flex-wrap: wrap;
+  gap: var(--space-1);
 }
 
 .habit-streak {
@@ -1570,9 +1619,13 @@ a:hover {
 
 .streak-count {
   font-weight: 500;
+  color: var(--gris-700);
 }
 
 .habit-done {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   color: var(--color-success);
   font-weight: 500;
 }

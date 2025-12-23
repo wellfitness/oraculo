@@ -237,14 +237,27 @@ const renderActiveHabit = (habit, history) => {
   const streak = calculateStreak(habit.id, history);
   const completedToday = isCompletedToday(habit.id, history);
 
+  // Determinar el icono del trigger segun el contexto
+  const triggerIcon = habit.scheduledTime ? 'schedule' : 'event';
+  const triggerText = habit.trigger || '';
+
   return `
     <div class="habit-card ${completedToday ? 'habit-card--completed' : ''}">
-      <div class="habit-card__header">
-        <span class="habit-identity">${escapeHTML(habit.identity || '')}</span>
-      </div>
+      ${habit.identity ? `
+        <div class="habit-card__header">
+          <span class="habit-identity" title="Soy una persona que ${escapeHTML(habit.identity)}">Soy una persona que ${escapeHTML(habit.identity)}</span>
+        </div>
+      ` : ''}
 
-      <p class="habit-name">${escapeHTML(habit.name)}</p>
-      <p class="habit-trigger">${escapeHTML(habit.trigger || '')}</p>
+      <div class="habit-card__body">
+        <p class="habit-name" title="${escapeHTML(habit.name)}">${escapeHTML(habit.name)}</p>
+        ${triggerText ? `
+          <span class="habit-trigger">
+            <span class="material-symbols-outlined habit-trigger__icon">${triggerIcon}</span>
+            <span class="habit-trigger__text" title="${escapeHTML(triggerText)}">${escapeHTML(triggerText)}</span>
+          </span>
+        ` : ''}
+      </div>
 
       <div class="habit-card__footer">
         <div class="habit-streak">
@@ -253,7 +266,10 @@ const renderActiveHabit = (habit, history) => {
         </div>
 
         ${completedToday ? `
-          <span class="habit-done"><span class="material-symbols-outlined icon-success">check_circle</span> Hecho hoy</span>
+          <span class="habit-done">
+            <span class="material-symbols-outlined icon-success">check_circle</span>
+            Hecho hoy
+          </span>
         ` : `
           <button id="habit-check-today" class="btn btn--primary">
             <span class="material-symbols-outlined">check</span>
@@ -264,7 +280,7 @@ const renderActiveHabit = (habit, history) => {
     </div>
 
     <a href="#habits" data-view="habits" class="link-subtle">
-      Ver detalles del hábito →
+      Ver detalles del habito →
     </a>
   `;
 };
