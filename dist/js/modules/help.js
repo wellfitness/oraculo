@@ -282,6 +282,77 @@ export const render = (data) => {
         </div>
       </section>
 
+      <!-- Filosofía Manson -->
+      <section class="help-section help-section--philosophy">
+        <div class="help-philosophy">
+          <div class="philosophy-header">
+            <span class="material-symbols-outlined">local_fire_department</span>
+            <h2>La Filosofía Manson</h2>
+          </div>
+          <p class="philosophy-intro">
+            Ideas de Mark Manson para dejar de preocuparte por lo que no importa.
+            La felicidad no es tener más, sino <strong>elegir mejor qué te importa</strong>.
+          </p>
+
+          <div class="philosophy-pillars">
+            <div class="pillar">
+              <div class="pillar-icon">
+                <span class="material-symbols-outlined">explore</span>
+              </div>
+              <h3>Valores</h3>
+              <p>Los buenos valores son realistas, constructivos y controlables. Los malos valores son emocionales, destructivos e incontrolables.</p>
+            </div>
+
+            <div class="pillar">
+              <div class="pillar-icon">
+                <span class="material-symbols-outlined">control_camera</span>
+              </div>
+              <h3>Control</h3>
+              <p>Concéntrate en lo que puedes controlar: tu actitud, tus suposiciones, tu comportamiento. A la mierda lo demás.</p>
+            </div>
+
+            <div class="pillar">
+              <div class="pillar-icon">
+                <span class="material-symbols-outlined">person_raised_hand</span>
+              </div>
+              <h3>Responsabilidad</h3>
+              <p>Solo porque algo no sea tu culpa no significa que no sea tu responsabilidad. Tú decides cómo respondes.</p>
+            </div>
+
+            <div class="pillar">
+              <div class="pillar-icon">
+                <span class="material-symbols-outlined">filter_alt</span>
+              </div>
+              <h3>Priorización</h3>
+              <p>Solo puedes dar importancia a muy pocas cosas. Si todo te importa, acabas jodida.</p>
+            </div>
+          </div>
+
+          <div class="philosophy-applied">
+            <h3>Triángulo de la Felicidad:</h3>
+            <ul>
+              <li><strong>Libertad:</strong> Control sobre cómo empleas tu tiempo</li>
+              <li><strong>Relaciones:</strong> La calidad de tus conexiones humanas</li>
+              <li><strong>Salud:</strong> Base de todo lo demás - empieza por aquí</li>
+            </ul>
+          </div>
+
+          <div class="philosophy-applied">
+            <h3>Herramientas de Reflexión:</h3>
+            <ul>
+              <li><strong>Gratitud:</strong> Lista de cosas por las que estás agradecida</li>
+              <li><strong>Lista "A la mierda":</strong> Lo que quieres dejar de importarte</li>
+              <li><strong>Análisis de Control:</strong> Separar lo que puedes cambiar de lo que no</li>
+            </ul>
+          </div>
+
+          <blockquote class="philosophy-quote">
+            <p>"La felicidad no es algo que esté fuera de nosotros: es simplemente una elección, basada en lo que decidimos valorar."</p>
+            <cite>— Mark Manson</cite>
+          </blockquote>
+        </div>
+      </section>
+
       <!-- Tips rápidos -->
       <section class="help-section">
         <h2 class="help-section-title">Consejos Rápidos</h2>
@@ -294,6 +365,71 @@ export const render = (data) => {
           ${renderTip('celebration', 'Añade logros espontáneos. No todo lo bueno se planifica.')}
         </div>
       </section>
+
+            <!-- Solución de Problemas / FAQ -->
+      <section class="help-section">
+        <h2 class="help-section-title">
+          <span class="material-symbols-outlined">build</span>
+          Solución de Problemas
+        </h2>
+
+        <div class="faq-list">
+          ${renderFaqCard('bolt', 'Atajos rápidos', `
+            <p>Antes de complicarte, prueba estos atajos:</p>
+            <ul>
+              <li><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd> — Forzar recarga (Windows/Linux)</li>
+              <li><kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd> — Forzar recarga (Mac)</li>
+              <li><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>N</kbd> — Ventana incógnito (Chrome/Edge)</li>
+              <li><kbd>F12</kbd> — Abrir herramientas de desarrollo</li>
+            </ul>
+          `, 'Ctrl+Shift+R es tu mejor amigo cuando algo no funciona.')}
+
+          ${renderFaqCard('cached', 'La app no se actualiza', `
+            <p>Si la app se comporta de forma extraña, puede ser que el navegador tenga una versión antigua en caché.</p>
+            <p><strong>Solución rápida:</strong> Pulsa <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd></p>
+            <p><strong>Si no funciona:</strong></p>
+            <ol>
+              <li>Pulsa <kbd>F12</kbd> para abrir DevTools</li>
+              <li>Ve a <strong>Application</strong> → <strong>Service Workers</strong></li>
+              <li>Haz clic en <strong>Unregister</strong></li>
+              <li>Luego: <strong>Storage</strong> → <strong>Clear site data</strong></li>
+              <li>Recarga con <kbd>Ctrl+Shift+R</kbd></li>
+            </ol>
+          `, 'Si después de limpiar sigue sin funcionar, prueba en una ventana de incógnito.')}
+
+          ${renderFaqCard('cloud_upload', 'Opciones de backup', `
+            <p>Oráculo guarda tus datos solo en tu navegador. Sin backup, no hay recuperación.</p>
+            <p><strong>Opción 1 - Manual:</strong> Configuración → Descargar backup</p>
+            <p><strong>Opción 2 - Auto-backup:</strong> Configuración → Vincular carpeta (elige una carpeta de Dropbox/Drive)</p>
+            <p><strong>Opción 3 - Nube manual:</strong> Descarga el JSON y súbelo a tu nube favorita</p>
+          `, 'Lo más seguro: vincula una carpeta de Dropbox/Drive para auto-backup automático.')}
+
+          ${renderFaqCard('sync_problem', 'Sincronización entre dispositivos', `
+            <p>La sincronización es manual mediante exportar/importar archivos JSON.</p>
+            <ol>
+              <li><strong>Origen:</strong> Configuración → Descargar backup</li>
+              <li><strong>Sube el archivo</strong> a tu nube</li>
+              <li><strong>Destino:</strong> Descarga el archivo e impórtalo</li>
+            </ol>
+            <p><strong>Si falla:</strong> Pulsa <kbd>Ctrl+Shift+R</kbd> y vuelve a intentar</p>
+          `, 'Haz backup frecuente. Los datos solo existen en TU navegador.')}
+
+          ${renderFaqCard('warning', 'Perdí mis datos', `
+            <p><strong>Sin backup = sin recuperación.</strong> Los datos viven SOLO en tu navegador.</p>
+            <p><strong>Por qué desaparecen:</strong></p>
+            <ul>
+              <li>Limpiaste "datos de navegación" o "cookies"</li>
+              <li>Usaste modo incógnito</li>
+              <li>Cambiaste de navegador o dispositivo</li>
+              <li>Usaste "Clear site data" sin exportar primero</li>
+            </ul>
+            <p><strong>Si tienes backup:</strong> Configuración → Importar backup</p>
+            <p><strong>Si vinculaste carpeta:</strong> Busca archivos <code>oraculo-backup-*.json</code></p>
+          `, 'La prevención es la única solución. Exporta regularmente.')}
+        </div>
+      </section>
+
+
 
       <!-- Cierre -->
       <section class="help-section help-section--footer">
@@ -356,6 +492,28 @@ const renderTip = (icon, text) => {
   `;
 };
 
+/**
+ * Renderiza una FAQ card simple (pregunta arriba, respuesta abajo)
+ */
+const renderFaqCard = (icon, question, answer, tip = null) => {
+  return `
+    <article class="faq-card">
+      <div class="faq-question">
+        <span class="material-symbols-outlined">${icon}</span>
+        <h3>${question}</h3>
+      </div>
+      <div class="faq-answer">
+        ${answer}
+        ${tip ? `
+          <div class="help-card-tip">
+            <span class="material-symbols-outlined">tips_and_updates</span>
+            <p>${tip}</p>
+          </div>
+        ` : ''}
+      </div>
+    </article>
+  `;
+};
 /**
  * Inicializa los eventos de la página de ayuda
  */
