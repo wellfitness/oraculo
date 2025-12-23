@@ -27,7 +27,7 @@ const PROJECT_STATUS = {
 
 // Colores disponibles para proyectos
 const PROJECT_COLORS = [
-  { value: '#e11d48', name: 'Rosa' },
+  { value: '#f43f5e', name: 'Rosa' },
   { value: '#f97316', name: 'Naranja' },
   { value: '#eab308', name: 'Amarillo' },
   { value: '#22c55e', name: 'Verde' },
