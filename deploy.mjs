@@ -25,6 +25,7 @@ const FTP_CONFIG = {
 
 // Archivos y carpetas a subir
 const INCLUDE = [
+  '.htaccess',
   'index.html',
   'app.html',
   'aviso-legal.html',

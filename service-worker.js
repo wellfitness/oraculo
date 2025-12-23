@@ -3,8 +3,8 @@
  * Estrategia: Network-first para HTML/JS/CSS, Cache-first para imágenes
  */
 
-const CACHE_NAME = 'oraculo-v2.3';
-const STATIC_CACHE = 'oraculo-static-v2.3';
+const CACHE_NAME = 'oraculo-v2.4';
+const STATIC_CACHE = 'oraculo-static-v2.4';
 
 // Archivos a cachear en la instalación
 const STATIC_ASSETS = [
@@ -67,7 +67,7 @@ self.addEventListener('install', (event) => {
 
 // Activación: limpiar caches antiguas
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activando Service Worker v2.3...');
+  console.log('[SW] Activando Service Worker v2.4...');
 
   event.waitUntil(
     caches.keys()
