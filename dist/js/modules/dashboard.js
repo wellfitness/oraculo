@@ -280,7 +280,7 @@ const renderActiveHabit = (habit, history) => {
     </div>
 
     <a href="#habits" data-view="habits" class="link-subtle">
-      Ver detalles del habito →
+      Ver detalles del hábito →
     </a>
   `;
 };

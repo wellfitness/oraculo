@@ -195,7 +195,133 @@ const renderFocusItem = (item, projects, isRoca = false) => {
 };
 
 /**
- * SECCIÓN 2: HORIZONTES
+ * SECCIÓN: SEMANA
+ * Renderiza la sección "Esta semana" (máx 10 tareas)
+ */
+const renderWeeklySection = (items, projects) => {
+  const count = items.length;
+  const limit = LIMITS.weekly;
+  const isFull = count >= limit;
+
+  return `
+    <section class="kanban-section kanban-section--weekly" data-section="weekly">
+      <header class="section-header">
+        <h2 class="section-title">
+          <span class="material-symbols-outlined">date_range</span>
+          Esta semana
+        </h2>
+        <div class="section-header__right">
+          <div class="section-actions" id="weekly-actions" hidden>
+            <button class="btn btn--icon" id="weekly-action-edit" title="Editar">
+              <span class="material-symbols-outlined">edit</span>
+            </button>
+            <button class="btn btn--icon btn--danger" id="weekly-action-delete" title="Eliminar">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <span class="horizon-count ${isFull ? 'count--full' : ''}">${count}/${limit}</span>
+        </div>
+      </header>
+
+      <ul class="horizon-items kanban-column__items" data-column="weekly">
+        ${items.map(item => renderHorizonItem(item, projects)).join('')}
+      </ul>
+
+      ${!isFull ? `
+        <button class="kanban-add-btn horizon-add-btn" data-column="weekly">
+          <span class="material-symbols-outlined icon-sm">add</span>
+        </button>
+      ` : ''}
+    </section>
+  `;
+};
+
+/**
+ * SECCIÓN: MES
+ * Renderiza la sección "Mes" (máx 6 tareas)
+ */
+const renderMonthlySection = (items, projects) => {
+  const count = items.length;
+  const limit = LIMITS.monthly;
+  const isFull = count >= limit;
+
+  return `
+    <section class="kanban-section kanban-section--monthly" data-section="monthly">
+      <header class="section-header">
+        <h2 class="section-title">
+          <span class="material-symbols-outlined">calendar_today</span>
+          Mes
+        </h2>
+        <div class="section-header__right">
+          <div class="section-actions" id="monthly-actions" hidden>
+            <button class="btn btn--icon" id="monthly-action-edit" title="Editar">
+              <span class="material-symbols-outlined">edit</span>
+            </button>
+            <button class="btn btn--icon btn--danger" id="monthly-action-delete" title="Eliminar">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <span class="horizon-count ${isFull ? 'count--full' : ''}">${count}/${limit}</span>
+        </div>
+      </header>
+
+      <ul class="horizon-items kanban-column__items" data-column="monthly">
+        ${items.map(item => renderHorizonItem(item, projects)).join('')}
+      </ul>
+
+      ${!isFull ? `
+        <button class="kanban-add-btn horizon-add-btn" data-column="monthly">
+          <span class="material-symbols-outlined icon-sm">add</span>
+        </button>
+      ` : ''}
+    </section>
+  `;
+};
+
+/**
+ * SECCIÓN: TRIMESTRE
+ * Renderiza la sección "Trimestre" (máx 3 tareas)
+ */
+const renderQuarterlySection = (items, projects) => {
+  const count = items.length;
+  const limit = LIMITS.quarterly;
+  const isFull = count >= limit;
+
+  return `
+    <section class="kanban-section kanban-section--quarterly" data-section="quarterly">
+      <header class="section-header">
+        <h2 class="section-title">
+          <span class="material-symbols-outlined">calendar_view_month</span>
+          Trimestre
+        </h2>
+        <div class="section-header__right">
+          <div class="section-actions" id="quarterly-actions" hidden>
+            <button class="btn btn--icon" id="quarterly-action-edit" title="Editar">
+              <span class="material-symbols-outlined">edit</span>
+            </button>
+            <button class="btn btn--icon btn--danger" id="quarterly-action-delete" title="Eliminar">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <span class="horizon-count ${isFull ? 'count--full' : ''}">${count}/${limit}</span>
+        </div>
+      </header>
+
+      <ul class="horizon-items kanban-column__items" data-column="quarterly">
+        ${items.map(item => renderHorizonItem(item, projects)).join('')}
+      </ul>
+
+      ${!isFull ? `
+        <button class="kanban-add-btn horizon-add-btn" data-column="quarterly">
+          <span class="material-symbols-outlined icon-sm">add</span>
+        </button>
+      ` : ''}
+    </section>
+  `;
+};
+
+/**
+ * SECCIÓN 2: HORIZONTES (legacy - para compatibilidad)
  * Renderiza las 3 columnas de planificación temporal en grid
  */
 const renderHorizonsSection = (objectives, projects, data) => {
@@ -287,11 +413,60 @@ const renderHorizonItem = (item, projects) => {
 };
 
 /**
- * SECCIÓN 3: BACKLOG
- * Renderiza el backlog colapsable para capturar ideas
+ * SIDEBAR: PENDIENTES DE DECIDIR
+ * Renderiza el sidebar siempre visible para capturar ideas
  */
 const SOFT_LIMIT_PENDIENTES = 10;
 
+const renderPendientesSidebar = (items, projects) => {
+  const count = items.length;
+  const showSoftLimitWarning = count >= SOFT_LIMIT_PENDIENTES;
+
+  return `
+    <aside class="kanban-sidebar" data-section="backlog">
+      <header class="kanban-sidebar__header">
+        <h2 class="kanban-sidebar__title">
+          <span class="material-symbols-outlined">lightbulb</span>
+          Pendientes
+          <span class="kanban-sidebar__count ${showSoftLimitWarning ? 'kanban-sidebar__count--warning' : ''}">${count}</span>
+        </h2>
+        <div class="section-actions" id="backlog-actions" hidden>
+          <button class="btn btn--icon" id="backlog-action-edit" title="Editar">
+            <span class="material-symbols-outlined">edit</span>
+          </button>
+          <button class="btn btn--icon btn--danger" id="backlog-action-delete" title="Eliminar">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+      </header>
+
+      <p class="kanban-sidebar__hint">
+        Captura ideas sin filtro. Luego decide.
+      </p>
+
+      ${showSoftLimitWarning ? `
+        <div class="backlog-soft-limit">
+          <span class="material-symbols-outlined icon-sm">schedule</span>
+          <span>${count} ideas esperando. ¿Buen momento para procesarlas?</span>
+        </div>
+      ` : ''}
+
+      <ul class="backlog-items kanban-column__items" data-column="backlog">
+        ${items.map(item => renderBacklogItem(item, projects)).join('')}
+      </ul>
+
+      <button class="kanban-add-btn backlog-add-btn" data-column="backlog">
+        <span class="material-symbols-outlined icon-sm">add</span>
+        Capturar idea
+      </button>
+    </aside>
+  `;
+};
+
+/**
+ * SECCIÓN 3: BACKLOG (legacy - para compatibilidad)
+ * Renderiza el backlog colapsable para capturar ideas
+ */
 const renderBacklogSection = (items, projects, data) => {
   const count = items.length;
   const showSoftLimitWarning = count >= SOFT_LIMIT_PENDIENTES;
@@ -377,6 +552,117 @@ const renderBacklogItem = (item, projects) => {
 };
 
 /**
+ * Agrupa items completados por semana
+ */
+const groupByWeek = (items) => {
+  return items.reduce((acc, item) => {
+    const date = new Date(item.completedAt);
+    const weekStart = getWeekStart(date).toISOString().split('T')[0];
+    if (!acc[weekStart]) acc[weekStart] = [];
+    acc[weekStart].push(item);
+    return acc;
+  }, {});
+};
+
+/**
+ * Formatea la etiqueta de semana de forma legible
+ */
+const formatWeekLabel = (weekStartISO) => {
+  const weekStart = new Date(weekStartISO);
+  const today = new Date();
+  const todayWeekStart = getWeekStart(today);
+  const diffTime = todayWeekStart - weekStart;
+  const diffWeeks = Math.round(diffTime / (7 * 24 * 60 * 60 * 1000));
+
+  if (diffWeeks === 0) return 'Esta semana';
+  if (diffWeeks === 1) return 'Semana pasada';
+  return `Hace ${diffWeeks} semanas`;
+};
+
+/**
+ * Nombre legible de columna origen
+ */
+const getColumnDisplayName = (column) => {
+  const names = {
+    daily: 'Foco',
+    weekly: 'Semana',
+    monthly: 'Mes',
+    quarterly: 'Trimestre'
+  };
+  return names[column] || column;
+};
+
+/**
+ * Renderiza un item completado en el histórico
+ */
+const renderCompletedItem = (item) => {
+  const originLabel = item.originalColumn ? getColumnDisplayName(item.originalColumn) : '';
+
+  return `
+    <li class="completed-item">
+      <span class="material-symbols-outlined completed-item__icon">check_circle</span>
+      <span class="completed-item__text">${escapeHTML(item.text)}</span>
+      ${originLabel ? `<span class="completed-item__origin">${originLabel}</span>` : ''}
+    </li>
+  `;
+};
+
+/**
+ * Renderiza la sección de tareas completadas (histórico)
+ * Se muestra siempre, aunque esté vacía
+ */
+const renderCompletedSection = (completedItems) => {
+  const items = completedItems || [];
+  const isEmpty = items.length === 0;
+
+  // Agrupar por semana y ordenar (más reciente primero)
+  const grouped = isEmpty ? {} : groupByWeek(items);
+  const weeks = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
+
+  // Por defecto mostrar solo la última semana
+  const weeksToShow = weeks.slice(0, 1);
+  const hasMore = weeks.length > 1;
+
+  return `
+    <section class="kanban-section kanban-section--completed">
+      <button class="completed-toggle" aria-expanded="false" id="completed-toggle">
+        <span class="material-symbols-outlined">task_alt</span>
+        <span class="completed-toggle__title">Completadas</span>
+        <span class="completed-toggle__count">${items.length}</span>
+        <span class="material-symbols-outlined completed-toggle__arrow">expand_more</span>
+      </button>
+
+      <div class="completed-content" id="completed-content" hidden>
+        ${isEmpty ? `
+          <p class="completed-empty">
+            <span class="material-symbols-outlined">check_circle</span>
+            Las tareas completadas de días anteriores aparecerán aquí
+          </p>
+        ` : `
+          <div class="completed-weeks" id="completed-weeks">
+            ${weeksToShow.map(weekStart => `
+              <div class="completed-group">
+                <h4 class="completed-group__date">${formatWeekLabel(weekStart)}</h4>
+                <ul class="completed-group__list">
+                  ${grouped[weekStart].map(item => renderCompletedItem(item)).join('')}
+                </ul>
+              </div>
+            `).join('')}
+          </div>
+
+          ${hasMore ? `
+            <button class="completed-show-more" id="completed-show-more" data-weeks='${JSON.stringify(weeks.slice(1))}' data-grouped='${JSON.stringify(grouped)}'>
+              <span class="material-symbols-outlined">expand_more</span>
+              Ver semanas anteriores (${weeks.length - 1} más)
+            </button>
+          ` : ''}
+        `}
+      </div>
+    </section>
+  `;
+};
+
+/**
  * Renderiza el tablero Kanban con 3 secciones verticales
  */
 export const render = (data) => {
@@ -430,17 +716,22 @@ export const render = (data) => {
         </div>
       </header>
 
-      <!-- Vista Kanban: 3 Secciones Verticales -->
-      <div class="kanban-sections" id="kanban-view">
+      <!-- Vista Kanban: Grid 2x2 + Sidebar -->
+      <div class="kanban-page--layout" id="kanban-view">
 
-        <!-- SECCIÓN 1: EN FOCO -->
+        <!-- SIDEBAR: PENDIENTES DE DECIDIR -->
+        ${renderPendientesSidebar(objectives.backlog || [], projects)}
+
+        <!-- FILA 1: Foco de Hoy | Esta semana -->
         ${renderFocusSection(objectives.daily || [], projects, data)}
+        ${renderWeeklySection(objectives.weekly || [], projects)}
 
-        <!-- SECCIÓN 2: HORIZONTES -->
-        ${renderHorizonsSection(objectives, projects, data)}
+        <!-- FILA 2: Mes | Trimestre -->
+        ${renderMonthlySection(objectives.monthly || [], projects)}
+        ${renderQuarterlySection(objectives.quarterly || [], projects)}
 
-        <!-- SECCIÓN 3: BACKLOG -->
-        ${renderBacklogSection(objectives.backlog || [], projects, data)}
+        <!-- FILA 3: Completadas (span completo) -->
+        ${renderCompletedSection(objectives.completed || [])}
 
       </div>
 
@@ -514,52 +805,57 @@ export const render = (data) => {
 };
 
 /**
- * Configura selección de items en Horizontes y barra de acciones
+ * Configura selección de items en las 3 secciones de horizontes (weekly, monthly, quarterly)
  */
 const setupHorizonSelection = (data) => {
-  const actionsBar = document.getElementById('horizons-actions');
-  if (!actionsBar) return;
+  // Configurar selección para cada sección de horizonte
+  const horizonSections = ['weekly', 'monthly', 'quarterly'];
 
-  // Clic en items de horizonte para seleccionar
-  document.querySelectorAll('.kanban-section--horizons .horizon-item').forEach(item => {
-    item.addEventListener('click', (e) => {
-      // Si es clic en checkbox, no seleccionar
-      if (e.target.closest('.horizon-item__checkbox input')) return;
+  horizonSections.forEach(sectionKey => {
+    const actionsBar = document.getElementById(`${sectionKey}-actions`);
+    if (!actionsBar) return;
 
-      const itemId = item.dataset.id;
+    // Clic en items de horizonte para seleccionar
+    document.querySelectorAll(`.kanban-section--${sectionKey} .horizon-item`).forEach(item => {
+      item.addEventListener('click', (e) => {
+        // Si es clic en checkbox, no seleccionar
+        if (e.target.closest('.horizon-item__checkbox input')) return;
 
-      // Si ya está seleccionado, deseleccionar
-      if (selectedHorizonItemId === itemId) {
-        item.classList.remove('horizon-item--selected');
-        selectedHorizonItemId = null;
-        actionsBar.hidden = true;
-        return;
-      }
+        const itemId = item.dataset.id;
 
-      // Quitar selección anterior (de cualquier sección)
-      clearAllSelections();
+        // Si ya está seleccionado, deseleccionar
+        if (selectedHorizonItemId === itemId) {
+          item.classList.remove('horizon-item--selected');
+          selectedHorizonItemId = null;
+          actionsBar.hidden = true;
+          return;
+        }
 
-      // Seleccionar este
-      item.classList.add('horizon-item--selected');
-      selectedHorizonItemId = itemId;
-      actionsBar.hidden = false;
+        // Quitar selección anterior (de cualquier sección)
+        clearAllSelections();
+
+        // Seleccionar este
+        item.classList.add('horizon-item--selected');
+        selectedHorizonItemId = itemId;
+        actionsBar.hidden = false;
+      });
     });
-  });
 
-  // Botón Editar
-  document.getElementById('horizon-action-edit')?.addEventListener('click', () => {
-    if (!selectedHorizonItemId) return;
-    const column = findItemColumn(selectedHorizonItemId, data.objectives);
-    const item = data.objectives[column]?.find(i => i.id === selectedHorizonItemId);
-    if (item) openItemModal(item, column);
-  });
+    // Botón Editar
+    document.getElementById(`${sectionKey}-action-edit`)?.addEventListener('click', () => {
+      if (!selectedHorizonItemId) return;
+      const column = findItemColumn(selectedHorizonItemId, data.objectives);
+      const item = data.objectives[column]?.find(i => i.id === selectedHorizonItemId);
+      if (item) openItemModal(item, column);
+    });
 
-  // Botón Eliminar
-  document.getElementById('horizon-action-delete')?.addEventListener('click', () => {
-    if (!selectedHorizonItemId) return;
-    deleteItem(selectedHorizonItemId, data);
-    selectedHorizonItemId = null;
-    actionsBar.hidden = true;
+    // Botón Eliminar
+    document.getElementById(`${sectionKey}-action-delete`)?.addEventListener('click', () => {
+      if (!selectedHorizonItemId) return;
+      deleteItem(selectedHorizonItemId, data);
+      selectedHorizonItemId = null;
+      actionsBar.hidden = true;
+    });
   });
 };
 
@@ -613,14 +909,14 @@ const setupFocusSelection = (data) => {
 };
 
 /**
- * Configura selección de items en Pendientes y barra de acciones
+ * Configura selección de items en Pendientes (sidebar) y barra de acciones
  */
 const setupBacklogSelection = (data) => {
   const actionsBar = document.getElementById('backlog-actions');
   if (!actionsBar) return;
 
-  // Clic en items de backlog para seleccionar
-  document.querySelectorAll('.kanban-section--backlog .backlog-item').forEach(item => {
+  // Clic en items de backlog para seleccionar (sidebar o sección legacy)
+  document.querySelectorAll('.kanban-sidebar .backlog-item, .kanban-section--backlog .backlog-item').forEach(item => {
     item.addEventListener('click', (e) => {
       const itemId = item.dataset.id;
 
@@ -659,20 +955,23 @@ const setupBacklogSelection = (data) => {
 };
 
 /**
- * Limpia todas las selecciones de las 3 secciones
+ * Limpia todas las selecciones de todas las secciones
  */
 const clearAllSelections = () => {
-  // Limpiar Horizontes
+  // Limpiar Horizontes (weekly, monthly, quarterly)
   document.querySelectorAll('.horizon-item--selected').forEach(i => i.classList.remove('horizon-item--selected'));
   selectedHorizonItemId = null;
-  document.getElementById('horizons-actions')?.setAttribute('hidden', '');
+  // Ocultar barras de acciones de las 3 secciones de horizontes
+  ['weekly-actions', 'monthly-actions', 'quarterly-actions', 'horizons-actions'].forEach(id => {
+    document.getElementById(id)?.setAttribute('hidden', '');
+  });
 
   // Limpiar Focus
   document.querySelectorAll('.focus-item--selected').forEach(i => i.classList.remove('focus-item--selected'));
   selectedFocusItemId = null;
   document.getElementById('focus-actions')?.setAttribute('hidden', '');
 
-  // Limpiar Backlog
+  // Limpiar Backlog (sidebar)
   document.querySelectorAll('.backlog-item--selected').forEach(i => i.classList.remove('backlog-item--selected'));
   selectedBacklogItemId = null;
   document.getElementById('backlog-actions')?.setAttribute('hidden', '');
@@ -693,19 +992,123 @@ const setupGlobalDeselection = () => {
 };
 
 /**
+ * Obtiene el inicio de la semana (lunes) para una fecha dada
+ */
+const getWeekStart = (date) => {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Lunes como inicio
+  return new Date(d.setDate(diff));
+};
+
+/**
+ * Mueve las tareas completadas de días anteriores a la sección "completed"
+ * Se ejecuta al cargar el Kanban para limpiar las columnas
+ */
+const moveCompletedToHistory = (data, updateData) => {
+  const today = getLocalDateString();
+  const columnsToCheck = ['daily', 'weekly', 'monthly', 'quarterly'];
+  let moved = false;
+
+  // Inicializar columna completed si no existe
+  if (!data.objectives.completed) {
+    data.objectives.completed = [];
+  }
+
+  columnsToCheck.forEach(column => {
+    if (!data.objectives[column]) return;
+
+    const toMove = data.objectives[column].filter(item => {
+      if (!item.completed || !item.completedAt) return false;
+      const completedDate = getLocalDateString(new Date(item.completedAt));
+      return completedDate !== today; // Completadas de días anteriores
+    });
+
+    if (toMove.length > 0) {
+      // Guardar columna origen para referencia
+      toMove.forEach(item => {
+        item.originalColumn = column;
+      });
+
+      // Mover a completed
+      data.objectives.completed.push(...toMove);
+
+      // Eliminar de columna original
+      data.objectives[column] = data.objectives[column].filter(item =>
+        !toMove.some(m => m.id === item.id)
+      );
+
+      moved = true;
+    }
+  });
+
+  if (moved) {
+    updateData('objectives', data.objectives);
+  }
+};
+
+/**
+ * Configura el toggle de expandir/colapsar sección Completadas
+ */
+const setupCompletedSection = () => {
+  const toggle = document.getElementById('completed-toggle');
+  const content = document.getElementById('completed-content');
+  const showMoreBtn = document.getElementById('completed-show-more');
+
+  if (!toggle || !content) return;
+
+  // Toggle expandir/colapsar
+  toggle.addEventListener('click', () => {
+    const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', !isExpanded);
+    content.hidden = isExpanded;
+  });
+
+  // Botón "Ver más semanas"
+  if (showMoreBtn) {
+    showMoreBtn.addEventListener('click', () => {
+      const weeksContainer = document.getElementById('completed-weeks');
+      const remainingWeeks = JSON.parse(showMoreBtn.dataset.weeks || '[]');
+      const grouped = JSON.parse(showMoreBtn.dataset.grouped || '{}');
+
+      // Añadir las semanas restantes
+      remainingWeeks.forEach(weekStart => {
+        const items = grouped[weekStart] || [];
+        const groupHTML = `
+          <div class="completed-group">
+            <h4 class="completed-group__date">${formatWeekLabel(weekStart)}</h4>
+            <ul class="completed-group__list">
+              ${items.map(item => renderCompletedItem(item)).join('')}
+            </ul>
+          </div>
+        `;
+        weeksContainer.insertAdjacentHTML('beforeend', groupHTML);
+      });
+
+      // Ocultar el botón después de cargar todo
+      showMoreBtn.style.display = 'none';
+    });
+  }
+};
+
+/**
  * Inicializa eventos del Kanban
  */
 export const init = (data, updateData) => {
   updateDataCallback = updateData;
   currentData = data;
 
+  // Mover tareas completadas de días anteriores al histórico
+  moveCompletedToHistory(data, updateData);
+
   setupDragAndDrop(data);
   setupAddButtons(data);
   setupItemActions(data);
   setupModal(data);
   setupProjectFilter(data);
-  setupBacklogToggle();
-  setupSoftLimitLink();
+  setupCompletedSection();
+  // setupBacklogToggle(); // Ya no es necesario - sidebar siempre visible
+  // setupSoftLimitLink(); // Ya no es necesario - no hay link de procesar
   setupHorizonSelection(data);
   setupFocusSelection(data);
   setupBacklogSelection(data);
@@ -1021,8 +1424,8 @@ const setupAddButtons = (data) => {
  * Configura acciones de items (editar, eliminar, completar)
  */
 const setupItemActions = (data) => {
-  // Checkboxes
-  document.querySelectorAll('.kanban-item__checkbox input').forEach(checkbox => {
+  // Checkboxes (En Foco, Horizontes, Backlog)
+  document.querySelectorAll('.kanban-item__checkbox input, .horizon-item__checkbox input, .focus-item__checkbox input, .backlog-item__checkbox input').forEach(checkbox => {
     checkbox.addEventListener('change', (e) => {
       const itemId = e.target.dataset.id;
       toggleItemComplete(itemId, e.target.checked, data);
@@ -1176,6 +1579,27 @@ const toggleItemComplete = (itemId, completed, data) => {
     item.completed = completed;
     item.completedAt = completed ? new Date().toISOString() : null;
     updateDataCallback('objectives', data.objectives);
+
+    // Actualizar DOM inmediatamente para feedback visual
+    const itemElement = document.querySelector(`[data-id="${itemId}"]`);
+    if (itemElement) {
+      // Clase principal del item
+      itemElement.classList.toggle('kanban-item--completed', completed);
+      itemElement.classList.toggle('focus-item--completed', completed);
+      itemElement.classList.toggle('horizon-item--completed', completed);
+
+      // Texto tachado
+      const textElement = itemElement.querySelector('.focus-item__text, .horizon-item__text, .kanban-item__text, .backlog-item__text');
+      if (textElement) {
+        textElement.classList.toggle('text--completed', completed);
+      }
+
+      // Icono del checkbox (En Foco usa icono, Horizontes no)
+      const iconElement = itemElement.querySelector('.focus-item__check-icon .material-symbols-outlined');
+      if (iconElement) {
+        iconElement.textContent = completed ? 'check_circle' : 'radio_button_unchecked';
+      }
+    }
 
     if (completed) {
       showNotification('¡Completado! Buen trabajo.', 'success');
