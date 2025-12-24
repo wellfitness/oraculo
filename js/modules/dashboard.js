@@ -17,8 +17,9 @@ let updateDataCallback = null;
 export const render = (data) => {
   const today = new Date();
   const dailyTasks = data.objectives.daily || [];
+  const dailyLimit = getDailyLimit(data);
   const activeHabit = data.habits.active;
-  const todayEvents = getTodayEvents(data.calendar.events, data.calendar.recurring);
+  const todayEvents = getTodayEvents(data.calendar?.events || [], data.calendar?.recurring || []);
 
   return `
     <div class="dashboard">
@@ -34,14 +35,14 @@ export const render = (data) => {
       <section class="dashboard__section dashboard__focus">
         <div class="section-header">
           <h2 class="section-title">Foco del Día</h2>
-          <span class="section-limit">${dailyTasks.length}/3</span>
+          <span class="section-limit">${dailyTasks.length}/${dailyLimit}</span>
         </div>
 
         <ul class="focus-list" id="focus-list">
           ${dailyTasks.map(task => renderFocusTask(task)).join('')}
         </ul>
 
-        ${dailyTasks.length < 3 ? `
+        ${dailyTasks.length < dailyLimit ? `
           <form class="add-focus-form" id="add-focus-form">
             <input
               type="text"
@@ -56,7 +57,7 @@ export const render = (data) => {
           </form>
         ` : `
           <p class="limit-message">
-            Ya tienes 3 prioridades. Completa alguna antes de añadir más.
+            Ya tienes ${dailyLimit} prioridades. Completa alguna antes de añadir más.
           </p>
         `}
       </section>
@@ -235,7 +236,7 @@ const renderFocusTask = (task) => {
  */
 const renderActiveHabit = (habit, history) => {
   const streak = calculateStreak(habit.id, history);
-  const completedToday = isCompletedToday(habit.id, history);
+  const completedToday = isHabitCompletedToday(habit.id, history);
 
   // Determinar el icono del trigger segun el contexto
   const triggerIcon = habit.scheduledTime ? 'schedule' : 'event';
@@ -316,8 +317,9 @@ const handleAddFocus = (data) => {
 
   if (!text) return;
 
-  if (data.objectives.daily.length >= 3) {
-    showNotification('Ya tienes 3 prioridades. Completa alguna primero.', 'warning');
+  const limit = getDailyLimit(data);
+  if (data.objectives.daily.length >= limit) {
+    showNotification(`Ya tienes ${limit} prioridades. Completa alguna primero.`, 'warning');
     return;
   }
 
@@ -397,6 +399,18 @@ const getLocalDateString = (date = new Date()) => {
 };
 
 /**
+ * Obtiene el límite diario dinámico según el Volumen Fijo configurado
+ * Si no hay setup del día, usa el límite por defecto (3)
+ */
+const getDailyLimit = (data) => {
+  const today = getLocalDateString();
+  if (data.dailySetup?.date === today && data.dailySetup?.dailyLimit) {
+    return data.dailySetup.dailyLimit;
+  }
+  return 3; // fallback
+};
+
+/**
  * Marca el hábito activo como completado hoy
  */
 const handleHabitCheckToday = (data) => {
@@ -457,14 +471,6 @@ const calculateStreak = (habitId, history) => {
   }
 
   return streak;
-};
-
-/**
- * Verifica si el hábito se completó hoy
- */
-const isCompletedToday = (habitId, history) => {
-  const today = getLocalDateString();
-  return history.some(h => h.habitId === habitId && h.date === today);
 };
 
 /**
