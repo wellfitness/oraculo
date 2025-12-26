@@ -341,6 +341,61 @@ export const generateRecapText = (data, period) => {
 };
 
 /**
+ * Genera grid de heatmap para un hábito específico (90 días)
+ * @param {string} habitId - ID del hábito
+ * @param {Array} history - Array de {habitId, date, completedAt}
+ * @param {number} days - Días a mostrar (default: 90)
+ */
+export const generateHabitHeatmapGrid = (habitId, history, days = 90) => {
+  // Filtrar solo entradas del hábito
+  const habitHistory = (history || []).filter(h => h.habitId === habitId);
+
+  // Crear set de fechas completadas para búsqueda O(1)
+  const completedDates = new Set(habitHistory.map(h => h.date));
+
+  // Generar grid de N días hacia atrás
+  const grid = [];
+  const today = new Date();
+
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    const dateStr = getLocalDateString(date);
+
+    grid.push({
+      date: dateStr,
+      completed: completedDates.has(dateStr),
+      level: completedDates.has(dateStr) ? 4 : 0, // Binario: hecho o no
+      isToday: i === 0,
+      dayOfWeek: date.getDay()
+    });
+  }
+
+  return grid;
+};
+
+/**
+ * Agrupa el grid de hábitos por semanas (para layout visual)
+ * @param {Array} grid - Grid generado por generateHabitHeatmapGrid
+ */
+export const groupHabitGridByWeeks = (grid) => {
+  const weeks = [];
+  let currentWeek = [];
+
+  grid.forEach((day, index) => {
+    currentWeek.push(day);
+
+    // Nueva semana cada 7 días
+    if (currentWeek.length === 7 || index === grid.length - 1) {
+      weeks.push([...currentWeek]);
+      currentWeek = [];
+    }
+  });
+
+  return weeks;
+};
+
+/**
  * Obtiene estadísticas completas para un período
  */
 export const getAchievementsStats = (data, period = 'week') => {

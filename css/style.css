@@ -517,6 +517,30 @@ a:hover {
 .setup-header {
   text-align: center;
   margin-bottom: var(--space-2);
+  position: relative;
+}
+
+/* Botón X para cerrar/omitir Daily Setup */
+.setup-close-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: none;
+  border: none;
+  padding: var(--space-1);
+  cursor: pointer;
+  color: var(--gris-500);
+  border-radius: var(--radius-full);
+  transition: all 0.2s ease;
+}
+
+.setup-close-btn:hover {
+  background: var(--gris-100);
+  color: var(--gris-700);
+}
+
+.setup-close-btn .material-symbols-outlined {
+  font-size: 1.5rem;
 }
 
 .setup-icon {
@@ -2452,6 +2476,92 @@ a:hover {
 
 .journal-entries {
   margin-top: var(--space-4);
+}
+
+/* === Filtros de búsqueda del diario === */
+.journal-filters {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.journal-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--blanco);
+  border: 1px solid var(--gris-200);
+  border-radius: var(--radius-md);
+  flex: 1;
+  min-width: 200px;
+  transition: border-color var(--transition-fast);
+}
+
+.journal-search:focus-within {
+  border-color: var(--turquesa-500);
+}
+
+.journal-search .material-symbols-outlined {
+  color: var(--gris-400);
+  font-size: 20px;
+}
+
+.journal-search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: var(--font-size-base);
+  background: transparent;
+}
+
+.journal-search input::placeholder {
+  color: var(--gris-400);
+}
+
+.journal-search .btn-icon {
+  padding: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--gris-500);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.journal-search .btn-icon:hover {
+  background: var(--gris-100);
+  color: var(--gris-700);
+}
+
+.journal-search .btn-icon .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.journal-type-select {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--gris-200);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  background: var(--blanco);
+  min-width: 150px;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.journal-type-select:focus {
+  outline: none;
+  border-color: var(--turquesa-500);
+}
+
+.entries-count {
+  font-size: var(--font-size-sm);
+  font-weight: normal;
+  color: var(--gris-500);
 }
 
 .entries-list {
@@ -10466,6 +10576,110 @@ select,
 
 .habit-calendar__day--today {
   border: 2px solid var(--turquesa-600);
+}
+
+/* === Heatmap de hábitos (90 días) === */
+.habit-heatmap {
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  background: var(--gris-50);
+  border-radius: var(--radius-md);
+}
+
+.habit-heatmap__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2);
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.habit-heatmap__header h4 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--gris-600);
+  margin: 0;
+}
+
+.habit-heatmap__header h4 .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--gris-400);
+}
+
+.habit-heatmap__stats {
+  font-size: var(--font-size-xs);
+  color: var(--gris-500);
+  background: var(--gris-100);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.habit-heatmap__container {
+  overflow-x: auto;
+  padding: var(--space-1) 0;
+}
+
+.habit-heatmap__grid {
+  display: flex;
+  gap: 3px;
+  min-width: max-content;
+}
+
+/* Reutilizamos las clases del heatmap general */
+.habit-heatmap .heatmap-week {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.habit-heatmap .heatmap-day {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--gris-200);
+  cursor: default;
+}
+
+.habit-heatmap .heatmap-day.level-4 {
+  background: var(--turquesa-500);
+}
+
+.habit-heatmap .heatmap-day.today {
+  outline: 2px solid var(--gris-600);
+  outline-offset: 1px;
+}
+
+.habit-heatmap__legend {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--gris-500);
+}
+
+.habit-heatmap__legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.habit-heatmap__legend .legend-item span:first-child {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.habit-heatmap__legend .level-0 {
+  background: var(--gris-200);
+}
+
+.habit-heatmap__legend .level-4 {
+  background: var(--turquesa-500);
 }
 
 /* Actividades atelicas */
