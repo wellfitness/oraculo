@@ -32,7 +32,10 @@ export const render = (data) => {
       <!-- Contenido principal -->
       <main class="values-main">
         <header class="page-header">
-        <h1 class="page-title">Brújula de Valores</h1>
+        <div class="page-header__row">
+          <h1 class="page-title">Brújula de Valores</h1>
+          <span class="page-limit-badge ${values.length >= MAX_VALUES ? 'page-limit-badge--full' : ''}">${values.length}/${MAX_VALUES}</span>
+        </div>
         <p class="page-description">
           Tus valores son tu brújula. Te ayudan a decidir qué merece tu tiempo
           y energía, y qué puedes soltar sin culpa.
@@ -56,7 +59,7 @@ export const render = (data) => {
         <div class="empty-state empty-state--large">
           <h3>Define tus valores fundamentales</h3>
           <p>
-            Piensa en las 3-5 cosas más importantes para ti.
+            Piensa en las 3-4 cosas más importantes para ti.
             No lo que "deberías" valorar, sino lo que realmente te importa.
           </p>
           <ul class="value-examples">

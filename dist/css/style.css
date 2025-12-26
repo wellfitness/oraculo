@@ -15260,3 +15260,90 @@ select,
   font-style: italic;
 }
 
+
+/* ==========================================================================
+   MEJORAS UX v1.7 - Auditoría Diciembre 2025
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Estados Vacíos Mejorados - Mayor Prominencia Visual
+   -------------------------------------------------------------------------- */
+
+/* Sobrescribir círculo decorativo con mejor gradiente */
+.empty-state::before {
+  background: linear-gradient(135deg, var(--gris-200) 0%, var(--gris-300) 100%) !important;
+  width: 56px !important;
+  height: 56px !important;
+  opacity: 0.75;
+}
+
+/* Iconos Material Symbols en estados vacíos */
+.empty-state > .material-symbols-outlined:first-child,
+.empty-state .empty-state__icon-material {
+  font-size: 48px !important;
+  color: var(--turquesa-400) !important;
+  display: block;
+  margin: 0 auto var(--space-2);
+  opacity: 0.7;
+}
+
+/* Ocultar círculo cuando hay icono */
+.empty-state:has(> .material-symbols-outlined:first-child)::before,
+.empty-state:has(.empty-state__icon-material)::before {
+  display: none !important;
+}
+
+/* Estados vacíos del Dashboard - Más acogedores */
+.dashboard__habit .empty-state,
+.dashboard__events .empty-state {
+  border-color: var(--turquesa-200);
+  background: linear-gradient(135deg, white 0%, var(--turquesa-50) 100%);
+}
+
+/* Empty state para logros */
+.dashboard__achievements .empty-state {
+  border-color: var(--tulip-tree-200);
+  background: linear-gradient(135deg, white 0%, var(--tulip-tree-50) 100%);
+}
+
+
+/* Badge de límite para página de valores y otros módulos */
+.page-header__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.page-limit-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  background: var(--turquesa-100);
+  color: var(--turquesa-700);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  font-family: var(--font-family-body);
+}
+
+.page-limit-badge--full {
+  background: var(--tulip-tree-200);
+  color: var(--gris-800);
+}
+
+
+/* Sublabels para chips del Daily Setup - v1.7 */
+.selector-chip__sublabel {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--gris-500);
+  margin-top: 2px;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.selector-chip[aria-pressed="true"] .selector-chip__sublabel {
+  color: var(--turquesa-200);
+}
