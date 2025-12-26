@@ -265,7 +265,7 @@ export const render = (data) => {
 };
 
 /**
- * Renderiza una tarjeta de proyecto
+ * Renderiza una tarjeta de proyecto con preview de tareas
  */
 const renderProjectCard = (project, objectives, compact = false) => {
   const progress = calculateProgress(project.id, objectives);
@@ -273,6 +273,12 @@ const renderProjectCard = (project, objectives, compact = false) => {
   const linkedValue = currentData?.values?.find(v => v.id === project.valueId);
 
   const deadlineInfo = project.deadline ? formatDeadline(project.deadline) : null;
+
+  // Obtener primeras 4 tareas pendientes para preview
+  const allTasks = getProjectTasks(project.id, objectives);
+  const pendingTasks = allTasks.filter(t => !t.completed);
+  const previewTasks = pendingTasks.slice(0, 4);
+  const hasMoreTasks = pendingTasks.length > 4;
 
   return `
     <article class="project-card ${compact ? 'project-card--compact' : ''}"
@@ -295,6 +301,23 @@ const renderProjectCard = (project, objectives, compact = false) => {
         </div>
         <span class="progress-text">${progress.completed}/${progress.total} tareas</span>
       </div>
+
+      ${!compact && previewTasks.length > 0 ? `
+        <ul class="project-card__tasks">
+          ${previewTasks.map(task => `
+            <li class="project-card__task">
+              <span class="material-symbols-outlined icon-xs">radio_button_unchecked</span>
+              <span class="project-card__task-text">${escapeHTML(task.text)}</span>
+            </li>
+          `).join('')}
+          ${hasMoreTasks ? `
+            <li class="project-card__task project-card__task--more">
+              <span class="material-symbols-outlined icon-xs">more_horiz</span>
+              <span>+${pendingTasks.length - 4} más</span>
+            </li>
+          ` : ''}
+        </ul>
+      ` : ''}
 
       ${!compact ? `
         <footer class="project-card__footer">
@@ -403,44 +426,6 @@ const renderProjectDetail = (project) => {
     <section class="project-detail__tasks">
       <h3>Tareas</h3>
 
-      ${project.status === 'active' ? `
-        <div class="project-add-task">
-          <button type="button" class="btn btn--secondary project-add-task-btn" id="add-task-to-project">
-            <span class="material-symbols-outlined icon-sm">add</span>
-            Añadir tarea
-          </button>
-
-          <form class="project-add-task-form" id="project-task-form" hidden>
-            <input
-              type="text"
-              class="input"
-              id="project-task-text"
-              placeholder="Descripción de la tarea..."
-              maxlength="150"
-              required
-            >
-            <label class="checkbox-label checkbox-label--important">
-              <input type="checkbox" id="project-task-important" class="checkbox">
-              <span class="material-symbols-outlined icon-sm" style="color: var(--rosa-600)">priority_high</span>
-              Importante
-            </label>
-            <div class="project-add-task-actions">
-              <button type="button" class="btn btn--tertiary btn--sm" id="cancel-project-task">
-                Cancelar
-              </button>
-              <button type="submit" class="btn btn--primary btn--sm">
-                Guardar
-              </button>
-            </div>
-          </form>
-
-          <p class="project-add-task-hint" id="project-task-hint">
-            <span class="material-symbols-outlined icon-xs">info</span>
-            La tarea aparecerá en Pendientes del tablero
-          </p>
-        </div>
-      ` : ''}
-
       ${tasks.length === 0 ? `
         <p class="empty-message">
           Este proyecto no tiene tareas asignadas.<br>
@@ -479,6 +464,44 @@ const renderProjectDetail = (project) => {
           </div>
         ` : ''}
       `}
+
+      ${project.status === 'active' ? `
+        <div class="project-add-task">
+          <button type="button" class="btn btn--secondary project-add-task-btn" id="add-task-to-project">
+            <span class="material-symbols-outlined icon-sm">add</span>
+            Añadir tarea
+          </button>
+
+          <form class="project-add-task-form" id="project-task-form" hidden>
+            <input
+              type="text"
+              class="input"
+              id="project-task-text"
+              placeholder="Descripción de la tarea..."
+              maxlength="150"
+              required
+            >
+            <label class="checkbox-label checkbox-label--important">
+              <input type="checkbox" id="project-task-important" class="checkbox">
+              <span class="material-symbols-outlined icon-sm" style="color: var(--rosa-600)">priority_high</span>
+              Importante
+            </label>
+            <div class="project-add-task-actions">
+              <button type="button" class="btn btn--tertiary btn--sm" id="cancel-project-task">
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn--primary btn--sm">
+                Guardar
+              </button>
+            </div>
+          </form>
+
+          <p class="project-add-task-hint" id="project-task-hint">
+            <span class="material-symbols-outlined icon-xs">info</span>
+            La tarea aparecerá en Pendientes del tablero
+          </p>
+        </div>
+      ` : ''}
     </section>
 
     <footer class="project-detail__actions">

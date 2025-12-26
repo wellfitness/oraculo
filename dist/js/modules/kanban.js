@@ -594,13 +594,17 @@ const getColumnDisplayName = (column) => {
 
 /**
  * Renderiza un item completado en el histórico
+ * Incluye checkbox para poder desmarcar y restaurar al horizonte original
  */
 const renderCompletedItem = (item) => {
   const originLabel = item.originalColumn ? getColumnDisplayName(item.originalColumn) : '';
 
   return `
-    <li class="completed-item">
-      <span class="material-symbols-outlined completed-item__icon">check_circle</span>
+    <li class="completed-item" data-id="${item.id}">
+      <label class="completed-item__checkbox">
+        <input type="checkbox" checked data-id="${item.id}">
+        <span class="material-symbols-outlined completed-item__icon">check_circle</span>
+      </label>
       <span class="completed-item__text">${escapeHTML(item.text)}</span>
       ${originLabel ? `<span class="completed-item__origin">${originLabel}</span>` : ''}
     </li>
@@ -1002,52 +1006,6 @@ const getWeekStart = (date) => {
 };
 
 /**
- * Mueve las tareas completadas de días anteriores a la sección "completed"
- * Se ejecuta al cargar el Kanban para limpiar las columnas
- */
-const moveCompletedToHistory = (data, updateData) => {
-  const today = getLocalDateString();
-  const columnsToCheck = ['daily', 'weekly', 'monthly', 'quarterly'];
-  let moved = false;
-
-  // Inicializar columna completed si no existe
-  if (!data.objectives.completed) {
-    data.objectives.completed = [];
-  }
-
-  columnsToCheck.forEach(column => {
-    if (!data.objectives[column]) return;
-
-    const toMove = data.objectives[column].filter(item => {
-      if (!item.completed || !item.completedAt) return false;
-      const completedDate = getLocalDateString(new Date(item.completedAt));
-      return completedDate !== today; // Completadas de días anteriores
-    });
-
-    if (toMove.length > 0) {
-      // Guardar columna origen para referencia
-      toMove.forEach(item => {
-        item.originalColumn = column;
-      });
-
-      // Mover a completed
-      data.objectives.completed.push(...toMove);
-
-      // Eliminar de columna original
-      data.objectives[column] = data.objectives[column].filter(item =>
-        !toMove.some(m => m.id === item.id)
-      );
-
-      moved = true;
-    }
-  });
-
-  if (moved) {
-    updateData('objectives', data.objectives);
-  }
-};
-
-/**
  * Configura el toggle de expandir/colapsar sección Completadas
  */
 const setupCompletedSection = () => {
@@ -1097,9 +1055,6 @@ const setupCompletedSection = () => {
 export const init = (data, updateData) => {
   updateDataCallback = updateData;
   currentData = data;
-
-  // Mover tareas completadas de días anteriores al histórico
-  moveCompletedToHistory(data, updateData);
 
   setupDragAndDrop(data);
   setupAddButtons(data);
@@ -1424,8 +1379,8 @@ const setupAddButtons = (data) => {
  * Configura acciones de items (editar, eliminar, completar)
  */
 const setupItemActions = (data) => {
-  // Checkboxes (En Foco, Horizontes, Backlog)
-  document.querySelectorAll('.kanban-item__checkbox input, .horizon-item__checkbox input, .focus-item__checkbox input, .backlog-item__checkbox input').forEach(checkbox => {
+  // Checkboxes (En Foco, Horizontes, Backlog, Completadas)
+  document.querySelectorAll('.kanban-item__checkbox input, .horizon-item__checkbox input, .focus-item__checkbox input, .backlog-item__checkbox input, .completed-item__checkbox input').forEach(checkbox => {
     checkbox.addEventListener('change', (e) => {
       const itemId = e.target.dataset.id;
       toggleItemComplete(itemId, e.target.checked, data);
@@ -1569,41 +1524,58 @@ const saveItem = (data) => {
 
 /**
  * Marca/desmarca un item como completado
+ * Al completar: mueve automáticamente a la sección "Completadas"
+ * Al desmarcar: restaura al horizonte original
  */
 const toggleItemComplete = (itemId, completed, data) => {
   const column = findItemColumn(itemId, data.objectives);
   if (!column) return;
 
+  // Inicializar columna completed si no existe
+  if (!data.objectives.completed) {
+    data.objectives.completed = [];
+  }
+
   const item = data.objectives[column].find(i => i.id === itemId);
-  if (item) {
-    item.completed = completed;
-    item.completedAt = completed ? new Date().toISOString() : null;
+  if (!item) return;
+
+  if (completed) {
+    // === COMPLETAR: Mover automáticamente a "Completadas" ===
+    item.completed = true;
+    item.completedAt = new Date().toISOString();
+    item.originalColumn = column; // Guardar origen para posible restauración
+
+    // Eliminar del horizonte actual
+    data.objectives[column] = data.objectives[column].filter(i => i.id !== itemId);
+
+    // Añadir a completadas
+    data.objectives.completed.push(item);
+
     updateDataCallback('objectives', data.objectives);
+    showNotification('¡Completado! Movido a Completadas.', 'success');
+    location.reload();
+  } else {
+    // === DESMARCAR: Restaurar al horizonte original ===
+    item.completed = false;
+    item.completedAt = null;
 
-    // Actualizar DOM inmediatamente para feedback visual
-    const itemElement = document.querySelector(`[data-id="${itemId}"]`);
-    if (itemElement) {
-      // Clase principal del item
-      itemElement.classList.toggle('kanban-item--completed', completed);
-      itemElement.classList.toggle('focus-item--completed', completed);
-      itemElement.classList.toggle('horizon-item--completed', completed);
-
-      // Texto tachado
-      const textElement = itemElement.querySelector('.focus-item__text, .horizon-item__text, .kanban-item__text, .backlog-item__text');
-      if (textElement) {
-        textElement.classList.toggle('text--completed', completed);
+    // Si está en "completed", moverla de vuelta a su horizonte original
+    if (column === 'completed' && item.originalColumn) {
+      // Verificar que el horizonte original existe
+      if (!data.objectives[item.originalColumn]) {
+        data.objectives[item.originalColumn] = [];
       }
 
-      // Icono del checkbox (En Foco usa icono, Horizontes no)
-      const iconElement = itemElement.querySelector('.focus-item__check-icon .material-symbols-outlined');
-      if (iconElement) {
-        iconElement.textContent = completed ? 'check_circle' : 'radio_button_unchecked';
-      }
+      // Eliminar de completed
+      data.objectives.completed = data.objectives.completed.filter(i => i.id !== itemId);
+
+      // Restaurar al horizonte original
+      data.objectives[item.originalColumn].push(item);
+      showNotification(`Restaurado a ${COLUMN_NAMES[item.originalColumn]}`, 'info');
     }
 
-    if (completed) {
-      showNotification('¡Completado! Buen trabajo.', 'success');
-    }
+    updateDataCallback('objectives', data.objectives);
+    location.reload();
   }
 };
 
