@@ -1087,6 +1087,44 @@ a:hover {
   background: var(--turquesa-500);
   color: white;
 }
+/* Tarea de daily marcada para devolver a su columna original */
+.setup-2col .task-item--removing {
+  opacity: 0.7;
+  border-left: 3px solid var(--amarillo-500);
+  background: var(--amarillo-50);
+}
+
+.setup-2col .task-item--removing .task-item__check-visual {
+  background: var(--amarillo-100);
+  border-color: var(--amarillo-400);
+}
+
+/* Contador cuando excede el limite */
+.setup-2col .setup-tasks__counter--over {
+  background: var(--rosa-500);
+  color: white;
+}
+
+/* Separador entre secciones daily y weekly */
+.setup-2col .task-item__separator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  margin: var(--space-2) 0;
+  color: var(--gris-400);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.setup-2col .task-item__separator::before,
+.setup-2col .task-item__separator::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--gris-200);
+}
 
 /* Estado vacío */
 .setup-2col .setup-tasks__empty {
@@ -6626,6 +6664,36 @@ a.entry-type-btn {
   padding: 2px 6px;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
+}
+
+/* Checkbox interactivo para desmarcar */
+.completed-item__checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.completed-item__checkbox input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.completed-item__checkbox .completed-item__icon {
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.completed-item__checkbox:hover .completed-item__icon {
+  color: var(--turquesa-600);
+  transform: scale(1.1);
+}
+
+.completed-item__checkbox input:focus-visible + .completed-item__icon {
+  outline: 2px solid var(--turquesa-400);
+  outline-offset: 2px;
+  border-radius: 50%;
 }
 
 /* Botón "Ver más semanas" */
@@ -15136,3 +15204,41 @@ select,
     padding: 12px;
   }
 }
+
+/* Preview de tareas en tarjeta de proyecto */
+.project-card__tasks {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-2) 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.project-card__task {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--gris-600);
+  line-height: 1.3;
+}
+
+.project-card__task .material-symbols-outlined {
+  flex-shrink: 0;
+  color: var(--gris-400);
+  margin-top: 1px;
+}
+
+.project-card__task-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.project-card__task--more {
+  color: var(--gris-400);
+  font-style: italic;
+}
+
