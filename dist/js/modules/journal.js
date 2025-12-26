@@ -282,12 +282,18 @@ const renderEditor = (data, entry, type) => {
         <!-- Área de escritura principal -->
         <main class="editor-main">
           <form id="journal-form" class="editor-form">
-            <textarea
-              id="journal-content"
-              class="editor-textarea"
-              placeholder="Escribe aquí... Tómate tu tiempo."
-              autofocus
-            >${escapeHTML(entry?.content || '')}</textarea>
+            <div class="editor-textarea-wrapper">
+              <textarea
+                id="journal-content"
+                class="editor-textarea"
+                placeholder="Escribe aquí... Tómate tu tiempo."
+                autofocus
+              >${escapeHTML(entry?.content || '')}</textarea>
+
+              <button type="button" id="dictation-btn" class="btn-dictation" title="Dictar (voz a texto)">
+                <span class="material-symbols-outlined">mic</span>
+              </button>
+            </div>
 
             <input type="hidden" id="journal-id" value="${entry?.id || ''}">
             <input type="hidden" id="journal-type" value="${type}">
@@ -385,6 +391,9 @@ const setupEditor = (data) => {
       saveEntry(data);
     }
   });
+
+  // Dictado por voz (Speech Recognition API)
+  setupDictation(textarea);
 };
 
 /**
@@ -555,4 +564,101 @@ const setupFilters = (data) => {
       updateEntriesList(data);
     }
   });
+};
+
+/**
+ * Configura el dictado por voz (Speech Recognition API)
+ */
+const setupDictation = (textarea) => {
+  const btn = document.getElementById('dictation-btn');
+  if (!btn || !textarea) return;
+
+  // Verificar soporte de Speech Recognition
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    btn.hidden = true;
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'es-ES';
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  let isRecording = false;
+  let finalTranscript = '';
+
+  // Alternar grabación
+  btn.addEventListener('click', () => {
+    if (isRecording) {
+      recognition.stop();
+    } else {
+      finalTranscript = '';
+      recognition.start();
+    }
+  });
+
+  // Inicio de grabación
+  recognition.onstart = () => {
+    isRecording = true;
+    btn.classList.add('recording');
+    btn.querySelector('.material-symbols-outlined').textContent = 'mic_off';
+    btn.title = 'Detener dictado';
+  };
+
+  // Fin de grabación
+  recognition.onend = () => {
+    isRecording = false;
+    btn.classList.remove('recording');
+    btn.querySelector('.material-symbols-outlined').textContent = 'mic';
+    btn.title = 'Dictar (voz a texto)';
+
+    // Insertar texto final si hay algo
+    if (finalTranscript.trim()) {
+      const cursorPos = textarea.selectionStart;
+      const before = textarea.value.substring(0, cursorPos);
+      const after = textarea.value.substring(textarea.selectionEnd);
+      const separator = before && !before.endsWith(' ') && !before.endsWith('\n') ? ' ' : '';
+
+      textarea.value = before + separator + finalTranscript.trim() + after;
+      textarea.focus();
+
+      // Mover cursor al final del texto insertado
+      const newPos = cursorPos + separator.length + finalTranscript.trim().length;
+      textarea.setSelectionRange(newPos, newPos);
+
+      showNotification('Texto añadido', 'success');
+    }
+  };
+
+  // Resultados de reconocimiento
+  recognition.onresult = (event) => {
+    let interimTranscript = '';
+
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript;
+      if (event.results[i].isFinal) {
+        finalTranscript += transcript;
+      } else {
+        interimTranscript += transcript;
+      }
+    }
+  };
+
+  // Error
+  recognition.onerror = (event) => {
+    console.error('Error de reconocimiento de voz:', event.error);
+    isRecording = false;
+    btn.classList.remove('recording');
+    btn.querySelector('.material-symbols-outlined').textContent = 'mic';
+
+    if (event.error === 'not-allowed') {
+      showNotification('Permiso de micrófono denegado', 'error');
+    } else if (event.error === 'no-speech') {
+      showNotification('No se detectó voz', 'info');
+    } else {
+      showNotification('Error al dictar. Intenta de nuevo.', 'error');
+    }
+  };
 };

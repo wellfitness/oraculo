@@ -127,9 +127,14 @@ export const render = (data) => {
           <span class="material-symbols-outlined">database</span>
           Datos
         </h2>
-        <p class="section-description">
-          Tus datos se guardan localmente en tu navegador.
-        </p>
+
+        <div class="local-storage-notice">
+          <span class="material-symbols-outlined">smartphone</span>
+          <div>
+            <strong>Tus datos viven en este dispositivo</strong>
+            <p>Oráculo guarda todo localmente en tu navegador. Usa la app siempre desde el mismo dispositivo (recomendamos tu móvil principal) para mantener tu información sincronizada.</p>
+          </div>
+        </div>
 
         <div class="storage-info">
           <p>Espacio usado: ${usage.usedMB} MB de ~${usage.maxMB} MB (${usage.percentage}%)</p>
