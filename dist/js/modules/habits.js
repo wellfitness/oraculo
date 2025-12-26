@@ -7,6 +7,7 @@ import { generateId, showNotification } from '../app.js';
 import { escapeHTML } from '../utils/sanitizer.js';
 import { getReflexionDelDia, getReflexionPorPilar } from '../data/burkeman.js';
 import { getHabitosManson } from '../data/markmanson.js';
+import { generateHabitHeatmapGrid, groupHabitGridByWeeks } from '../utils/achievements-calculator.js';
 
 // Áreas de vida para priorización de hábitos (v1.5)
 const LIFE_AREAS = [
@@ -969,6 +970,8 @@ const renderActiveHabit = (habit, history) => {
         </div>
       </div>
 
+      ${renderHabitHeatmap(habit.id, history)}
+
       <div class="habit-actions">
         ${completedToday ? `
           <p class="done-message">
@@ -1017,6 +1020,14 @@ const setupModal = (data) => {
   form?.addEventListener('submit', (e) => {
     e.preventDefault();
     saveHabit(data);
+  });
+
+  // Atajo Ctrl+Enter para guardar
+  form?.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'Enter') {
+      e.preventDefault();
+      saveHabit(data);
+    }
   });
 
   modal?.addEventListener('click', (e) => {
@@ -1216,6 +1227,60 @@ const generateCalendarDays = (habit, history) => {
   }
 
   return days;
+};
+
+/**
+ * Renderiza el heatmap de consistencia del hábito (90 días)
+ */
+const renderHabitHeatmap = (habitId, history) => {
+  const grid = generateHabitHeatmapGrid(habitId, history, 90);
+  const weeks = groupHabitGridByWeeks(grid);
+
+  // Calcular estadísticas del período
+  const completedDays = grid.filter(d => d.completed).length;
+  const totalDays = grid.length;
+  const percentage = Math.round((completedDays / totalDays) * 100);
+
+  return `
+    <div class="habit-heatmap">
+      <div class="habit-heatmap__header">
+        <h4>
+          <span class="material-symbols-outlined">calendar_view_month</span>
+          Últimos 90 días
+        </h4>
+        <span class="habit-heatmap__stats">${completedDays}/${totalDays} días (${percentage}%)</span>
+      </div>
+      <div class="habit-heatmap__container">
+        <div class="habit-heatmap__grid">
+          ${weeks.map(week => `
+            <div class="heatmap-week">
+              ${week.map(day => `
+                <div class="heatmap-day ${day.completed ? 'level-4' : 'level-0'} ${day.isToday ? 'today' : ''}"
+                     title="${formatHeatmapDate(day.date)}: ${day.completed ? 'Completado' : 'No completado'}">
+                </div>
+              `).join('')}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="habit-heatmap__legend">
+        <span class="legend-item"><span class="level-0"></span> No completado</span>
+        <span class="legend-item"><span class="level-4"></span> Completado</span>
+      </div>
+    </div>
+  `;
+};
+
+/**
+ * Formatea fecha para tooltip del heatmap
+ */
+const formatHeatmapDate = (dateStr) => {
+  const date = new Date(dateStr + 'T12:00:00');
+  return date.toLocaleDateString('es-ES', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short'
+  });
 };
 
 const formatShortDate = (isoDate) => {
@@ -1942,6 +2007,14 @@ const setupAtelicModal = (data) => {
   form?.addEventListener('submit', (e) => {
     e.preventDefault();
     saveAtelicActivity(data);
+  });
+
+  // Atajo Ctrl+Enter para guardar
+  form?.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'Enter') {
+      e.preventDefault();
+      saveAtelicActivity(data);
+    }
   });
 
   modal?.addEventListener('click', (e) => {

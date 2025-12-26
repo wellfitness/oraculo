@@ -15,6 +15,7 @@ import { getHerramienta } from '../data/markmanson.js';
 
 let updateDataCallback = null;
 let currentData = null;
+let searchTimeout = null;
 
 // Tipos de entrada
 const ENTRY_TYPES = {
@@ -135,6 +136,25 @@ const renderList = (data) => {
           <cite>— Oliver Burkeman</cite>
         </blockquote>
       </header>
+
+      <!-- Filtros de búsqueda -->
+      <div class="journal-filters">
+        <div class="journal-search">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" id="journal-search-input"
+                 placeholder="Buscar en el diario..."
+                 autocomplete="off">
+          <button type="button" id="clear-search" class="btn-icon" hidden>
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <select id="journal-type-filter" class="journal-type-select">
+          <option value="">Todos los tipos</option>
+          ${Object.entries(ENTRY_TYPES).map(([type, info]) => `
+            <option value="${type}">${info.name}</option>
+          `).join('')}
+        </select>
+      </div>
 
       <section class="journal-new">
         <h2>Nueva entrada</h2>
@@ -306,6 +326,9 @@ export const init = (data, updateData) => {
 
   if (route.mode === 'new' || route.mode === 'edit') {
     setupEditor(data);
+  } else {
+    // Modo lista: configurar filtros de búsqueda
+    setupFilters(data);
   }
 };
 
@@ -414,5 +437,122 @@ const formatEntryDate = (isoDate) => {
     day: 'numeric',
     month: 'long',
     year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+  });
+};
+
+/**
+ * Filtra las entradas por texto y tipo
+ */
+const filterEntries = (entries, query, type) => {
+  return entries.filter(entry => {
+    const matchesQuery = !query ||
+      entry.content.toLowerCase().includes(query.toLowerCase());
+    const matchesType = !type || entry.type === type;
+    return matchesQuery && matchesType;
+  });
+};
+
+/**
+ * Renderiza solo la lista de entradas (para updates parciales)
+ */
+const renderEntriesListHTML = (entries) => {
+  if (entries.length === 0) {
+    return `
+      <div class="empty-state">
+        <p>No se encontraron entradas.</p>
+        <p>Prueba con otros términos de búsqueda.</p>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="entries-list">
+      ${entries.map(entry => renderEntryCard(entry)).join('')}
+    </div>
+  `;
+};
+
+/**
+ * Actualiza la lista de entradas en el DOM
+ */
+const updateEntriesList = (data) => {
+  const searchInput = document.getElementById('journal-search-input');
+  const typeFilter = document.getElementById('journal-type-filter');
+  const entriesContainer = document.querySelector('.journal-entries');
+
+  if (!entriesContainer || !searchInput || !typeFilter) return;
+
+  const query = searchInput.value.trim();
+  const type = typeFilter.value;
+
+  // Ordenar por fecha descendente
+  const allEntries = (data.journal || []).sort((a, b) =>
+    new Date(b.createdAt) - new Date(a.createdAt)
+  );
+
+  // Filtrar
+  const filteredEntries = filterEntries(allEntries, query, type);
+
+  // Actualizar contador
+  const total = allEntries.length;
+  const filtered = filteredEntries.length;
+  const countText = query || type
+    ? `${filtered} de ${total} entradas`
+    : `${total} entradas`;
+
+  // Actualizar el DOM
+  entriesContainer.innerHTML = `
+    <h2>Entradas anteriores <span class="entries-count">(${countText})</span></h2>
+    ${allEntries.length === 0 ? `
+      <div class="empty-state">
+        <p>Todavía no has escrito ninguna entrada.</p>
+        <p>Empieza con un check-in diario. Solo toma unos minutos.</p>
+      </div>
+    ` : renderEntriesListHTML(filteredEntries)}
+  `;
+
+  // Mostrar/ocultar botón de limpiar búsqueda
+  const clearBtn = document.getElementById('clear-search');
+  if (clearBtn) {
+    clearBtn.hidden = !query;
+  }
+};
+
+/**
+ * Configura los filtros de búsqueda
+ */
+const setupFilters = (data) => {
+  const searchInput = document.getElementById('journal-search-input');
+  const typeFilter = document.getElementById('journal-type-filter');
+  const clearBtn = document.getElementById('clear-search');
+
+  if (!searchInput || !typeFilter) return;
+
+  // Búsqueda con debounce
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      updateEntriesList(data);
+    }, 150);
+  });
+
+  // Filtro por tipo (inmediato)
+  typeFilter.addEventListener('change', () => {
+    updateEntriesList(data);
+  });
+
+  // Limpiar búsqueda
+  clearBtn?.addEventListener('click', () => {
+    searchInput.value = '';
+    updateEntriesList(data);
+    searchInput.focus();
+  });
+
+  // Atajo: Escape para limpiar
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      searchInput.value = '';
+      updateEntriesList(data);
+    }
   });
 };
