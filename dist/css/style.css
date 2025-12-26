@@ -1154,6 +1154,24 @@ a:hover {
   margin-top: 4px;
 }
 
+/* Separador de secciones en lista de tareas (v3) */
+.setup-tasks__separator {
+  list-style: none;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--gris-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--gris-100);
+  border-radius: var(--radius-sm);
+  margin: var(--space-2) 0;
+}
+
+.setup-tasks__separator:first-child {
+  margin-top: 0;
+}
+
 /* Footer con botones (dentro de columna derecha, arriba de la lista) */
 .setup-2col__footer {
   display: flex;

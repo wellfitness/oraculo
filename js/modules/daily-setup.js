@@ -1,10 +1,13 @@
 /**
- * Oráculo - Página de Daily Setup (v2 - Layout 2 Columnas)
+ * Oráculo - Página de Daily Setup (v3 - Solo Weekly + Daily)
  * Configuración diaria basada en la técnica de Volumen Fijo de Burkeman
+ *
+ * v3: Solo muestra tareas de weekly (para mover a daily) y daily (ya en foco)
+ * NO muestra quarterly, monthly ni backlog - esas se trabajan en Kanban
  *
  * Layout de 2 columnas:
  * - Izquierda: Tiempo + Energía + Mensaje
- * - Derecha: Lista de tareas
+ * - Derecha: Lista de tareas (daily + weekly)
  */
 
 import { showNotification, navigateTo } from '../app.js';
@@ -76,17 +79,11 @@ export const render = (data) => {
   const objectives = data?.objectives || {};
   const projects = (data?.projects || []).filter(p => p.status === 'active' || p.status === 'paused');
 
-  // Obtener todas las tareas no completadas
-  const allTasks = [];
-  ['quarterly', 'monthly', 'weekly', 'backlog'].forEach(column => {
-    (objectives[column] || []).forEach(item => {
-      if (!item.completed) {
-        allTasks.push({ ...item, column });
-      }
-    });
-  });
+  // v3: Solo tareas de weekly (para seleccionar y mover a daily)
+  // NO incluimos quarterly, monthly ni backlog - esas se trabajan en Kanban
+  const weeklyTasks = (objectives.weekly || []).filter(i => !i.completed);
 
-  // Tareas ya en daily
+  // Tareas ya en daily (en foco)
   const dailyTasks = (objectives.daily || []).filter(i => !i.completed);
 
   return `
@@ -201,7 +198,7 @@ export const render = (data) => {
           </header>
 
           <ul class="setup-tasks__list" id="tasks-list" role="list">
-            ${renderTasksList(allTasks, dailyTasks, projects)}
+            ${renderTasksList(weeklyTasks, dailyTasks, projects)}
           </ul>
         </div>
 
@@ -211,69 +208,111 @@ export const render = (data) => {
 };
 
 /**
- * Renderiza la lista de tareas
+ * Renderiza la lista de tareas (v3)
+ * Muestra: daily primero (para quitar del foco) + weekly (para añadir al foco)
  */
-const renderTasksList = (allTasks, dailyTasks, projects) => {
-  // Combinar daily (ya seleccionadas) + pendientes
-  const tasks = [
-    ...dailyTasks.map(t => ({ ...t, column: 'daily', isInDaily: true })),
-    ...allTasks
-  ];
-
-  if (tasks.length === 0) {
+const renderTasksList = (weeklyTasks, dailyTasks, projects) => {
+  // Si no hay tareas en ninguna columna
+  if (dailyTasks.length === 0 && weeklyTasks.length === 0) {
     return `
       <li class="setup-tasks__empty">
         <span class="material-symbols-outlined">inbox</span>
-        <p>No tienes tareas pendientes</p>
-        <p class="hint">Añade tareas en Horizontes</p>
+        <p>No tienes tareas para hoy</p>
+        <p class="hint">Añade tareas a "Semana" en Horizontes</p>
       </li>
     `;
   }
 
-  return tasks.map((task, index) => {
-    const project = task.projectId ? projects.find(p => p.id === task.projectId) : null;
-    const columnName = COLUMN_NAMES[task.column];
+  let html = '';
+  let index = 0;
 
-    return `
-      <li class="task-item ${task.isInDaily ? 'task-item--in-daily' : ''}"
-          data-id="${task.id}" data-column="${task.column}"
-          style="animation-delay: ${index * 0.03}s">
-        <label class="task-item__checkbox">
-          <input type="checkbox"
-                 ${task.isInDaily ? 'checked disabled' : ''}
-                 data-id="${task.id}"
-                 data-column="${task.column}">
-          <span class="task-item__check-visual">
-            <span class="material-symbols-outlined">check</span>
-          </span>
-        </label>
-        <div class="task-item__content">
-          <p class="task-item__text">${task.text}</p>
-          <div class="task-item__meta">
-            <span class="task-item__tag">${columnName}</span>
-            ${project ? `
-              <span class="task-item__tag task-item__tag--project"
-                    style="--project-color: ${project.color}">
-                ${project.name}
-              </span>
-            ` : ''}
-            ${task.isInDaily ? `
+  // 1. Tareas ya en DAILY (en foco) - marcadas, se pueden desmarcar
+  if (dailyTasks.length > 0) {
+    html += `<li class="setup-tasks__separator">En foco</li>`;
+    dailyTasks.forEach(task => {
+      const project = task.projectId ? projects.find(p => p.id === task.projectId) : null;
+      html += `
+        <li class="task-item task-item--in-daily task-item--selected"
+            data-id="${task.id}" data-column="daily"
+            style="animation-delay: ${index * 0.03}s">
+          <label class="task-item__checkbox">
+            <input type="checkbox" checked
+                   data-id="${task.id}"
+                   data-column="daily"
+                   data-action="remove">
+            <span class="task-item__check-visual">
+              <span class="material-symbols-outlined">check</span>
+            </span>
+          </label>
+          <div class="task-item__content">
+            <p class="task-item__text">${task.text}</p>
+            <div class="task-item__meta">
               <span class="task-item__tag task-item__tag--in-daily">En foco</span>
-            ` : ''}
+              ${project ? `
+                <span class="task-item__tag task-item__tag--project"
+                      style="--project-color: ${project.color}">
+                  ${project.name}
+                </span>
+              ` : ''}
+            </div>
           </div>
-        </div>
-      </li>
-    `;
-  }).join('');
+        </li>
+      `;
+      index++;
+    });
+  }
+
+  // 2. Tareas de WEEKLY (disponibles para mover a daily)
+  if (weeklyTasks.length > 0) {
+    html += `<li class="setup-tasks__separator">Esta semana</li>`;
+    weeklyTasks.forEach(task => {
+      const project = task.projectId ? projects.find(p => p.id === task.projectId) : null;
+      html += `
+        <li class="task-item"
+            data-id="${task.id}" data-column="weekly"
+            style="animation-delay: ${index * 0.03}s">
+          <label class="task-item__checkbox">
+            <input type="checkbox"
+                   data-id="${task.id}"
+                   data-column="weekly"
+                   data-action="add">
+            <span class="task-item__check-visual">
+              <span class="material-symbols-outlined">check</span>
+            </span>
+          </label>
+          <div class="task-item__content">
+            <p class="task-item__text">${task.text}</p>
+            <div class="task-item__meta">
+              <span class="task-item__tag">Semana</span>
+              ${project ? `
+                <span class="task-item__tag task-item__tag--project"
+                      style="--project-color: ${project.color}">
+                  ${project.name}
+                </span>
+              ` : ''}
+            </div>
+          </div>
+        </li>
+      `;
+      index++;
+    });
+  }
+
+  return html;
 };
 
 /**
- * Inicializa la página de Daily Setup
+ * Inicializa la página de Daily Setup (v3)
+ * Maneja movimiento bidireccional: weekly ↔ daily
  */
 export const init = (data, updateData) => {
   let selectedTime = null;
   let selectedEnergy = null;
   let currentLimit = 0;
+
+  // Arrays para tracking de movimientos (v3)
+  const tasksToMoveToDaily = [];      // IDs de tareas weekly a mover a daily
+  const tasksToRemoveFromDaily = [];  // IDs de tareas daily a devolver a weekly
 
   const helpDiv = document.getElementById('setup-help');
   const resultDiv = document.getElementById('setup-result');
@@ -282,8 +321,8 @@ export const init = (data, updateData) => {
   const btnStart = document.getElementById('btn-start-day');
   const btnSkip = document.getElementById('btn-skip');
 
-  // Obtener tareas ya en daily
-  const dailyTasks = (data.objectives?.daily || []).filter(i => !i.completed);
+  // Obtener tareas ya en daily (cuenta inicial)
+  const initialDailyCount = (data.objectives?.daily || []).filter(i => !i.completed).length;
 
   // --- Selectores de tiempo ---
   document.querySelectorAll('[data-time]').forEach(btn => {
@@ -336,32 +375,62 @@ export const init = (data, updateData) => {
     }
   };
 
-  // --- Actualizar contador de tareas ---
+  // --- Actualizar contador de tareas (v3) ---
   const updateCounter = () => {
-    const selected = document.querySelectorAll('.task-item input:checked:not([disabled])').length;
-    const slotsAvailable = Math.max(0, currentLimit - dailyTasks.length);
-    tasksCounter.textContent = `${selected}/${slotsAvailable}`;
+    // Calcular cuántas tareas estarán en daily después de los cambios
+    const finalDailyCount = initialDailyCount
+      + tasksToMoveToDaily.length
+      - tasksToRemoveFromDaily.length;
 
-    if (selected >= slotsAvailable && slotsAvailable > 0) {
+    tasksCounter.textContent = `${finalDailyCount}/${currentLimit || '?'}`;
+
+    if (finalDailyCount >= currentLimit && currentLimit > 0) {
       tasksCounter.classList.add('setup-tasks__counter--full');
     } else {
       tasksCounter.classList.remove('setup-tasks__counter--full');
     }
   };
 
-  // --- Checkboxes de tareas ---
-  document.querySelectorAll('.task-item input[type="checkbox"]:not([disabled])').forEach(cb => {
+  // --- Checkboxes de tareas (v3: bidireccional) ---
+  document.querySelectorAll('.task-item input[type="checkbox"]').forEach(cb => {
     cb.addEventListener('change', () => {
       const item = cb.closest('.task-item');
-      const slotsAvailable = Math.max(0, currentLimit - dailyTasks.length);
+      const taskId = cb.dataset.id;
+      const action = cb.dataset.action; // 'add' o 'remove'
 
-      // Verificar límite
-      if (cb.checked) {
-        const selected = document.querySelectorAll('.task-item input:checked:not([disabled])').length;
-        if (selected > slotsAvailable) {
-          cb.checked = false;
-          showNotification(`Solo puedes elegir ${slotsAvailable} tarea${slotsAvailable > 1 ? 's' : ''} más`, 'warning');
-          return;
+      if (action === 'add') {
+        // Tarea de weekly → quiere añadir a daily
+        if (cb.checked) {
+          // Verificar límite antes de añadir
+          const finalDailyCount = initialDailyCount
+            + tasksToMoveToDaily.length
+            - tasksToRemoveFromDaily.length;
+
+          if (finalDailyCount >= currentLimit && currentLimit > 0) {
+            cb.checked = false;
+            showNotification(`Has alcanzado el límite de ${currentLimit} tarea${currentLimit > 1 ? 's' : ''}`, 'warning');
+            return;
+          }
+          // Añadir a la lista de tareas a mover
+          if (!tasksToMoveToDaily.includes(taskId)) {
+            tasksToMoveToDaily.push(taskId);
+          }
+        } else {
+          // Desmarcó → quitar de la lista
+          const idx = tasksToMoveToDaily.indexOf(taskId);
+          if (idx > -1) tasksToMoveToDaily.splice(idx, 1);
+        }
+      } else if (action === 'remove') {
+        // Tarea de daily → quiere quitar del foco
+        if (!cb.checked) {
+          // Añadir a la lista de tareas a devolver a weekly
+          if (!tasksToRemoveFromDaily.includes(taskId)) {
+            tasksToRemoveFromDaily.push(taskId);
+          }
+        } else {
+          // Volvió a marcar → quitar de la lista
+          const idx = tasksToRemoveFromDaily.indexOf(taskId);
+          if (idx > -1) tasksToRemoveFromDaily.splice(idx, 1);
         }
       }
 
@@ -385,7 +454,7 @@ export const init = (data, updateData) => {
     navigateTo('dashboard');
   });
 
-  // --- Confirmar setup ---
+  // --- Confirmar setup (v3: movimiento bidireccional) ---
   btnStart?.addEventListener('click', () => {
     if (!selectedTime || !selectedEnergy) {
       showNotification('Selecciona tiempo y energía', 'warning');
@@ -393,37 +462,45 @@ export const init = (data, updateData) => {
     }
 
     const today = getLocalDateString();
+    let addedCount = 0;
+    let removedCount = 0;
 
-    // Mover tareas seleccionadas a daily
-    const selectedTasks = Array.from(
-      document.querySelectorAll('.task-item input:checked:not([disabled])')
-    ).map(cb => ({
-      id: cb.dataset.id,
-      column: cb.dataset.column
-    }));
-
-    let movedCount = 0;
-    selectedTasks.forEach(({ id, column }) => {
-      if (column === 'daily') return;
-
-      const sourceItems = data.objectives[column];
-      if (!sourceItems) return;
-
-      const itemIndex = sourceItems.findIndex(i => i.id === id);
+    // 1. Mover tareas de weekly → daily
+    tasksToMoveToDaily.forEach(taskId => {
+      const weeklyItems = data.objectives.weekly || [];
+      const itemIndex = weeklyItems.findIndex(i => i.id === taskId);
       if (itemIndex === -1) return;
 
-      const [item] = sourceItems.splice(itemIndex, 1);
+      const [item] = weeklyItems.splice(itemIndex, 1);
       item.movedAt = new Date().toISOString();
-      item.movedFrom = column;
+      item.movedFrom = 'weekly';
 
       if (!data.objectives.daily) {
         data.objectives.daily = [];
       }
       data.objectives.daily.push(item);
-      movedCount++;
+      addedCount++;
     });
 
-    if (movedCount > 0) {
+    // 2. Devolver tareas de daily → weekly
+    tasksToRemoveFromDaily.forEach(taskId => {
+      const dailyItems = data.objectives.daily || [];
+      const itemIndex = dailyItems.findIndex(i => i.id === taskId);
+      if (itemIndex === -1) return;
+
+      const [item] = dailyItems.splice(itemIndex, 1);
+      item.removedFromDailyAt = new Date().toISOString();
+      // Devolver a weekly (o a su columna original si la tiene)
+      const targetColumn = item.movedFrom || 'weekly';
+      if (!data.objectives[targetColumn]) {
+        data.objectives[targetColumn] = [];
+      }
+      data.objectives[targetColumn].push(item);
+      removedCount++;
+    });
+
+    // Guardar cambios en objectives si hubo movimientos
+    if (addedCount > 0 || removedCount > 0) {
       updateData('objectives', data.objectives);
     }
 
@@ -446,9 +523,13 @@ export const init = (data, updateData) => {
     updateData('dailySetup', data.dailySetup);
 
     // Mensaje y navegar
-    const tasksMsg = movedCount > 0
-      ? ` Has elegido ${movedCount} tarea${movedCount > 1 ? 's' : ''}.`
-      : '';
+    let tasksMsg = '';
+    if (addedCount > 0) {
+      tasksMsg += ` +${addedCount} tarea${addedCount > 1 ? 's' : ''} en foco.`;
+    }
+    if (removedCount > 0) {
+      tasksMsg += ` -${removedCount} devuelta${removedCount > 1 ? 's' : ''} a semana.`;
+    }
 
     showNotification(`¡Día configurado!${tasksMsg}`, 'success');
     navigateTo('dashboard');
