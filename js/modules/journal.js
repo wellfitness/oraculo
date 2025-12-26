@@ -12,6 +12,7 @@ import {
   getZoomingOut
 } from '../data/burkeman.js';
 import { getHerramienta } from '../data/markmanson.js';
+import { getSpeechHandler, isSpeechSupported } from '../utils/speech-handler.js';
 
 let updateDataCallback = null;
 let currentData = null;
@@ -290,9 +291,16 @@ const renderEditor = (data, entry, type) => {
                 autofocus
               >${escapeHTML(entry?.content || '')}</textarea>
 
-              <button type="button" id="dictation-btn" class="btn-dictation" title="Dictar (voz a texto)">
-                <span class="material-symbols-outlined">mic</span>
-              </button>
+              <!-- Dictado por voz -->
+              <div class="dictation-container" ${isSpeechSupported() ? '' : 'hidden'}>
+                <div class="dictation-feedback hidden" id="dictation-feedback">
+                  <span class="dictation-status">Escuchando...</span>
+                  <p class="dictation-interim" id="dictation-interim"></p>
+                </div>
+                <button type="button" id="dictation-btn" class="btn-dictation" title="Dictar (voz a texto)">
+                  <span class="material-symbols-outlined">mic</span>
+                </button>
+              </div>
             </div>
 
             <input type="hidden" id="journal-id" value="${entry?.id || ''}">
@@ -567,98 +575,64 @@ const setupFilters = (data) => {
 };
 
 /**
- * Configura el dictado por voz (Speech Recognition API)
+ * Configura el dictado por voz usando el speech handler compartido
  */
 const setupDictation = (textarea) => {
   const btn = document.getElementById('dictation-btn');
-  if (!btn || !textarea) return;
+  const feedback = document.getElementById('dictation-feedback');
+  const interimEl = document.getElementById('dictation-interim');
 
-  // Verificar soporte de Speech Recognition
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!btn || !textarea || !isSpeechSupported()) return;
 
-  if (!SpeechRecognition) {
-    btn.hidden = true;
-    return;
-  }
+  const speechHandler = getSpeechHandler();
 
-  const recognition = new SpeechRecognition();
-  recognition.lang = 'es-ES';
-  recognition.continuous = true;
-  recognition.interimResults = true;
-
-  let isRecording = false;
-  let finalTranscript = '';
-
-  // Alternar grabación
+  // Click en botón: iniciar/detener
   btn.addEventListener('click', () => {
-    if (isRecording) {
-      recognition.stop();
+    if (speechHandler.isListening) {
+      speechHandler.stop();
     } else {
-      finalTranscript = '';
-      recognition.start();
+      speechHandler.start();
     }
   });
 
-  // Inicio de grabación
-  recognition.onstart = () => {
-    isRecording = true;
+  // Evento: inicio de grabación
+  speechHandler.on('start', () => {
     btn.classList.add('recording');
-    btn.querySelector('.material-symbols-outlined').textContent = 'mic_off';
+    btn.querySelector('.material-symbols-outlined').textContent = 'stop';
     btn.title = 'Detener dictado';
-  };
+    feedback?.classList.remove('hidden');
+    if (interimEl) interimEl.textContent = '';
+  });
 
-  // Fin de grabación
-  recognition.onend = () => {
-    isRecording = false;
+  // Evento: resultados (interim y final)
+  speechHandler.on('result', ({ interim, final }) => {
+    // Mostrar texto provisional mientras habla
+    if (interim && interimEl) {
+      interimEl.textContent = interim;
+    }
+
+    // Insertar texto final en el textarea
+    if (final) {
+      speechHandler.insertAtCursor(textarea, final);
+      if (interimEl) interimEl.textContent = '';
+    }
+  });
+
+  // Evento: fin de grabación
+  speechHandler.on('end', () => {
     btn.classList.remove('recording');
     btn.querySelector('.material-symbols-outlined').textContent = 'mic';
     btn.title = 'Dictar (voz a texto)';
+    feedback?.classList.add('hidden');
+    if (interimEl) interimEl.textContent = '';
+  });
 
-    // Insertar texto final si hay algo
-    if (finalTranscript.trim()) {
-      const cursorPos = textarea.selectionStart;
-      const before = textarea.value.substring(0, cursorPos);
-      const after = textarea.value.substring(textarea.selectionEnd);
-      const separator = before && !before.endsWith(' ') && !before.endsWith('\n') ? ' ' : '';
-
-      textarea.value = before + separator + finalTranscript.trim() + after;
-      textarea.focus();
-
-      // Mover cursor al final del texto insertado
-      const newPos = cursorPos + separator.length + finalTranscript.trim().length;
-      textarea.setSelectionRange(newPos, newPos);
-
-      showNotification('Texto añadido', 'success');
-    }
-  };
-
-  // Resultados de reconocimiento
-  recognition.onresult = (event) => {
-    let interimTranscript = '';
-
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const transcript = event.results[i][0].transcript;
-      if (event.results[i].isFinal) {
-        finalTranscript += transcript;
-      } else {
-        interimTranscript += transcript;
-      }
-    }
-  };
-
-  // Error
-  recognition.onerror = (event) => {
-    console.error('Error de reconocimiento de voz:', event.error);
-    isRecording = false;
+  // Evento: error
+  speechHandler.on('error', ({ message }) => {
     btn.classList.remove('recording');
     btn.querySelector('.material-symbols-outlined').textContent = 'mic';
-
-    if (event.error === 'not-allowed') {
-      showNotification('Permiso de micrófono denegado', 'error');
-    } else if (event.error === 'no-speech') {
-      showNotification('No se detectó voz', 'info');
-    } else {
-      showNotification('Error al dictar. Intenta de nuevo.', 'error');
-    }
-  };
+    btn.title = 'Dictar (voz a texto)';
+    feedback?.classList.add('hidden');
+    showNotification(message, 'warning');
+  });
 };
