@@ -23,19 +23,19 @@ const COLUMN_NAMES = {
   daily: 'Hoy'
 };
 
-// Opciones de tiempo disponible
+// Opciones de tiempo disponible - Mejorado v1.7 (iconos descriptivos + sublabels)
 const TIME_OPTIONS = [
-  { value: '2h', label: '2h', icon: 'hourglass_empty', limit: 1 },
-  { value: '4h', label: '4h', icon: 'hourglass_bottom', limit: 2 },
-  { value: '6h', label: '6h', icon: 'hourglass_top', limit: 3 },
-  { value: 'full', label: 'Full', icon: 'wb_sunny', limit: 3 }
+  { value: '2h', label: '2h', sublabel: '1 tarea', icon: 'timer', limit: 1 },
+  { value: '4h', label: '4h', sublabel: '2 tareas', icon: 'schedule', limit: 2 },
+  { value: '6h', label: '6h', sublabel: '3 tareas', icon: 'hourglass_top', limit: 3 },
+  { value: 'full', label: 'Día', sublabel: '3 tareas', icon: 'wb_sunny', limit: 3 }
 ];
 
-// Opciones de nivel de energía
+// Opciones de nivel de energía - Mejorado v1.7 (sublabels con modificador)
 const ENERGY_OPTIONS = [
-  { value: 'low', label: 'Baja', icon: 'battery_1_bar', modifier: -1 },
-  { value: 'medium', label: 'Media', icon: 'battery_4_bar', modifier: 0 },
-  { value: 'high', label: 'Alta', icon: 'battery_full', modifier: 1 }
+  { value: 'low', label: 'Baja', sublabel: '-1 tarea', icon: 'battery_1_bar', modifier: -1 },
+  { value: 'medium', label: 'Media', sublabel: 'normal', icon: 'battery_4_bar', modifier: 0 },
+  { value: 'high', label: 'Alta', sublabel: '+1 tarea', icon: 'battery_full', modifier: 1 }
 ];
 
 /**
@@ -108,10 +108,11 @@ export const renderDailySetupModal = () => {
                     class="selector-chip"
                     data-time="${opt.value}"
                     aria-pressed="false"
-                    title="${opt.label}"
+                    title="${opt.label} - ${opt.sublabel}"
                   >
                     <span class="material-symbols-outlined selector-chip__icon">${opt.icon}</span>
                     <span class="selector-chip__label">${opt.label}</span>
+                      <span class="selector-chip__sublabel">${opt.sublabel}</span>
                   </button>
                 `).join('')}
               </div>
@@ -130,10 +131,11 @@ export const renderDailySetupModal = () => {
                     class="selector-chip"
                     data-energy="${opt.value}"
                     aria-pressed="false"
-                    title="${opt.label}"
+                    title="${opt.label} - ${opt.sublabel}"
                   >
                     <span class="material-symbols-outlined selector-chip__icon">${opt.icon}</span>
                     <span class="selector-chip__label">${opt.label}</span>
+                      <span class="selector-chip__sublabel">${opt.sublabel}</span>
                   </button>
                 `).join('')}
               </div>
