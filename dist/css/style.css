@@ -2779,11 +2779,55 @@ a:hover {
   flex: 1;
 }
 
-/* Botón de dictado (voz a texto) */
-.btn-dictation {
+/* Contenedor de dictado */
+.dictation-container {
   position: absolute;
   bottom: var(--space-2);
   right: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  z-index: 1;
+}
+
+.dictation-container[hidden] {
+  display: none;
+}
+
+/* Feedback visual del dictado (texto en tiempo real) */
+.dictation-feedback {
+  background: var(--gris-800);
+  color: white;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  max-width: 280px;
+  box-shadow: var(--shadow-lg);
+  animation: fadeIn 0.2s ease;
+}
+
+.dictation-feedback.hidden {
+  display: none;
+}
+
+.dictation-status {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--turquesa-300);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dictation-interim {
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  margin: 0;
+  min-height: 1.4em;
+}
+
+/* Botón de dictado (voz a texto) */
+.btn-dictation {
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -2796,7 +2840,7 @@ a:hover {
   justify-content: center;
   box-shadow: var(--shadow-md);
   transition: all var(--transition-fast);
-  z-index: 1;
+  flex-shrink: 0;
 }
 
 .btn-dictation:hover {
@@ -2822,9 +2866,9 @@ a:hover {
   50% { box-shadow: 0 0 0 12px rgba(225, 29, 72, 0); }
 }
 
-/* Ocultar si no soportado */
-.btn-dictation[hidden] {
-  display: none;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .editor-actions {
