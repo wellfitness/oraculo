@@ -7017,17 +7017,18 @@ a.entry-type-btn {
   }
 
   .kanban-sidebar {
+    grid-column: 1;
     grid-row: auto;
     position: static;
     max-height: none;
     order: 1; /* Al PRINCIPIO en móvil (captura rápida) */
   }
 
-  /* Las 5 secciones del grid en orden móvil */
-  .kanban-section--focus { order: 2; }
-  .kanban-section--weekly { order: 3; }
-  .kanban-section--monthly { order: 4; }
-  .kanban-section--quarterly { order: 5; }
+  /* Las 5 secciones del grid en orden móvil - TODAS con grid-column: 1 */
+  .kanban-section--focus { order: 2; grid-column: 1; }
+  .kanban-section--weekly { order: 3; grid-column: 1; }
+  .kanban-section--monthly { order: 4; grid-column: 1; }
+  .kanban-section--quarterly { order: 5; grid-column: 1; }
   .kanban-section--completed { order: 6; grid-column: 1; }
 
   .horizons-grid {
