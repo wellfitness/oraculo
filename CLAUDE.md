@@ -59,11 +59,11 @@ Usuario → auth.html → Magic Link → auth-callback.html → app.html
 
 ```
 js/
-├── config.js                 # SUPABASE_URL, SUPABASE_ANON_KEY, AUTH_REDIRECT_URL
+├── config.js                 # SUPABASE_URL, SUPABASE_ANON_KEY, AUTH_REDIRECT_URL, ALLOWED_EMAILS
 ├── storage-hybrid.js         # Reemplaza storage.js - combina localStorage + Supabase
 └── supabase/
     ├── client.js             # getSupabase(), isAuthenticated(), getCurrentUser()
-    ├── auth.js               # Funciones de autenticación
+    ├── auth.js               # Funciones de autenticación + verificación lista blanca
     ├── sync.js               # loadFromSupabase(), saveToSupabase(), resolveConflict()
     └── connection.js         # isOnline(), markPendingSync(), initConnectionMonitor()
 ```
@@ -79,13 +79,27 @@ js/
 5. Si gana Supabase, dispara evento `data-synced-from-cloud`
 6. `app.js` escucha ese evento y re-renderiza la vista
 
-### Usuario Autorizado
+### Usuario Autorizado y Seguridad
 
 **ÚNICO USUARIO**: `movimientofuncional.net@gmail.com`
 
-- La autenticación usa `shouldCreateUser: false` (no permite registros)
-- El usuario fue creado manualmente en Supabase
-- User ID: `ef2ca78b-7d85-44df-8e92-56ef89fd19c2`
+**Capas de seguridad implementadas:**
+
+1. **Lista blanca en frontend** (`config.js`):
+   - `ALLOWED_EMAILS` contiene los emails autorizados
+   - `auth.js` verifica el email ANTES de llamar a Supabase
+   - Emails no autorizados reciben error "Acceso restringido"
+
+2. **Supabase Auth**:
+   - `shouldCreateUser: false` (no permite crear usuarios nuevos)
+   - El usuario fue creado manualmente en Supabase
+   - User ID: `ef2ca78b-7d85-44df-8e92-56ef89fd19c2`
+
+3. **Row Level Security (RLS)**:
+   - Aunque alguien se autenticase, solo vería sus propios datos
+   - Tabla `user_data` filtrada por `user_id`
+
+**Usuarios no autorizados** usan la app con localStorage únicamente (sin sincronización cloud).
 
 ### Proyecto Supabase
 
