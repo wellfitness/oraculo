@@ -1,18 +1,38 @@
 /**
  * Oráculo Cloud - Módulo de Autenticación
  *
- * Maneja Magic Link login para usuario único.
+ * Maneja Magic Link login para usuario único autorizado.
+ * Solo los emails en ALLOWED_EMAILS pueden acceder a Supabase.
  */
 
 import { getSupabase } from './client.js';
-import { AUTH_REDIRECT_URL } from '../config.js';
+import { AUTH_REDIRECT_URL, ALLOWED_EMAILS } from '../config.js';
 
 /**
- * Envía Magic Link al email
+ * Verifica si un email está autorizado para usar Supabase
+ * @param {string} email
+ * @returns {boolean}
+ */
+const isEmailAllowed = (email) => {
+  const normalizedEmail = email.toLowerCase().trim();
+  return ALLOWED_EMAILS.some(allowed => allowed.toLowerCase() === normalizedEmail);
+};
+
+/**
+ * Envía Magic Link al email (solo si está autorizado)
  * @param {string} email
  * @returns {Promise<{success: boolean, error?: string}>}
  */
 export const sendMagicLink = async (email) => {
+  // Verificar lista blanca ANTES de llamar a Supabase
+  if (!isEmailAllowed(email)) {
+    console.warn('[Auth] Intento de acceso no autorizado:', email);
+    return {
+      success: false,
+      error: 'Acceso restringido. Este email no tiene permisos de sincronización.'
+    };
+  }
+
   const supabase = getSupabase();
   if (!supabase) {
     return { success: false, error: 'Supabase no disponible' };
@@ -23,7 +43,7 @@ export const sendMagicLink = async (email) => {
       email,
       options: {
         emailRedirectTo: AUTH_REDIRECT_URL,
-        shouldCreateUser: true
+        shouldCreateUser: false  // No crear usuarios nuevos - solo el usuario existente
       }
     });
 
