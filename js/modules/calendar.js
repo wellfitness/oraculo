@@ -394,6 +394,14 @@ const setupEventModal = (data) => {
     saveEvent(data);
   });
 
+  // Atajo Ctrl+Enter para guardar
+  form?.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'Enter') {
+      e.preventDefault();
+      saveEvent(data);
+    }
+  });
+
   modal?.addEventListener('click', (e) => {
     if (e.target === modal) modal.close();
   });
@@ -470,6 +478,14 @@ const setupRecurringModal = (data) => {
   form?.addEventListener('submit', (e) => {
     e.preventDefault();
     saveRecurring(data);
+  });
+
+  // Atajo Ctrl+Enter para guardar
+  form?.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'Enter') {
+      e.preventDefault();
+      saveRecurring(data);
+    }
   });
 
   modal?.addEventListener('click', (e) => {

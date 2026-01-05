@@ -96,6 +96,9 @@ export const render = (data) => {
 
           <!-- Header compacto -->
           <header class="setup-header">
+            <button type="button" class="setup-close-btn" id="btn-close-setup" title="Omitir por hoy">
+              <span class="material-symbols-outlined">close</span>
+            </button>
             <span class="material-symbols-outlined setup-icon">wb_twilight</span>
             <h1 class="setup-title">${getGreeting()}</h1>
             <p class="setup-subtitle">¿Cómo es tu día hoy?</p>
@@ -322,6 +325,7 @@ export const init = (data, updateData) => {
   const tasksCounter = document.getElementById('tasks-counter');
   const btnStart = document.getElementById('btn-start-day');
   const btnSkip = document.getElementById('btn-skip');
+  const btnCloseSetup = document.getElementById('btn-close-setup');
 
   // Obtener tareas ya en daily (cuenta inicial)
   const initialDailyCount = (data.objectives?.daily || []).filter(i => !i.completed).length;
@@ -441,9 +445,9 @@ export const init = (data, updateData) => {
     });
   });
 
-  // --- Omitir setup ---
-  btnSkip?.addEventListener('click', (e) => {
-    e.preventDefault();
+  // --- Omitir setup (botón texto y botón X) ---
+  const handleSkipSetup = (e) => {
+    e?.preventDefault();
     const today = getLocalDateString();
 
     data.dailySetup = {
@@ -454,7 +458,10 @@ export const init = (data, updateData) => {
 
     updateData('dailySetup', data.dailySetup);
     navigateTo('dashboard');
-  });
+  };
+
+  btnSkip?.addEventListener('click', handleSkipSetup);
+  btnCloseSetup?.addEventListener('click', handleSkipSetup);
 
   // --- Confirmar setup (v3: movimiento bidireccional) ---
   btnStart?.addEventListener('click', () => {
