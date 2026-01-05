@@ -192,6 +192,14 @@ export const init = (data, updateData) => {
     handleSaveValue(data);
   });
 
+  // Atajo Ctrl+Enter para guardar
+  form?.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveValue(data);
+    }
+  });
+
   // Cerrar modal con click fuera
   modal?.addEventListener('click', (e) => {
     if (e.target === modal) modal.close();

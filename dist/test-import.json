@@ -1,0 +1,73 @@
+{
+  "version": "1.5",
+  "createdAt": "2025-12-23T10:00:00.000Z",
+  "updatedAt": "2025-12-23T12:00:00.000Z",
+  "values": [
+    {
+      "id": "test-value-1",
+      "name": "Salud",
+      "description": "Cuidar mi cuerpo y mente",
+      "icon": "favorite",
+      "createdAt": "2025-12-23T10:00:00.000Z"
+    }
+  ],
+  "objectives": {
+    "backlog": [
+      {
+        "id": "test-task-1",
+        "title": "IMPORTACIÓN EXITOSA - Tarea de prueba",
+        "completed": false,
+        "createdAt": "2025-12-23T10:00:00.000Z"
+      }
+    ],
+    "quarterly": [],
+    "monthly": [],
+    "weekly": [],
+    "daily": []
+  },
+  "habits": {
+    "active": null,
+    "graduated": [],
+    "history": [],
+    "audit": {
+      "activities": [],
+      "lastAuditAt": null
+    }
+  },
+  "calendar": {
+    "events": [],
+    "recurring": []
+  },
+  "journal": [],
+  "projects": [],
+  "settings": {
+    "storageType": "localStorage",
+    "notificationsEnabled": false,
+    "theme": "light"
+  },
+  "notebook": {
+    "year": 2025,
+    "startedAt": "2025-12-23T10:00:00.000Z",
+    "name": "Cuaderno Test Import"
+  },
+  "archivedNotebooks": [],
+  "dailySetup": {
+    "date": null,
+    "availableTime": null,
+    "energyLevel": null,
+    "dailyLimit": 3,
+    "rocaPrincipal": null,
+    "setupAt": null,
+    "potentialObstacle": null,
+    "contingencyPlan": null
+  },
+  "spontaneousAchievements": [],
+  "atelicActivities": [],
+  "burkemanSettings": {
+    "showReflexiones": true,
+    "menuModeDefault": false,
+    "dailySetupEnabled": true,
+    "atelicReminder": true,
+    "askValueOnPriority": false
+  }
+}

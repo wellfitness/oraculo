@@ -642,6 +642,14 @@ const setupProjectModal = (data, modal) => {
     e.preventDefault();
     saveProject(data);
   });
+
+  // Atajo Ctrl+Enter para guardar
+  form?.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'Enter') {
+      e.preventDefault();
+      saveProject(data);
+    }
+  });
 };
 
 /**

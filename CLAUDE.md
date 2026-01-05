@@ -21,11 +21,90 @@ Sistema de gestión personal consciente para mujeres +40 que quieren organizarse
 
 ```
 HTML5 + CSS3 + JavaScript (vanilla ES6 modules)
-Almacenamiento: localStorage (versión 1.5)
+Almacenamiento: localStorage + Supabase (híbrido, offline-first)
+Autenticación: Supabase Auth (Magic Link)
 Iconos: Material Symbols Outlined (Google Fonts CDN)
-Sin backend, sin dependencias externas
-Ejecutable directamente en navegador
+CDN: supabase-js@2 (cargado en app.html)
+Deploy: FTP a Hostinger
 ```
+
+---
+
+## Integración Supabase
+
+### Arquitectura Offline-First
+
+```
+Usuario → auth.html → Magic Link → auth-callback.html → app.html
+                                                            ↓
+                                               loadData() [storage-hybrid.js]
+                                                            ↓
+                                    ┌───────────────────────┴───────────────────────┐
+                                    ↓                                               ↓
+                            localStorage                                      Supabase
+                            (inmediato)                                    (background)
+                                    ↓                                               ↓
+                            Mostrar UI                              syncWithSupabaseInBackground()
+                                                                                    ↓
+                                                                    resolveConflict() → isEmptyData()
+                                                                                    ↓
+                                                                    Si remote > local o local vacío
+                                                                                    ↓
+                                                                    dispatchEvent('data-synced-from-cloud')
+                                                                                    ↓
+                                                                    app.js re-renderiza vista
+```
+
+### Archivos de Supabase
+
+```
+js/
+├── config.js                 # SUPABASE_URL, SUPABASE_ANON_KEY, AUTH_REDIRECT_URL
+├── storage-hybrid.js         # Reemplaza storage.js - combina localStorage + Supabase
+└── supabase/
+    ├── client.js             # getSupabase(), isAuthenticated(), getCurrentUser()
+    ├── auth.js               # Funciones de autenticación
+    ├── sync.js               # loadFromSupabase(), saveToSupabase(), resolveConflict()
+    └── connection.js         # isOnline(), markPendingSync(), initConnectionMonitor()
+```
+
+### Flujo de Sincronización
+
+1. **loadData()** en `storage-hybrid.js` es SÍNCRONA (retorna localStorage inmediatamente)
+2. En background, `syncWithSupabaseInBackground()` verifica autenticación
+3. Si hay sesión, carga datos de Supabase con `loadFromSupabase()`
+4. `resolveConflict()` decide qué datos usar:
+   - Si localStorage está vacío → usar Supabase (primera sync)
+   - Si no, el más reciente gana (Last-Write-Wins)
+5. Si gana Supabase, dispara evento `data-synced-from-cloud`
+6. `app.js` escucha ese evento y re-renderiza la vista
+
+### Usuario Autorizado
+
+**ÚNICO USUARIO**: `movimientofuncional.net@gmail.com`
+
+- La autenticación usa `shouldCreateUser: false` (no permite registros)
+- El usuario fue creado manualmente en Supabase
+- User ID: `ef2ca78b-7d85-44df-8e92-56ef89fd19c2`
+
+### Proyecto Supabase
+
+- **Project ID**: `plbhgkansnyvmnqvpxrh`
+- **URL**: `https://plbhgkansnyvmnqvpxrh.supabase.co`
+- **Tabla**: `user_data` (user_id, data JSONB, version, updated_at)
+- **RLS**: Habilitado (usuarios solo ven sus datos)
+
+### Deploy
+
+```bash
+# Desde d:/SOFTWARE/oraculo/
+node deploy.mjs
+```
+
+Despliega a Hostinger via FTP:
+- Host: `ftp.oraculo.movimientofuncional.app`
+- Usuario: `u259555594.crudomele`
+- Credenciales en `.env`
 
 ### Desarrollo Local
 
@@ -66,13 +145,25 @@ cp dist/js/archivo.js js/
 
 ```
 oraculo/
-├── index.html              # App principal (SPA)
+├── index.html              # Landing page
+├── app.html                # App principal (SPA)
+├── auth.html               # Página de login (Magic Link)
+├── auth-callback.html      # Procesa token de Magic Link
 ├── favicon.svg             # Favicon vectorial
+├── deploy.mjs              # Script de deploy FTP a Hostinger
+├── .env                    # Credenciales FTP (no commitear)
 ├── css/
 │   └── style.css           # Estilos con design system (~3100 líneas)
 ├── js/
-│   ├── app.js              # Coordinador principal y router
-│   ├── storage.js          # Gestión de localStorage + archivado anual
+│   ├── app.js              # Coordinador principal + listener data-synced-from-cloud
+│   ├── config.js           # ⭐ Credenciales Supabase
+│   ├── storage-hybrid.js   # ⭐ localStorage + Supabase (reemplaza storage.js)
+│   ├── storage.js          # Solo localStorage (legacy, no usado)
+│   ├── supabase/           # ⭐ Módulos de Supabase
+│   │   ├── client.js       # getSupabase(), isAuthenticated()
+│   │   ├── auth.js         # Funciones de auth
+│   │   ├── sync.js         # loadFromSupabase(), resolveConflict(), isEmptyData()
+│   │   └── connection.js   # isOnline(), monitor de conexión
 │   ├── modules/
 │   │   ├── dashboard.js    # Vista inicial + logros de hoy + Burkeman
 │   │   ├── values.js       # Brújula de valores
@@ -93,9 +184,9 @@ oraculo/
 │       ├── dates.js        # Utilidades de fechas
 │       ├── ics.js          # Generador de archivos .ics
 │       └── achievements-calculator.js  # Cálculos de estadísticas
-├── landing/                # Landing page (próximamente)
-│   ├── index.html
-│   └── style.css
+├── landing/                # Landing page assets
+│   └── images/
+├── dist/                   # ⭐ Archivos para producción (copiar aquí antes de deploy)
 ├── CLAUDE.md               # Este archivo
 └── design-system/          # Sistema de diseño (existente)
 ```
@@ -579,3 +670,51 @@ Ejemplos:
 - NO hacer la app "más productiva" - es para priorizar, no para hacer más
 - NO usar emojis en código (usar Material Symbols)
 - NO saltarse los límites - son parte de la filosofía
+
+---
+
+## Troubleshooting Supabase
+
+### "Los datos no cargan después del login"
+
+**Causa**: El evento `data-synced-from-cloud` no se procesa.
+
+**Verificar**:
+1. `app.js` debe tener listener para `data-synced-from-cloud`
+2. `storage-hybrid.js` debe disparar el evento cuando remote gana
+
+### "Los datos de Supabase se sobrescribieron con vacíos"
+
+**Causa**: localStorage tenía datos por defecto (vacíos) con timestamp reciente.
+
+**Solución implementada**: La función `isEmptyData()` en `sync.js` detecta datos vacíos y prefiere Supabase.
+
+**Para restaurar datos**: Usar el backup JSON y ejecutar UPDATE en Supabase.
+
+### "Magic Link no se envía"
+
+**Causas posibles**:
+1. Usuario no existe en Supabase → Crear manualmente con SQL
+2. Campos NULL en auth.users → Usar COALESCE para poner ''
+3. Email en spam
+
+### "Error: Database error finding user"
+
+**Causa**: Usuario creado manualmente tiene campos NULL que deberían ser ''.
+
+**Fix**:
+```sql
+UPDATE auth.users SET
+  email_change = COALESCE(email_change, ''),
+  email_change_token_new = COALESCE(email_change_token_new, '')
+WHERE email = 'movimientofuncional.net@gmail.com';
+```
+
+### Limpiar localStorage (Firefox persistente)
+
+```javascript
+localStorage.clear();
+caches.keys().then(k => k.forEach(c => caches.delete(c)));
+navigator.serviceWorker.getRegistrations().then(r => r.forEach(sw => sw.unregister()));
+location.reload();
+```

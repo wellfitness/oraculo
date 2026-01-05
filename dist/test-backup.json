@@ -1,0 +1,39 @@
+{
+  "version": "1.5",
+  "createdAt": "2025-12-20T10:00:00.000Z",
+  "updatedAt": "2025-12-23T10:00:00.000Z",
+  "values": [],
+  "objectives": {
+    "backlog": [],
+    "quarterly": [],
+    "monthly": [],
+    "weekly": [],
+    "daily": []
+  },
+  "habits": {
+    "active": null,
+    "graduated": [],
+    "history": [],
+    "audit": {
+      "activities": [],
+      "lastAuditAt": null
+    }
+  },
+  "calendar": {
+    "events": [],
+    "recurring": []
+  },
+  "journal": [],
+  "projects": [],
+  "settings": {
+    "storageType": "localStorage",
+    "notificationsEnabled": false,
+    "theme": "light"
+  },
+  "notebook": {
+    "year": 2025,
+    "startedAt": "2025-12-20T10:00:00.000Z",
+    "name": "Cuaderno TEST"
+  },
+  "archivedNotebooks": []
+}

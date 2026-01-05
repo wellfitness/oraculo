@@ -799,6 +799,10 @@ export const render = (data) => {
 
           <div class="modal-actions">
             <button type="button" class="btn btn--tertiary" id="cancel-item">Cancelar</button>
+            <button type="button" class="btn btn--secondary" id="save-add-another" title="Guardar y añadir otra (Ctrl+Enter)">
+              <span class="material-symbols-outlined icon-sm">add</span>
+              Otra
+            </button>
             <button type="submit" class="btn btn--primary">Guardar</button>
           </div>
         </form>
@@ -1410,6 +1414,7 @@ const setupItemActions = (data) => {
 
 /**
  * Configura el modal
+ * Incluye "Captura Rápida": guardar y añadir otra sin cerrar
  */
 const setupModal = (data) => {
   const modal = document.getElementById('item-modal');
@@ -1419,9 +1424,23 @@ const setupModal = (data) => {
     modal.close();
   });
 
+  // Guardar normal (cierra modal)
   form?.addEventListener('submit', (e) => {
     e.preventDefault();
-    saveItem(data);
+    saveItem(data, false);
+  });
+
+  // Botón "Otra" - Captura Rápida (no cierra modal)
+  document.getElementById('save-add-another')?.addEventListener('click', () => {
+    saveItem(data, true);
+  });
+
+  // Atajo Ctrl+Enter para Captura Rápida
+  form?.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'Enter') {
+      e.preventDefault();
+      saveItem(data, true);
+    }
   });
 
   modal?.addEventListener('click', (e) => {
@@ -1461,8 +1480,10 @@ const openItemModal = (item = null, column = 'weekly') => {
 /**
  * Guarda un item
  * Para daily: usa límite dinámico y cuenta solo tareas activas
+ * @param {Object} data - Datos de la app
+ * @param {boolean} keepOpen - Si true, mantiene modal abierto (Captura Rápida)
  */
-const saveItem = (data) => {
+const saveItem = (data, keepOpen = false) => {
   const id = document.getElementById('item-id').value;
   const column = document.getElementById('item-column').value;
   const text = document.getElementById('item-text').value.trim();
@@ -1517,9 +1538,22 @@ const saveItem = (data) => {
   }
 
   updateDataCallback('objectives', data.objectives);
-  document.getElementById('item-modal').close();
-  showNotification('Guardado', 'success');
-  location.reload();
+
+  if (keepOpen && !id) {
+    // Captura Rápida: limpiar form y mantener modal abierto
+    document.getElementById('item-text').value = '';
+    document.getElementById('item-notes').value = '';
+    document.getElementById('item-important').checked = false;
+    document.getElementById('item-text').focus();
+    showNotification('Añadida. ¡Sigue!', 'success');
+    // Actualizar vista sin recargar
+    render(data);
+    setupEventListeners(data);
+  } else {
+    document.getElementById('item-modal').close();
+    showNotification('Guardado', 'success');
+    location.reload();
+  }
 };
 
 /**

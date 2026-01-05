@@ -3,7 +3,7 @@
  * Sistema de gestión personal consciente
  */
 
-import { loadData, saveData, getStorageUsage } from './storage.js';
+import { loadData, saveData, getStorageUsage } from './storage-hybrid.js';
 import { needsDailySetup } from './components/daily-setup-modal.js';
 import {
   renderCalmTimerModal,
@@ -170,6 +170,15 @@ const setupGlobalEvents = () => {
       `Almacenamiento casi lleno (${e.detail.percentage}%). Considera exportar tus datos.`,
       'warning'
     );
+  });
+
+  // Escuchar cuando llegan datos sincronizados desde Supabase
+  window.addEventListener('data-synced-from-cloud', (e) => {
+    console.log('[App] Datos sincronizados desde la nube, recargando vista...');
+    state.data = e.detail.data;
+    // Re-renderizar la vista actual con los nuevos datos
+    renderView(state.currentView);
+    showNotification('✓ Datos sincronizados desde la nube', 'success');
   });
 
   // Guardar antes de cerrar (sin diálogo - los datos siempre se guardan automáticamente)

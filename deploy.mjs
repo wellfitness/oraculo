@@ -28,6 +28,8 @@ const INCLUDE = [
   '.htaccess',
   'index.html',
   'app.html',
+  'auth.html',
+  'auth-callback.html',
   'aviso-legal.html',
   'privacidad.html',
   'css',
@@ -151,9 +153,10 @@ async function deploy() {
     for (const dir of dirs) {
       try {
         await client.ensureDir(dir);
+        await client.cd('/'); // Volver a raíz después de cada ensureDir
         console.log(`📂 Creado: ${dir}`);
       } catch (e) {
-        // Directorio ya existe
+        await client.cd('/'); // Volver a raíz incluso si falla
       }
     }
 
