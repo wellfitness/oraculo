@@ -4,6 +4,7 @@
  */
 
 import { getReflexionDelDia } from '../data/burkeman.js';
+import { USAGE_MODES, showNotification } from '../app.js';
 
 /**
  * Renderiza la página de ayuda
@@ -26,6 +27,12 @@ export const render = (data) => {
           <cite>— Oliver Burkeman</cite>
         </blockquote>
       </header>
+
+      <!-- NUEVO: Por dónde empezar -->
+      ${renderStartGuide()}
+
+      <!-- NUEVO: Formas de usar Oráculo -->
+      ${renderUsageModes(data)}
 
       <!-- Flujo diario destacado -->
       <section class="help-section help-section--featured">
@@ -223,6 +230,9 @@ export const render = (data) => {
         </div>
       </section>
 
+      <!-- NUEVO: Cómo se conecta todo -->
+      ${renderConnectionsDiagram()}
+
       <!-- Filosofía Burkeman -->
       <section class="help-section help-section--philosophy">
         <div class="help-philosophy">
@@ -366,7 +376,10 @@ export const render = (data) => {
         </div>
       </section>
 
-            <!-- Solución de Problemas / FAQ -->
+      <!-- NUEVO: FAQ Conceptual -->
+      ${renderConceptualFaq()}
+
+      <!-- Solución de Problemas / FAQ -->
       <section class="help-section">
         <h2 class="help-section-title">
           <span class="material-symbols-outlined">build</span>
@@ -514,6 +527,325 @@ const renderFaqCard = (icon, question, answer, tip = null) => {
     </article>
   `;
 };
+
+/**
+ * NUEVO: Renderiza la guía de "Por dónde empezar"
+ */
+const renderStartGuide = () => {
+  return `
+    <section class="help-section help-section--start">
+      <div class="start-guide">
+        <div class="start-guide__header">
+          <span class="material-symbols-outlined start-guide__icon">rocket_launch</span>
+          <h2>¿Por Dónde Empezar?</h2>
+        </div>
+
+        <div class="start-guide__recommendation">
+          <span class="start-guide__badge">
+            <span class="material-symbols-outlined">tips_and_updates</span>
+            Recomendado
+          </span>
+          <p>La reflexión previa te da claridad para todo lo demás.</p>
+        </div>
+
+        <div class="start-guide__phases">
+          <!-- Fase 1: Reflexión -->
+          <div class="start-phase start-phase--primary">
+            <div class="start-phase__header">
+              <span class="start-phase__number">1</span>
+              <h3>Reflexión</h3>
+              <span class="start-phase__hint">Empieza aquí</span>
+            </div>
+            <div class="start-phase__steps">
+              <a href="#life-wheel" class="start-step" data-view="life-wheel">
+                <span class="material-symbols-outlined">target</span>
+                <div>
+                  <strong>Rueda de la Vida</strong>
+                  <span>Evalúa las 8 áreas de tu vida</span>
+                </div>
+              </a>
+              <span class="start-step__arrow material-symbols-outlined">arrow_forward</span>
+              <a href="#values" class="start-step" data-view="values">
+                <span class="material-symbols-outlined">explore</span>
+                <div>
+                  <strong>Brújula de Valores</strong>
+                  <span>Define qué te importa</span>
+                </div>
+              </a>
+            </div>
+          </div>
+
+          <!-- Fase 2: Organización -->
+          <div class="start-phase">
+            <div class="start-phase__header">
+              <span class="start-phase__number">2</span>
+              <h3>Organización</h3>
+            </div>
+            <div class="start-phase__steps start-phase__steps--vertical">
+              <a href="#projects" class="start-step start-step--compact" data-view="projects">
+                <span class="material-symbols-outlined">folder_open</span>
+                <span>Crea 1-2 proyectos alineados con tus valores</span>
+              </a>
+              <a href="#kanban" class="start-step start-step--compact" data-view="kanban">
+                <span class="material-symbols-outlined">view_kanban</span>
+                <span>Añade tareas a tus horizontes</span>
+              </a>
+              <a href="#daily-setup" class="start-step start-step--compact" data-view="daily-setup">
+                <span class="material-symbols-outlined">wb_twilight</span>
+                <span>Configura tu primer día</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <p class="start-guide__note">
+          <span class="material-symbols-outlined">info</span>
+          Este es el camino recomendado, pero puedes empezar por cualquier sitio.
+        </p>
+      </div>
+    </section>
+  `;
+};
+
+/**
+ * NUEVO: Renderiza las formas de usar Oráculo
+ */
+const renderUsageModes = (data) => {
+  const currentMode = data?.settings?.usageMode || 'complete';
+
+  return `
+    <section class="help-section">
+      <h2 class="help-section-title">
+        <span class="material-symbols-outlined">tune</span>
+        Formas de Usar Oráculo
+      </h2>
+      <p class="section-intro">
+        No tienes que usar todo. Elige lo que te sirva según tus necesidades.
+      </p>
+
+      <div class="usage-modes-help-grid">
+        ${Object.values(USAGE_MODES).map(mode => `
+          <div class="usage-mode-help-card ${mode.id === currentMode ? 'usage-mode-help-card--active' : ''}" data-mode="${mode.id}">
+            <div class="usage-mode-help-card__header">
+              <span class="material-symbols-outlined usage-mode-help-card__icon">${mode.icon}</span>
+              <h3>${mode.name}</h3>
+              ${mode.id === currentMode ? '<span class="usage-mode-help-card__badge">Activo</span>' : ''}
+            </div>
+            <p class="usage-mode-help-card__desc">${mode.description}</p>
+            <p class="usage-mode-help-card__ideal">
+              <span class="material-symbols-outlined icon-sm">person</span>
+              ${mode.idealFor}
+            </p>
+            <div class="usage-mode-help-card__includes">
+              <strong>Incluye:</strong>
+              <span>${mode.includes.join(', ')}</span>
+            </div>
+            ${mode.id !== currentMode ? `
+              <button class="btn btn--secondary btn--sm usage-mode-activate" data-mode="${mode.id}">
+                Usar este modo
+              </button>
+            ` : ''}
+          </div>
+        `).join('')}
+      </div>
+
+      <p class="help-card-tip">
+        <span class="material-symbols-outlined">tips_and_updates</span>
+        <span>Puedes cambiar de modo en cualquier momento desde Configuración.</span>
+      </p>
+    </section>
+  `;
+};
+
+/**
+ * NUEVO: Renderiza el diagrama de conexiones
+ */
+const renderConnectionsDiagram = () => {
+  return `
+    <section class="help-section">
+      <h2 class="help-section-title">
+        <span class="material-symbols-outlined">hub</span>
+        Cómo se Conecta Todo
+      </h2>
+      <p class="section-intro">
+        Cada parte de Oráculo está diseñada para complementar las demás.
+      </p>
+
+      <div class="connections-diagram">
+        <div class="connection-flow">
+          <!-- Nivel 1: Reflexión -->
+          <div class="connection-level connection-level--reflection">
+            <div class="connection-node connection-node--primary" data-view="life-wheel">
+              <span class="material-symbols-outlined">target</span>
+              <span>Rueda de la Vida</span>
+            </div>
+            <div class="connection-arrow">
+              <span class="material-symbols-outlined">south</span>
+              <span class="connection-label">evalúa</span>
+            </div>
+            <div class="connection-node connection-node--primary" data-view="values">
+              <span class="material-symbols-outlined">explore</span>
+              <span>Valores</span>
+            </div>
+          </div>
+
+          <!-- Nivel 2: Organización -->
+          <div class="connection-level connection-level--organization">
+            <div class="connection-arrow connection-arrow--down">
+              <span class="material-symbols-outlined">south</span>
+              <span class="connection-label">guían</span>
+            </div>
+            <div class="connection-nodes-row">
+              <div class="connection-node" data-view="projects">
+                <span class="material-symbols-outlined">folder_open</span>
+                <span>Proyectos</span>
+              </div>
+              <div class="connection-node" data-view="habits">
+                <span class="material-symbols-outlined">science</span>
+                <span>Hábitos</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nivel 3: Acción -->
+          <div class="connection-level connection-level--action">
+            <div class="connection-arrow connection-arrow--down">
+              <span class="material-symbols-outlined">south</span>
+              <span class="connection-label">organizan</span>
+            </div>
+            <div class="connection-nodes-row">
+              <div class="connection-node" data-view="kanban">
+                <span class="material-symbols-outlined">view_kanban</span>
+                <span>Horizontes</span>
+              </div>
+              <div class="connection-node" data-view="calendar">
+                <span class="material-symbols-outlined">calendar_month</span>
+                <span>Calendario</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nivel 4: Reflexión -->
+          <div class="connection-level connection-level--review">
+            <div class="connection-arrow connection-arrow--down">
+              <span class="material-symbols-outlined">south</span>
+              <span class="connection-label">registra</span>
+            </div>
+            <div class="connection-node" data-view="journal">
+              <span class="material-symbols-outlined">auto_stories</span>
+              <span>Diario</span>
+            </div>
+            <div class="connection-arrow connection-arrow--loop">
+              <span class="material-symbols-outlined">redo</span>
+              <span class="connection-label">reflexiona sobre</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="connections-explanations">
+          <div class="connection-explanation">
+            <span class="material-symbols-outlined">lightbulb</span>
+            <p><strong>Rueda → Valores:</strong> Evalúa dónde estás para decidir qué priorizar.</p>
+          </div>
+          <div class="connection-explanation">
+            <span class="material-symbols-outlined">lightbulb</span>
+            <p><strong>Valores → Proyectos:</strong> Alinea tus proyectos con lo que te importa.</p>
+          </div>
+          <div class="connection-explanation">
+            <span class="material-symbols-outlined">lightbulb</span>
+            <p><strong>Diario → Hábitos:</strong> Anota qué te ayuda y qué te dificulta cumplir tu hábito.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+};
+
+/**
+ * NUEVO: Renderiza el FAQ conceptual
+ */
+const renderConceptualFaq = () => {
+  return `
+    <section class="help-section">
+      <h2 class="help-section-title">
+        <span class="material-symbols-outlined">quiz</span>
+        Preguntas sobre el Uso
+      </h2>
+
+      <div class="faq-list">
+        ${renderFaqCard('apps', '¿Tengo que usar todo?', `
+          <p><strong>No.</strong> Oráculo es modular. Puedes usar:</p>
+          <ul>
+            <li>Solo el <strong>Diario</strong> para reflexionar</li>
+            <li>Solo <strong>Hábitos</strong> si ya tienes otra app de tareas</li>
+            <li>Solo <strong>Rueda + Valores</strong> para claridad de vida</li>
+          </ul>
+          <p>Elige las partes que te sirvan. Puedes cambiar de modo en Configuración.</p>
+        `, 'Menos es más. Empieza con poco y ve añadiendo.')}
+
+        ${renderFaqCard('science', '¿Por qué solo 1 hábito activo?', `
+          <p>Basado en la ciencia de "Hábitos Atómicos":</p>
+          <ul>
+            <li><strong>Foco:</strong> Un hábito tiene más probabilidad de consolidarse</li>
+            <li><strong>Energía:</strong> Cambiar comportamientos requiere recursos mentales</li>
+            <li><strong>Paciencia:</strong> No existen los "21 días mágicos" - cada hábito tiene su tiempo</li>
+          </ul>
+          <p>Cuando un hábito esté consolidado, "gradúalo" y empieza otro.</p>
+        `, 'Mejor 1 hábito bien que 5 a medias.')}
+
+        ${renderFaqCard('compare_arrows', '¿Qué hago primero, Valores o Rueda de la Vida?', `
+          <p><strong>Rueda de la Vida primero</strong> (recomendado):</p>
+          <ol>
+            <li><strong>Rueda:</strong> Evalúa cómo estás en las 8 áreas de tu vida</li>
+            <li><strong>Valores:</strong> Con esa información, define qué priorizas</li>
+          </ol>
+          <p>La Rueda te da contexto para decidir mejor tus valores.</p>
+        `)}
+
+        ${renderFaqCard('add_circle', '¿Puedo usar Oráculo junto a Todoist/Notion?', `
+          <p><strong>¡Sí!</strong> Usa el modo "Complemento":</p>
+          <ul>
+            <li><strong>En Oráculo:</strong> Valores, Rueda de la Vida, Diario</li>
+            <li><strong>En tu otra app:</strong> Gestión de tareas del día a día</li>
+          </ul>
+          <p>Oráculo aporta la reflexión y claridad que otras apps no tienen.</p>
+        `, 'Oráculo es sobre priorizar, no sobre hacer más.')}
+
+        ${renderFaqCard('event_repeat', '¿Cada cuánto hacer la Rueda de la Vida?', `
+          <p><strong>Trimestral</strong> es lo recomendado:</p>
+          <ul>
+            <li>Suficiente tiempo para ver cambios</li>
+            <li>Coincide con las revisiones trimestrales del diario</li>
+            <li>Oráculo te recordará cuando toque</li>
+          </ul>
+          <p>También puedes hacerla cuando sientas que algo ha cambiado significativamente.</p>
+        `)}
+
+        ${renderFaqCard('edit_note', '¿Qué escribo en el Diario sobre hábitos?', `
+          <p>El Diario complementa el laboratorio de hábitos:</p>
+          <ul>
+            <li><strong>Qué te ayuda:</strong> ¿Qué hace más fácil cumplir el hábito?</li>
+            <li><strong>Qué te dificulta:</strong> ¿Qué obstáculos encuentras?</li>
+            <li><strong>Ajustes:</strong> ¿Qué cambiarías del disparador o la recompensa?</li>
+          </ul>
+          <p>Usa el tipo "Registro de Incomodidad" para reflexiones sobre crecimiento.</p>
+        `, 'La reflexión escrita acelera el cambio de hábitos.')}
+
+        ${renderFaqCard('block', '¿Los límites son obligatorios?', `
+          <p><strong>Sí, son parte de la filosofía.</strong></p>
+          <p>Los límites de Oráculo (máx 3 proyectos, 1 hábito, 1-3 tareas/día) están basados en:</p>
+          <ul>
+            <li><strong>Burkeman:</strong> Aceptar que no puedes hacerlo todo</li>
+            <li><strong>Ley de Parkinson:</strong> El trabajo se expande para llenar el tiempo disponible</li>
+            <li><strong>Priorización real:</strong> Si todo cabe, no has priorizado</li>
+          </ul>
+          <p>"Para añadir algo nuevo, primero completa o suelta algo."</p>
+        `, 'Los límites te obligan a elegir lo importante.')}
+      </div>
+    </section>
+  `;
+};
+
 /**
  * Inicializa los eventos de la página de ayuda
  */
@@ -545,4 +877,27 @@ export const init = (data, updateData) => {
     const toggle = header.querySelector('.help-card-toggle');
     toggle.style.transform = 'rotate(180deg)';
   }
+
+  // NUEVO: Botones de activar modo de uso
+  document.querySelectorAll('.usage-mode-activate').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const newMode = btn.dataset.mode;
+
+      // Actualizar settings
+      const currentSettings = data.settings || {};
+      updateData('settings', {
+        ...currentSettings,
+        usageMode: newMode
+      });
+
+      // Notificar a app.js para actualizar el menú
+      window.dispatchEvent(new CustomEvent('usage-mode-changed'));
+
+      const modeName = USAGE_MODES[newMode]?.name || 'Sistema Completo';
+      showNotification(`Modo cambiado: ${modeName}`, 'success');
+
+      // Recargar la vista para actualizar los badges
+      setTimeout(() => location.reload(), 500);
+    });
+  });
 };

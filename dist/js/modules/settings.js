@@ -3,7 +3,7 @@
  * Gestión de datos, cuadernos anuales y preferencias
  */
 
-import { showNotification, autoBackup, reloadStateFromStorage } from '../app.js';
+import { showNotification, autoBackup, reloadStateFromStorage, USAGE_MODES } from '../app.js';
 import {
   exportData,
   importData,
@@ -167,6 +167,9 @@ export const render = (data) => {
           <span>Activar notificaciones del navegador</span>
         </label>
       </section>
+
+      <!-- Modo de Uso -->
+      ${renderUsageModeSection(data)}
 
       <!-- Zona de peligro -->
       <section class="settings-section settings-section--danger">
@@ -389,6 +392,30 @@ export const init = (data, updateData) => {
     }
     updateDataCallback('settings.notificationsEnabled', e.target.checked);
     showNotification(e.target.checked ? 'Notificaciones activadas' : 'Notificaciones desactivadas', 'info');
+  });
+
+  // Modo de uso
+  document.querySelectorAll('input[name="usage-mode"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      const newMode = e.target.value;
+      const currentSettings = data.settings || {};
+
+      updateDataCallback('settings', {
+        ...currentSettings,
+        usageMode: newMode
+      });
+
+      // Actualizar UI
+      document.querySelectorAll('.usage-mode-option').forEach(opt => {
+        opt.classList.toggle('usage-mode-option--active', opt.querySelector('input').value === newMode);
+      });
+
+      // Notificar a app.js para actualizar el menú
+      window.dispatchEvent(new CustomEvent('usage-mode-changed'));
+
+      const modeName = USAGE_MODES[newMode]?.name || 'Sistema Completo';
+      showNotification(`Modo cambiado: ${modeName}`, 'success');
+    });
   });
 
   // Archivar año
@@ -780,4 +807,49 @@ const formatDate = (isoDate) => {
     month: 'long',
     year: 'numeric'
   });
+};
+
+/**
+ * Renderiza la sección de modo de uso
+ */
+const renderUsageModeSection = (data) => {
+  const currentMode = data.settings?.usageMode || 'complete';
+
+  return `
+    <section class="settings-section">
+      <h2>
+        <span class="material-symbols-outlined">tune</span>
+        Modo de Uso
+      </h2>
+      <p class="section-description">
+        Simplifica la interfaz según cómo quieras usar Oráculo.
+      </p>
+
+      <div class="usage-modes-grid" role="radiogroup" aria-label="Modo de uso">
+        ${Object.values(USAGE_MODES).map(mode => `
+          <label class="usage-mode-option ${mode.id === currentMode ? 'usage-mode-option--active' : ''}">
+            <input
+              type="radio"
+              name="usage-mode"
+              value="${mode.id}"
+              ${mode.id === currentMode ? 'checked' : ''}
+            >
+            <div class="usage-mode-content">
+              <span class="material-symbols-outlined usage-mode-icon">${mode.icon}</span>
+              <div class="usage-mode-info">
+                <strong>${mode.name}</strong>
+                <span class="usage-mode-desc">${mode.description}</span>
+              </div>
+              <span class="material-symbols-outlined usage-mode-check">check_circle</span>
+            </div>
+          </label>
+        `).join('')}
+      </div>
+
+      <p class="action-hint">
+        <span class="material-symbols-outlined icon-sm">info</span>
+        Las secciones ocultas siguen funcionando, solo no aparecen en el menú.
+      </p>
+    </section>
+  `;
 };

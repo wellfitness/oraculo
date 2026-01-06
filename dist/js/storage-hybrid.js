@@ -65,7 +65,15 @@ const getDefaultData = () => ({
   settings: {
     storageType: 'hybrid', // Cambiado de 'localStorage' a 'hybrid'
     notificationsEnabled: false,
-    theme: 'light'
+    theme: 'light',
+    usageMode: 'complete' // 'complete' | 'habits' | 'journal' | 'complement'
+  },
+
+  // Onboarding (primera vez)
+  onboarding: {
+    completed: false,
+    completedAt: null,
+    selectedMode: null
   },
 
   // Cuaderno actual
@@ -514,6 +522,14 @@ const migrateData = (oldData) => {
   }
   if (oldData.habits?.audit) {
     newData.habits.audit = { ...newData.habits.audit, ...oldData.habits.audit };
+  }
+
+  // Migraciones Onboarding y usageMode
+  if (oldData.onboarding) {
+    newData.onboarding = { ...newData.onboarding, ...oldData.onboarding };
+  }
+  if (oldData.settings?.usageMode) {
+    newData.settings.usageMode = oldData.settings.usageMode;
   }
 
   saveData(newData);

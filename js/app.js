@@ -25,6 +25,13 @@ import {
   initVoiceCaptureModal,
   openVoiceCapture
 } from './components/voice-capture-modal.js';
+import {
+  renderWelcomeModal,
+  initWelcomeModal,
+  shouldShowWelcome,
+  getVisibleViews,
+  USAGE_MODES
+} from './components/welcome-modal.js';
 import { getSpeechHandler, isSpeechSupported } from './utils/speech-handler.js';
 import * as autoBackup from './utils/auto-backup.js';
 
@@ -33,6 +40,9 @@ export { autoBackup };
 
 // Exportar funciones para uso en otros módulos
 export { openCalmTimer, openSpontaneousModal, openEveningCheckIn, openVoiceCapture };
+
+// Exportar funciones de modos de uso
+export { getVisibleViews, USAGE_MODES };
 
 // Estado global de la aplicación
 const state = {
@@ -95,6 +105,12 @@ export const init = () => {
 
   // Inyectar modal de captura por voz
   injectVoiceCaptureModal();
+
+  // Inyectar modal de bienvenida (onboarding)
+  injectWelcomeModal();
+
+  // Actualizar menú según modo de uso
+  updateMenuVisibility();
 
   // Configurar botón de voz en header
   setupVoiceButton();
@@ -192,6 +208,11 @@ const setupGlobalEvents = () => {
     // 3. Si queremos recordar sobre el backup, mejor usar notificaciones en la app
   });
 
+  // Escuchar cambios en el modo de uso para actualizar el menú
+  window.addEventListener('usage-mode-changed', () => {
+    updateMenuVisibility();
+  });
+
   // Menú hamburguesa para tablets/móviles
   const navToggle = document.querySelector('.nav-toggle');
   const appNav = document.querySelector('.app-nav');
@@ -267,6 +288,44 @@ const injectVoiceCaptureModal = () => {
 
   document.body.appendChild(modalContainer);
   initVoiceCaptureModal(state.data, updateData);
+};
+
+/**
+ * Inyecta e inicializa el modal de bienvenida (onboarding)
+ */
+const injectWelcomeModal = () => {
+  const modalContainer = document.createElement('div');
+  modalContainer.id = 'welcome-container';
+  modalContainer.innerHTML = renderWelcomeModal();
+
+  document.body.appendChild(modalContainer);
+  initWelcomeModal(state.data, updateData);
+};
+
+/**
+ * Actualiza la visibilidad de las vistas en el menú según el modo de uso
+ */
+const updateMenuVisibility = () => {
+  const usageMode = state.data.settings?.usageMode || 'complete';
+  const visibleViews = getVisibleViews(usageMode);
+
+  // Actualizar cada link de navegación
+  document.querySelectorAll('[data-view]').forEach(link => {
+    const view = link.dataset.view;
+
+    // settings y help siempre visibles
+    if (view === 'settings' || view === 'help') {
+      link.style.display = '';
+      return;
+    }
+
+    // Mostrar u ocultar según el modo
+    if (visibleViews.includes(view)) {
+      link.style.display = '';
+    } else {
+      link.style.display = 'none';
+    }
+  });
 };
 
 /**
