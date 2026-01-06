@@ -8502,9 +8502,31 @@ kbd {
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
-  padding: var(--space-2);
+  padding: var(--space-3);
   background: var(--gris-50);
   border-radius: var(--radius-md);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.start-step:hover {
+  background: var(--turquesa-50);
+  border-color: var(--turquesa-300);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.start-step:focus {
+  outline: none;
+  border-color: var(--turquesa-500);
+  box-shadow: 0 0 0 3px var(--turquesa-100);
+}
+
+.start-step:hover .material-symbols-outlined {
+  color: var(--turquesa-700);
 }
 
 .start-step__icon {
@@ -8539,6 +8561,26 @@ kbd {
   color: var(--gris-600);
   font-size: var(--font-size-xs);
   line-height: 1.4;
+}
+
+/* Versión compacta para la fase 2 */
+.start-step--compact {
+  padding: var(--space-2) var(--space-3);
+  align-items: center;
+}
+
+.start-step--compact .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--gris-500);
+}
+
+.start-step--compact:hover .material-symbols-outlined {
+  color: var(--turquesa-600);
+}
+
+/* Ocultar flecha entre pasos - confusa en desktop */
+.start-step__arrow {
+  display: none;
 }
 
 .start-guide__note {
