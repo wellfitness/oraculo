@@ -102,9 +102,6 @@ export const renderWelcomeModal = () => {
                 <span>Evalúa las 8 áreas de tu vida</span>
               </div>
             </div>
-            <div class="welcome-step__arrow">
-              <span class="material-symbols-outlined">arrow_forward</span>
-            </div>
             <div class="welcome-step">
               <span class="material-symbols-outlined welcome-step__icon">explore</span>
               <div class="welcome-step__content">

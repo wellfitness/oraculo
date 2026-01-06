@@ -623,13 +623,38 @@ Mapeo principal:
 
 ## Design System
 
-Usar variables existentes:
+### Arquitectura CSS Dual (Intencional)
+
+El proyecto usa **dos sistemas de diseño separados**:
+
+| Archivo | Contexto | Sistema de Espaciado | Razón |
+|---------|----------|---------------------|-------|
+| `css/style.css` | App (`app.html`) | Grid 8px (`--space-1: 8px`) | Legibilidad en uso prolongado |
+| `landing.css` | Landing (`index.html`) | Tailwind 4px (`--space-1: 0.25rem`) | Diseño web moderno, compacto |
+
+**Esto NO es un error ni inconsistencia** — es separación de concerns:
+- La **landing** es marketing, se ve una vez → sistema Tailwind compacto
+- La **app** es uso diario intensivo → más espaciado para reducir fatiga visual
+
+**IMPORTANTE**: No "unificar" los sistemas. Cada uno está optimizado para su contexto.
+
+### Variables de la App (`style.css`)
 
 - **Colores**: turquesa (#06b6d4), rosa (#e11d48), amarillo (#eab308), grises
 - **Tipografía**: Righteous (headers), ABeeZee (body)
-- **Espaciado**: grid de 8px
+- **Espaciado**: grid de 8px (`--space-1` a `--space-6`)
 - **Radio de bordes**: --radius-md, --radius-lg
-- **Sombras**: --shadow-sm, --shadow-md
+- **Sombras**: --shadow-sm, --shadow-md (una capa, estilo sutil)
+
+### Variables de la Landing (`landing.css`)
+
+- **Espaciado**: Tailwind scale (`--space-1: 4px` hasta `--space-24: 96px`)
+- **Sombras**: Tailwind shadows (más pronunciadas)
+- Variables adicionales: `--space-8`, `--space-10`, `--space-12`, etc.
+
+### Nota sobre DESIGN-SYSTEM.md
+
+El archivo `design-system/docs/DESIGN-SYSTEM.md` es documentación de **referencia importada de otro proyecto** (System WOD Generator). **NO es la especificación de Oráculo**. La fuente autoritativa es este `CLAUDE.md`.
 
 ---
 
