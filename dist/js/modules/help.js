@@ -564,7 +564,6 @@ const renderStartGuide = () => {
                   <span>Evalúa las 8 áreas de tu vida</span>
                 </div>
               </a>
-              <span class="start-step__arrow material-symbols-outlined">arrow_forward</span>
               <a href="#values" class="start-step" data-view="values">
                 <span class="material-symbols-outlined">explore</span>
                 <div>
