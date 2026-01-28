@@ -12,6 +12,17 @@ import { getReflexionDelDia } from '../data/burkeman.js';
 let updateDataCallback = null;
 
 /**
+ * Re-renderiza el dashboard sin recargar la página
+ */
+const reRender = (data) => {
+  const container = document.getElementById('app-content');
+  if (container) {
+    container.innerHTML = render(data);
+    init(data, updateDataCallback);
+  }
+};
+
+/**
  * Renderiza el dashboard
  */
 export const render = (data) => {
@@ -20,6 +31,7 @@ export const render = (data) => {
   const dailyLimit = getDailyLimit(data);
   const activeHabit = data.habits.active;
   const todayEvents = getTodayEvents(data.calendar?.events || [], data.calendar?.recurring || []);
+  const activeProjects = (data.projects || []).filter(p => p.status === 'active' || p.status === 'paused');
 
   return `
     <div class="dashboard">
@@ -39,7 +51,7 @@ export const render = (data) => {
         </div>
 
         <ul class="focus-list" id="focus-list">
-          ${dailyTasks.map(task => renderFocusTask(task)).join('')}
+          ${dailyTasks.map(task => renderFocusTask(task, activeProjects)).join('')}
         </ul>
 
         ${dailyTasks.length < dailyLimit ? `
@@ -200,9 +212,13 @@ export const init = (data, updateData) => {
 
 /**
  * Renderiza una tarea del foco diario
+ * @param {Object} task - La tarea a renderizar
+ * @param {Array} projects - Lista de proyectos activos (para mostrar badge)
  */
-const renderFocusTask = (task) => {
+const renderFocusTask = (task, projects = []) => {
   const isRock = task.isRocaPrincipal;
+  const project = task.projectId ? projects.find(p => p.id === task.projectId) : null;
+
   return `
     <li class="focus-item ${task.completed ? 'focus-item--completed' : ''} ${isRock ? 'focus-item--rock' : ''}" data-id="${task.id}">
       <label class="focus-label">
@@ -214,6 +230,12 @@ const renderFocusTask = (task) => {
         >
         ${isRock ? '<span class="material-symbols-outlined icon-rock filled">diamond</span>' : ''}
         <span class="focus-text">${escapeHTML(task.text)}</span>
+        ${project ? `
+          <span class="focus-project" style="--project-color: ${project.color}">
+            <span class="project-dot" style="background-color: ${project.color}"></span>
+            ${escapeHTML(project.name)}
+          </span>
+        ` : ''}
       </label>
       <div class="focus-actions">
         <button
@@ -309,13 +331,47 @@ const renderEveningCheckInButton = (data) => {
 };
 
 /**
+ * Parsea el texto para extraer hashtags de proyecto
+ * Ejemplo: "Llamar al médico #Salud" → { text: "Llamar al médico", projectId: "abc123" }
+ * @param {string} rawText - Texto con posible hashtag
+ * @param {Array} projects - Lista de proyectos activos
+ * @returns {{ text: string, projectId: string|null }}
+ */
+const parseProjectHashtag = (rawText, projects) => {
+  // Buscar patrón #palabra (al final o en medio del texto)
+  const hashtagMatch = rawText.match(/#(\S+)/);
+
+  if (!hashtagMatch) {
+    return { text: rawText, projectId: null };
+  }
+
+  const hashtagName = hashtagMatch[1].toLowerCase();
+
+  // Buscar proyecto que coincida (case-insensitive, parcial)
+  const matchedProject = projects.find(p =>
+    p.name.toLowerCase().includes(hashtagName) ||
+    hashtagName.includes(p.name.toLowerCase())
+  );
+
+  if (matchedProject) {
+    // Quitar el hashtag del texto
+    const cleanText = rawText.replace(/#\S+\s?/, '').trim();
+    return { text: cleanText, projectId: matchedProject.id };
+  }
+
+  // Si no coincide ningún proyecto, mantener el texto original (con hashtag)
+  return { text: rawText, projectId: null };
+};
+
+/**
  * Añade una nueva tarea al foco diario
+ * Soporta sintaxis hashtag para asignar proyecto: "Tarea #Proyecto"
  */
 const handleAddFocus = (data) => {
   const input = document.getElementById('new-focus-input');
-  const text = input.value.trim();
+  const rawText = input.value.trim();
 
-  if (!text) return;
+  if (!rawText) return;
 
   const limit = getDailyLimit(data);
   if (data.objectives.daily.length >= limit) {
@@ -323,20 +379,30 @@ const handleAddFocus = (data) => {
     return;
   }
 
+  // Parsear hashtag de proyecto
+  const activeProjects = (data.projects || []).filter(p => p.status === 'active' || p.status === 'paused');
+  const { text, projectId } = parseProjectHashtag(rawText, activeProjects);
+
   const newTask = {
     id: generateId(),
     text,
     completed: false,
     isRocaPrincipal: false,
+    projectId: projectId,
     createdAt: new Date().toISOString()
   };
 
   data.objectives.daily.push(newTask);
   updateDataCallback('objectives.daily', data.objectives.daily);
 
+  // Notificación con info del proyecto si se asignó
+  if (projectId) {
+    const project = activeProjects.find(p => p.id === projectId);
+    showNotification(`Añadido a "${project.name}"`, 'success');
+  }
+
   // Re-renderizar
-  window.dispatchEvent(new CustomEvent('navigate', { detail: 'dashboard' }));
-  location.reload(); // Temporal hasta tener routing reactivo
+  reRender(data);
 };
 
 /**
@@ -344,24 +410,44 @@ const handleAddFocus = (data) => {
  */
 const handleToggleTask = (taskId, completed, data) => {
   const task = data.objectives.daily.find(t => t.id === taskId);
-  if (task) {
-    task.completed = completed;
-    task.completedAt = completed ? new Date().toISOString() : null;
-    updateDataCallback('objectives.daily', data.objectives.daily);
+  if (!task) return;
 
-    if (completed) {
-      showNotification('¡Bien hecho! Una prioridad menos.', 'success');
+  if (completed) {
+    // Marcar como completada
+    task.completed = true;
+    task.completedAt = new Date().toISOString();
+    task.originalColumn = 'daily'; // Guardar origen para posible restauración
+
+    // Mover a objectives.completed (igual que en kanban)
+    if (!data.objectives.completed) {
+      data.objectives.completed = [];
     }
+    data.objectives.daily = data.objectives.daily.filter(t => t.id !== taskId);
+    data.objectives.completed.push(task);
+
+    updateDataCallback('objectives', data.objectives);
+    showNotification('¡Bien hecho! Una prioridad menos.', 'success');
+    reRender(data);
+  } else {
+    // Desmarcar (solo actualizar estado, no mover)
+    task.completed = false;
+    task.completedAt = null;
+    updateDataCallback('objectives.daily', data.objectives.daily);
+    reRender(data);
   }
 };
 
 /**
  * Elimina una tarea del foco diario
+ * Requiere confirmación para evitar borrados accidentales
  */
 const handleDeleteTask = (taskId, data) => {
+  if (!confirm('¿Eliminar esta prioridad?')) return;
+
   data.objectives.daily = data.objectives.daily.filter(t => t.id !== taskId);
   updateDataCallback('objectives.daily', data.objectives.daily);
-  location.reload(); // Temporal
+  showNotification('Prioridad eliminada', 'info');
+  reRender(data);
 };
 
 /**
@@ -387,7 +473,7 @@ const handleToggleRock = (taskId, data) => {
   }
 
   updateDataCallback('objectives.daily', data.objectives.daily);
-  location.reload(); // Temporal
+  reRender(data);
 };
 
 /**
@@ -435,7 +521,7 @@ const handleHabitCheckToday = (data) => {
 
   updateDataCallback('habits.history', data.habits.history);
   showNotification('¡Genial! Otro día más. 🔥', 'success');
-  location.reload(); // Temporal
+  reRender(data);
 };
 
 /**

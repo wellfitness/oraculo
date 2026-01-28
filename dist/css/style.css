@@ -311,8 +311,16 @@ a:hover {
   color: white;
 }
 
-.btn--primary:hover {
+.btn--primary:hover:not(:disabled) {
   background: var(--color-primary-hover);
+}
+
+/* Botones deshabilitados - visualmente obvio */
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .btn--secondary {
@@ -1578,6 +1586,27 @@ a:hover {
 
 .focus-item:hover .focus-rock {
   opacity: 1;
+}
+
+/* Badge de proyecto en tareas del foco */
+.focus-project {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background-color: color-mix(in srgb, var(--project-color, var(--gris-400)) 15%, transparent);
+  color: var(--project-color, var(--gris-600));
+  margin-left: var(--space-1);
+  flex-shrink: 0;
+}
+
+.focus-project .project-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .add-focus-form {
