@@ -79,6 +79,32 @@ const SECTIONS = {
 let isBacklogExpanded = false;
 
 /**
+ * Re-renderiza el kanban sin recargar la página
+ * Preserva el estado de secciones colapsadas/expandidas
+ */
+const reRender = (data) => {
+  const wasBacklogExpanded = isBacklogExpanded;
+  const wasCompletedExpanded = document.getElementById('completed-toggle')?.getAttribute('aria-expanded') === 'true';
+
+  const container = document.getElementById('app-content');
+  if (container) {
+    container.innerHTML = render(data);
+    init(data, updateDataCallback);
+
+    // Restaurar estado UI
+    isBacklogExpanded = wasBacklogExpanded;
+    if (wasCompletedExpanded) {
+      const toggle = document.getElementById('completed-toggle');
+      const content = document.getElementById('completed-content');
+      if (toggle && content) {
+        toggle.setAttribute('aria-expanded', 'true');
+        content.hidden = false;
+      }
+    }
+  }
+};
+
+/**
  * SECCIÓN 1: EN FOCO
  * Renderiza la sección principal del día con máxima prominencia
  */
@@ -1352,7 +1378,7 @@ const handleDrop = (e, data) => {
     showNotification(`Movido a ${COLUMN_NAMES[targetColumn]}`, 'success');
   }
 
-  location.reload(); // Temporal
+  reRender(data);
 };
 
 /**
@@ -1552,7 +1578,7 @@ const saveItem = (data, keepOpen = false) => {
   } else {
     document.getElementById('item-modal').close();
     showNotification('Guardado', 'success');
-    location.reload();
+    reRender(data);
   }
 };
 
@@ -1587,7 +1613,7 @@ const toggleItemComplete = (itemId, completed, data) => {
 
     updateDataCallback('objectives', data.objectives);
     showNotification('¡Completado! Movido a Completadas.', 'success');
-    location.reload();
+    reRender(data);
   } else {
     // === DESMARCAR: Restaurar al horizonte original ===
     item.completed = false;
@@ -1609,7 +1635,7 @@ const toggleItemComplete = (itemId, completed, data) => {
     }
 
     updateDataCallback('objectives', data.objectives);
-    location.reload();
+    reRender(data);
   }
 };
 
@@ -1625,7 +1651,7 @@ const deleteItem = (itemId, data) => {
   data.objectives[column] = data.objectives[column].filter(i => i.id !== itemId);
   updateDataCallback('objectives', data.objectives);
   showNotification('Eliminado', 'info');
-  location.reload();
+  reRender(data);
 };
 
 /**
