@@ -9,6 +9,7 @@
 import { generateId, showNotification } from '../app.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
 import { escapeHTML } from '../utils/sanitizer.js';
+import { confirmDanger } from '../utils/confirm-modal.js';
 
 let updateDataCallback = null;
 let draggedItem = null;
@@ -385,7 +386,8 @@ const renderHorizonsSection = (objectives, projects, data) => {
  * Renderiza una columna de horizonte (trimestre/mes/semana)
  */
 const renderHorizonColumn = (columnKey, items, limit, projects, icon) => {
-  const count = items.length;
+  // Solo contar tareas activas (no completadas) para el límite
+  const count = getActiveTasksCount(items);
   const hasLimit = limit !== null;
   const isFull = hasLimit && count >= limit;
 
@@ -1379,6 +1381,15 @@ const handleDrop = (e, data) => {
   }
 
   reRender(data);
+
+  // Añadir feedback visual al item movido (después del reRender)
+  requestAnimationFrame(() => {
+    const movedElement = document.querySelector(`[data-id="${itemId}"]`);
+    if (movedElement) {
+      movedElement.classList.add('kanban-item--dropped');
+      setTimeout(() => movedElement.classList.remove('kanban-item--dropped'), 600);
+    }
+  });
 };
 
 /**
@@ -1626,6 +1637,19 @@ const toggleItemComplete = (itemId, completed, data) => {
         data.objectives[item.originalColumn] = [];
       }
 
+      // Verificar límite del horizonte destino antes de restaurar
+      const targetColumn = item.originalColumn;
+      const isDaily = targetColumn === 'daily';
+      const limit = isDaily ? getDailyLimit(data) : LIMITS[targetColumn];
+      const activeCount = getActiveTasksCount(data.objectives[targetColumn]);
+
+      if (limit && activeCount >= limit) {
+        // El horizonte está lleno - no permitir restaurar
+        showNotification(`${COLUMN_NAMES[targetColumn]} está lleno (${limit}/${limit}). Completa algo primero.`, 'warning');
+        item.completed = true; // Revertir el cambio
+        return;
+      }
+
       // Eliminar de completed
       data.objectives.completed = data.objectives.completed.filter(i => i.id !== itemId);
 
@@ -1643,15 +1667,23 @@ const toggleItemComplete = (itemId, completed, data) => {
  * Elimina un item
  */
 const deleteItem = (itemId, data) => {
-  if (!confirm('¿Eliminar este elemento?')) return;
-
   const column = findItemColumn(itemId, data.objectives);
   if (!column) return;
 
-  data.objectives[column] = data.objectives[column].filter(i => i.id !== itemId);
-  updateDataCallback('objectives', data.objectives);
-  showNotification('Eliminado', 'info');
-  reRender(data);
+  const item = data.objectives[column].find(i => i.id === itemId);
+  const itemText = item?.text?.slice(0, 30) || 'este elemento';
+
+  confirmDanger({
+    title: `¿Eliminar "${itemText}"?`,
+    message: 'Esta tarea se eliminará permanentemente.',
+    confirmText: 'Sí, eliminar',
+    cancelText: 'No, mantener'
+  }, () => {
+    data.objectives[column] = data.objectives[column].filter(i => i.id !== itemId);
+    updateDataCallback('objectives', data.objectives);
+    showNotification('Eliminado', 'info');
+    reRender(data);
+  });
 };
 
 /**

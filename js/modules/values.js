@@ -8,10 +8,22 @@ import { generateId, showNotification } from '../app.js';
 import { escapeHTML } from '../utils/sanitizer.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
 import { getBuenosValores, getMalosValores } from '../data/markmanson.js';
+import { confirmDanger } from '../utils/confirm-modal.js';
 
 let updateDataCallback = null;
 let currentData = null;
 const MAX_VALUES = 4;
+
+/**
+ * Verifica si un string es un emoji válido
+ * @param {string} str - String a verificar
+ * @returns {boolean} true si es emoji
+ */
+const isEmoji = (str) => {
+  // Regex que detecta emojis Unicode
+  const emojiRegex = /^[\p{Emoji}\u200d]+$/u;
+  return emojiRegex.test(str);
+};
 
 /**
  * Renderiza la brújula de valores
@@ -205,6 +217,19 @@ export const init = (data, updateData) => {
     if (e.target === modal) modal.close();
   });
 
+  // Validar input de emoji
+  const iconInput = document.getElementById('value-icon');
+  iconInput?.addEventListener('input', (e) => {
+    const value = e.target.value;
+    if (value && !isEmoji(value)) {
+      e.target.setCustomValidity('Solo se permiten emojis');
+      e.target.classList.add('input--error');
+    } else {
+      e.target.setCustomValidity('');
+      e.target.classList.remove('input--error');
+    }
+  });
+
   // Configurar botones de sugerencias desde la rueda
   setupSuggestionButtons();
 };
@@ -381,6 +406,137 @@ const openModal = (value = null) => {
 };
 
 /**
+ * Re-renderiza la página de valores sin recargar
+ */
+const reRender = (data) => {
+  const values = data.values || [];
+  const wheelAreas = data.lifeWheel?.areas || [];
+  const evaluations = data.lifeWheel?.evaluations || [];
+  const suggestions = getWheelSuggestions(wheelAreas, evaluations, values);
+
+  // Actualizar badge de contador
+  const badge = document.querySelector('.page-limit-badge');
+  if (badge) {
+    badge.textContent = `${values.length}/${MAX_VALUES}`;
+    badge.classList.toggle('page-limit-badge--full', values.length >= MAX_VALUES);
+  }
+
+  // Re-renderizar la grid de valores
+  const grid = document.querySelector('.values-grid');
+  if (grid) {
+    grid.innerHTML = `
+      ${values.map(value => renderValueCard(value, wheelAreas)).join('')}
+      ${values.length < MAX_VALUES ? `
+        <button class="value-card value-card--add" id="add-value-btn">
+          <span class="material-symbols-outlined icon-lg">add_circle</span>
+          <span class="add-text">Añadir valor</span>
+        </button>
+      ` : ''}
+    `;
+  }
+
+  // Re-renderizar sugerencias de la rueda (si aplica)
+  const existingSuggestions = document.querySelector('.wheel-suggestions');
+  const valuesMain = document.querySelector('.values-main');
+  if (existingSuggestions) {
+    existingSuggestions.remove();
+  }
+  if (suggestions.length > 0 && values.length < MAX_VALUES && valuesMain) {
+    const suggestionsHTML = renderWheelSuggestions(suggestions);
+    const gridElement = valuesMain.querySelector('.values-grid');
+    if (gridElement) {
+      gridElement.insertAdjacentHTML('afterend', suggestionsHTML);
+    }
+  }
+
+  // Re-renderizar sección de reflexión (si hay valores)
+  const existingReflection = document.querySelector('.values-reflection');
+  if (existingReflection) {
+    existingReflection.remove();
+  }
+  if (values.length > 0 && valuesMain) {
+    const reflectionHTML = `
+      <section class="values-reflection">
+        <h2>Reflexión</h2>
+        <p>Cuando tengas que decidir a qué dedicar tu tiempo, pregúntate:</p>
+        <blockquote class="reflection-prompt">
+          "¿Esto me acerca a vivir según mis valores de
+          <strong>${values.map(v => escapeHTML(v.name)).join(', ')}</strong>?"
+        </blockquote>
+        <blockquote class="quote quote--secondary">
+          <p>"${getReflexionDelDia('values')}"</p>
+          <cite>— Oliver Burkeman</cite>
+        </blockquote>
+      </section>
+    `;
+    valuesMain.insertAdjacentHTML('beforeend', reflectionHTML);
+  }
+
+  // Manejar empty state
+  const existingEmpty = document.querySelector('.empty-state--large');
+  const existingGuide = document.querySelector('.values-guide--mobile');
+  if (existingEmpty) existingEmpty.remove();
+  if (existingGuide) existingGuide.remove();
+
+  if (values.length === 0 && valuesMain) {
+    const emptyHTML = `
+      <div class="empty-state empty-state--large">
+        <h3>Define tus valores fundamentales</h3>
+        <p>
+          Piensa en las 3-4 cosas más importantes para ti.
+          No lo que "deberías" valorar, sino lo que realmente te importa.
+        </p>
+        <ul class="value-examples">
+          <li><strong>Salud</strong> — Cuidar mi cuerpo y mi mente</li>
+          <li><strong>Familia</strong> — Tiempo de calidad con quienes amo</li>
+          <li><strong>Crecimiento</strong> — Aprender y mejorar constantemente</li>
+          <li><strong>Libertad</strong> — Poder elegir cómo uso mi tiempo</li>
+          <li><strong>Contribución</strong> — Ayudar a otros y dejar huella</li>
+        </ul>
+      </div>
+    `;
+    valuesMain.insertAdjacentHTML('beforeend', emptyHTML);
+    valuesMain.insertAdjacentHTML('beforeend', renderValuesGuide());
+  }
+
+  // Re-bind eventos
+  rebindEvents(data);
+};
+
+/**
+ * Re-bind eventos después de re-render
+ */
+const rebindEvents = (data) => {
+  // Botón añadir valor
+  const addBtn = document.getElementById('add-value-btn');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      openModal();
+    });
+  }
+
+  // Botones de editar
+  document.querySelectorAll('.value-edit').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const valueId = e.target.closest('[data-id]').dataset.id;
+      const value = data.values.find(v => v.id === valueId);
+      if (value) openModal(value);
+    });
+  });
+
+  // Botones de eliminar
+  document.querySelectorAll('.value-delete').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const valueId = e.target.closest('[data-id]').dataset.id;
+      handleDeleteValue(valueId, data);
+    });
+  });
+
+  // Botones de sugerencias
+  setupSuggestionButtons();
+};
+
+/**
  * Guarda un valor (nuevo o editado)
  */
 const handleSaveValue = (data) => {
@@ -419,19 +575,27 @@ const handleSaveValue = (data) => {
   updateDataCallback('values', data.values);
   document.getElementById('value-modal').close();
   showNotification('Valor guardado', 'success');
-  location.reload(); // Temporal
+  reRender(data);
 };
 
 /**
  * Elimina un valor
  */
 const handleDeleteValue = (valueId, data) => {
-  if (!confirm('¿Eliminar este valor?')) return;
+  const value = data.values.find(v => v.id === valueId);
+  const valueName = value?.name || 'este valor';
 
-  data.values = data.values.filter(v => v.id !== valueId);
-  updateDataCallback('values', data.values);
-  showNotification('Valor eliminado', 'info');
-  location.reload(); // Temporal
+  confirmDanger({
+    title: `¿Eliminar "${valueName}"?`,
+    message: 'Este valor desaparecerá de tu brújula. Podrás crear uno nuevo cuando quieras.',
+    confirmText: 'Sí, eliminar',
+    cancelText: 'No, mantener'
+  }, () => {
+    data.values = data.values.filter(v => v.id !== valueId);
+    updateDataCallback('values', data.values);
+    showNotification('Valor eliminado', 'info');
+    reRender(data);
+  });
 };
 
 /**

@@ -512,6 +512,102 @@ a:hover {
   border-top: 1px solid var(--gris-200);
 }
 
+/* Modal de Confirmación (Danger/Warning) */
+.confirm-modal {
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: 0;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: var(--shadow-lg);
+  animation: modal-appear 0.2s ease;
+}
+
+@keyframes modal-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.confirm-modal::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.confirm-modal__content {
+  padding: var(--space-4);
+  text-align: center;
+}
+
+.confirm-modal__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-2);
+}
+
+.confirm-modal--danger .confirm-modal__icon {
+  background: var(--rosa-100);
+  color: var(--rosa-600);
+}
+
+.confirm-modal--warning .confirm-modal__icon {
+  background: var(--amarillo-100);
+  color: var(--amarillo-700);
+}
+
+.confirm-modal__icon .material-symbols-outlined {
+  font-size: 2rem;
+}
+
+.confirm-modal__title {
+  font-family: var(--font-heading);
+  font-size: var(--font-size-xl);
+  color: var(--gris-900);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.confirm-modal__message {
+  color: var(--gris-600);
+  font-size: var(--font-size-sm);
+  margin: 0 0 var(--space-3) 0;
+  line-height: 1.5;
+}
+
+.confirm-modal__actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: center;
+}
+
+.confirm-modal__actions .btn {
+  flex: 1;
+  max-width: 150px;
+}
+
+/* Botón danger específico */
+.btn--danger {
+  background: var(--rosa-600);
+  color: white;
+  border: none;
+}
+
+.btn--danger:hover {
+  background: var(--rosa-700);
+}
+
+.btn--danger:focus {
+  outline: 2px solid var(--rosa-300);
+  outline-offset: 2px;
+}
+
 /* Modal de Volumen Fijo (Daily Setup) */
 .modal--setup {
   max-width: 450px;
@@ -1307,6 +1403,13 @@ a:hover {
     width: 100%;
     text-align: center;
   }
+
+  /* Modales con contenido largo en móvil */
+  #archive-confirm-modal .modal-content,
+  #archived-viewer-modal .modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -2030,6 +2133,26 @@ a:hover {
   text-decoration: line-through;
 }
 
+/* Feedback visual al soltar un item después de drag & drop */
+.kanban-item--dropped {
+  animation: pulse-success 0.6s ease-out;
+}
+
+@keyframes pulse-success {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.2);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(6, 182, 212, 0);
+  }
+}
+
 .kanban-item__content {
   display: flex;
   flex-direction: column;
@@ -2302,6 +2425,20 @@ a:hover {
   font-size: var(--font-size-lg);
 }
 
+.week-current-badge {
+  display: inline-block;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--turquesa-700);
+  background: var(--turquesa-100);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  margin-left: var(--space-2);
+  vertical-align: middle;
+}
+
 .calendar-actions {
   display: flex;
   gap: var(--space-2);
@@ -2436,6 +2573,14 @@ a:hover {
   font-size: var(--font-size-xs);
   color: var(--gris-500);
   margin: var(--space-1) 0 0 var(--space-4);
+}
+
+.char-counter {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--gris-400);
+  text-align: right;
+  margin-top: var(--space-1);
 }
 
 .event-time {
@@ -3602,6 +3747,11 @@ a.entry-type-btn {
   to { transform: rotate(360deg); }
 }
 
+/* Clase de utilidad para iconos giratorios */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
 .dashboard__section {
   animation: slideUp 0.3s ease-out both;
 }
@@ -3732,18 +3882,51 @@ a.entry-type-btn {
   font-size: 40px;
 }
 
-.empty-state h3 {
+.empty-state h3,
+.empty-state__title {
   color: var(--gris-800);
   margin-bottom: var(--space-2);
   font-size: var(--font-size-lg);
+  font-weight: 600;
 }
 
-.empty-state p {
+.empty-state p,
+.empty-state__description {
   color: var(--gris-600);
   margin-bottom: var(--space-3);
   max-width: 300px;
   margin-left: auto;
   margin-right: auto;
+  line-height: 1.5;
+}
+
+.empty-state__actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+}
+
+.empty-state--inline {
+  padding: var(--space-3);
+  background: var(--gris-100);
+  border-radius: var(--radius-md);
+}
+
+.empty-state--inline .empty-state__icon {
+  width: 48px;
+  height: 48px;
+  font-size: 24px;
+  margin-bottom: var(--space-2);
+}
+
+.empty-state--inline .empty-state__title {
+  font-size: var(--font-size-base);
+}
+
+.empty-state--inline .empty-state__description {
+  font-size: var(--font-size-sm);
 }
 
 /* --------------------------------------------------------------------------
@@ -4106,6 +4289,22 @@ a.entry-type-btn {
 
 .project-detail__tasks {
   margin-bottom: var(--space-3);
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: var(--space-1);
+}
+
+.project-detail__tasks::-webkit-scrollbar {
+  width: 6px;
+}
+
+.project-detail__tasks::-webkit-scrollbar-thumb {
+  background: var(--gris-300);
+  border-radius: 3px;
+}
+
+.project-detail__tasks::-webkit-scrollbar-thumb:hover {
+  background: var(--gris-400);
 }
 
 .project-detail__tasks h3 {
@@ -11764,9 +11963,20 @@ select,
   background: var(--turquesa-500);
 }
 
-.habit-heatmap .heatmap-day.today {
-  outline: 2px solid var(--gris-600);
+.habit-heatmap .heatmap-day.today,
+.habit-heatmap .heatmap-day--today {
+  outline: 2px solid var(--turquesa-600);
   outline-offset: 1px;
+}
+
+/* Indicador pulsante para el día de hoy sin completar */
+.habit-heatmap .heatmap-day--today.level-0 {
+  animation: pulse-today 2s ease-in-out infinite;
+}
+
+@keyframes pulse-today {
+  0%, 100% { outline-color: var(--turquesa-600); }
+  50% { outline-color: var(--rosa-400); }
 }
 
 .habit-heatmap__legend {
@@ -14035,6 +14245,22 @@ select,
   padding-top: var(--space-3);
   border-top: 1px solid var(--gris-200);
   margin-top: var(--space-4);
+}
+
+/* Contenedor para botón siguiente + hint */
+.wizard-footer__next {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+}
+
+/* Hint pequeño para botones deshabilitados */
+.hint--small {
+  font-size: var(--font-size-xs);
+  color: var(--gris-500);
+  margin: 0;
+  text-align: right;
 }
 
 .wizard-nav {

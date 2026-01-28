@@ -5,6 +5,7 @@
 
 import { generateId, showNotification } from '../app.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
+import { confirmDanger } from '../utils/confirm-modal.js';
 
 let updateDataCallback = null;
 let currentData = null;
@@ -54,19 +55,25 @@ export const renderSpontaneousModal = () => {
             <span class="form-hint">
               Puede ser algo pequeño: una buena conversación, ayudar a alguien, resolver un problema inesperado...
             </span>
+            <span class="char-counter">
+              <span id="spontaneous-char-count">0</span>/200
+            </span>
           </div>
 
           <div class="form-group">
-            <label class="form-label">¿Cómo te sientes?</label>
-            <div class="mood-selector" id="mood-selector">
+            <label class="form-label" id="mood-label">¿Cómo te sientes?</label>
+            <div class="mood-selector" id="mood-selector" role="radiogroup" aria-labelledby="mood-label">
               ${MOODS.map((mood, index) => `
                 <button
                   type="button"
                   class="mood-btn ${index === 0 ? 'active' : ''}"
                   data-mood="${mood.id}"
                   title="${mood.name}"
+                  role="radio"
+                  aria-checked="${index === 0}"
+                  aria-label="Me siento ${mood.name.toLowerCase()}"
                 >
-                  <span class="material-symbols-outlined">${mood.icon}</span>
+                  <span class="material-symbols-outlined" aria-hidden="true">${mood.icon}</span>
                   <span class="mood-label">${mood.name}</span>
                 </button>
               `).join('')}
@@ -81,7 +88,7 @@ export const renderSpontaneousModal = () => {
             <button type="button" class="btn btn--secondary" id="spontaneous-cancel">
               Cancelar
             </button>
-            <button type="submit" class="btn btn--primary">
+            <button type="submit" class="btn btn--primary" id="spontaneous-submit" disabled>
               <span class="material-symbols-outlined">add</span>
               Guardar logro
             </button>
@@ -129,8 +136,12 @@ export const initSpontaneousModal = (data, updateData) => {
   moodSelector?.addEventListener('click', (e) => {
     const btn = e.target.closest('.mood-btn');
     if (btn) {
-      moodSelector.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('active'));
+      moodSelector.querySelectorAll('.mood-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-checked', 'false');
+      });
       btn.classList.add('active');
+      btn.setAttribute('aria-checked', 'true');
     }
   });
 
@@ -139,6 +150,23 @@ export const initSpontaneousModal = (data, updateData) => {
     e.preventDefault();
     saveSpontaneousAchievement();
   });
+
+  // Habilitar/deshabilitar botón submit según contenido del textarea
+  const textarea = document.getElementById('spontaneous-text');
+  const submitBtn = document.getElementById('spontaneous-submit');
+  const charCounter = document.getElementById('spontaneous-char-count');
+
+  if (textarea && submitBtn) {
+    textarea.addEventListener('input', () => {
+      const hasText = textarea.value.trim().length > 0;
+      submitBtn.disabled = !hasText;
+
+      // Actualizar contador de caracteres
+      if (charCounter) {
+        charCounter.textContent = textarea.value.length;
+      }
+    });
+  }
 };
 
 /**
@@ -158,6 +186,14 @@ export const openSpontaneousModal = () => {
       btn.classList.toggle('active', index === 0);
     });
   }
+
+  // Reset contador
+  const charCounter = document.getElementById('spontaneous-char-count');
+  if (charCounter) charCounter.textContent = '0';
+
+  // Reset botón submit
+  const submitBtn = document.getElementById('spontaneous-submit');
+  if (submitBtn) submitBtn.disabled = true;
 
   // Abrir
   modal.showModal();
@@ -246,13 +282,20 @@ export const getSpontaneousAchievements = (data, period = 'week') => {
  * Elimina un logro espontáneo
  */
 export const deleteSpontaneousAchievement = (achievementId, data, updateData) => {
-  if (!confirm('¿Eliminar este logro?')) return;
-
   const achievements = data.spontaneousAchievements || [];
-  const filtered = achievements.filter(a => a.id !== achievementId);
+  const achievement = achievements.find(a => a.id === achievementId);
+  const previewText = achievement?.text?.slice(0, 30) || 'este logro';
 
-  updateData('spontaneousAchievements', filtered);
-  showNotification('Logro eliminado', 'info');
+  confirmDanger({
+    title: `¿Eliminar "${previewText}"?`,
+    message: 'Este logro se eliminará de tu historial.',
+    confirmText: 'Sí, eliminar',
+    cancelText: 'No, mantener'
+  }, () => {
+    const filtered = achievements.filter(a => a.id !== achievementId);
+    updateData('spontaneousAchievements', filtered);
+    showNotification('Logro eliminado', 'info');
+  });
 };
 
 /**

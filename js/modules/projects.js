@@ -13,16 +13,37 @@ import {
   getEvaluationBadge,
   getObjectiveEvaluation
 } from '../components/objective-evaluator.js';
+import { emptyStateFor } from '../components/empty-state.js';
 
 let updateDataCallback = null;
 let currentData = null;
 
-// Estados de proyecto
+// Estados de proyecto con descripciones para tooltips
 const PROJECT_STATUS = {
-  active: { name: 'Activo', icon: 'play_circle', iconClass: 'icon-success' },
-  paused: { name: 'Pausado', icon: 'pause_circle', iconClass: 'icon-warning' },
-  completed: { name: 'Completado', icon: 'check_circle', iconClass: 'icon-primary' },
-  archived: { name: 'Archivado', icon: 'inventory_2', iconClass: 'icon-muted' }
+  active: {
+    name: 'Activo',
+    icon: 'play_circle',
+    iconClass: 'icon-success',
+    description: 'Proyecto en el que estás trabajando activamente'
+  },
+  paused: {
+    name: 'Pausado',
+    icon: 'pause_circle',
+    iconClass: 'icon-warning',
+    description: 'Proyecto pausado temporalmente (cuenta para el límite)'
+  },
+  completed: {
+    name: 'Completado',
+    icon: 'check_circle',
+    iconClass: 'icon-primary',
+    description: 'Proyecto terminado (no cuenta para el límite)'
+  },
+  archived: {
+    name: 'Archivado',
+    icon: 'inventory_2',
+    iconClass: 'icon-muted',
+    description: 'Proyecto guardado para referencia (oculto por defecto)'
+  }
 };
 
 // Colores disponibles para proyectos
@@ -188,14 +209,7 @@ export const render = (data) => {
       ` : ''}
 
       <!-- Estado vacío -->
-      ${projects.length === 0 ? `
-        <div class="empty-state">
-          <span class="material-symbols-outlined empty-icon">folder_open</span>
-          <h3>Sin proyectos todavía</h3>
-          <p>Los proyectos te ayudan a agrupar tareas relacionadas.<br>
-          Crea uno para organizar tu próximo viaje, reforma o meta importante.</p>
-        </div>
-      ` : ''}
+      ${projects.length === 0 ? emptyStateFor('projects') : ''}
 
       <!-- Modal crear/editar proyecto -->
       <dialog id="project-modal" class="modal">
@@ -388,7 +402,7 @@ const renderProjectDetail = (project) => {
       </button>
       <div class="project-detail__color" style="background-color: ${project.color}"></div>
       <h2 class="project-detail__name">${escapeHTML(project.name)}</h2>
-      <span class="status-badge status-badge--${project.status}">
+      <span class="status-badge status-badge--${project.status}" title="${statusInfo.description}">
         <span class="material-symbols-outlined icon-sm ${statusInfo.iconClass}">${statusInfo.icon}</span>
         ${statusInfo.name}
       </span>
@@ -511,26 +525,30 @@ const renderProjectDetail = (project) => {
       </button>
 
       ${project.status === 'active' ? `
-        <button class="btn btn--secondary" id="pause-project-btn" data-id="${project.id}">
+        <button class="btn btn--secondary" id="pause-project-btn" data-id="${project.id}"
+          title="${PROJECT_STATUS.paused.description}">
           <span class="material-symbols-outlined">pause</span>
           Pausar
         </button>
       ` : project.status === 'paused' ? `
-        <button class="btn btn--secondary" id="resume-project-btn" data-id="${project.id}">
+        <button class="btn btn--secondary" id="resume-project-btn" data-id="${project.id}"
+          title="${PROJECT_STATUS.active.description}">
           <span class="material-symbols-outlined">play_arrow</span>
           Reanudar
         </button>
       ` : ''}
 
       ${project.status !== 'completed' && project.status !== 'archived' ? `
-        <button class="btn btn--primary" id="complete-project-btn" data-id="${project.id}">
+        <button class="btn btn--primary" id="complete-project-btn" data-id="${project.id}"
+          title="${PROJECT_STATUS.completed.description}">
           <span class="material-symbols-outlined">check_circle</span>
           Completar
         </button>
       ` : ''}
 
       ${project.status === 'completed' ? `
-        <button class="btn btn--secondary" id="archive-project-btn" data-id="${project.id}">
+        <button class="btn btn--secondary" id="archive-project-btn" data-id="${project.id}"
+          title="${PROJECT_STATUS.archived.description}">
           <span class="material-symbols-outlined">inventory_2</span>
           Archivar
         </button>
@@ -650,6 +668,29 @@ const setupProjectModal = (data, modal) => {
       saveProject(data);
     }
   });
+
+  // Validación en tiempo real del nombre
+  const nameInput = document.getElementById('project-name');
+  const submitBtn = form?.querySelector('button[type="submit"]');
+
+  const validateName = () => {
+    const name = nameInput.value.trim();
+    const isValid = name.length >= 3;
+
+    if (!isValid && name.length > 0) {
+      nameInput.classList.add('input--error');
+      nameInput.setCustomValidity('El nombre debe tener al menos 3 caracteres');
+    } else {
+      nameInput.classList.remove('input--error');
+      nameInput.setCustomValidity('');
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = !isValid;
+    }
+  };
+
+  nameInput?.addEventListener('input', validateName);
 };
 
 /**
