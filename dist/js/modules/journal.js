@@ -13,6 +13,8 @@ import {
 } from '../data/burkeman.js';
 import { getHerramienta } from '../data/markmanson.js';
 import { getSpeechHandler, isSpeechSupported } from '../utils/speech-handler.js';
+import { confirmDanger } from '../utils/confirm-modal.js';
+import { emptyStateFor } from '../components/empty-state.js';
 
 let updateDataCallback = null;
 let currentData = null;
@@ -172,12 +174,7 @@ const renderList = (data) => {
       <section class="journal-entries">
         <h2>Entradas anteriores</h2>
 
-        ${entries.length === 0 ? `
-          <div class="empty-state">
-            <p>Todavía no has escrito ninguna entrada.</p>
-            <p>Empieza con un check-in diario. Solo toma unos minutos.</p>
-          </div>
-        ` : `
+        ${entries.length === 0 ? emptyStateFor('journal') : `
           <div class="entries-list">
             ${entries.map(entry => renderEntryCard(entry)).join('')}
           </div>
@@ -362,12 +359,19 @@ const setupEditor = (data) => {
   // Eliminar entrada
   document.getElementById('delete-journal')?.addEventListener('click', () => {
     const id = document.getElementById('journal-id').value;
-    if (id && confirm('¿Eliminar esta entrada?')) {
+    if (!id) return;
+
+    confirmDanger({
+      title: '¿Eliminar esta entrada?',
+      message: 'Se eliminará permanentemente de tu diario.',
+      confirmText: 'Sí, eliminar',
+      cancelText: 'No, mantener'
+    }, () => {
       data.journal = data.journal.filter(e => e.id !== id);
       updateDataCallback('journal', data.journal);
       showNotification('Entrada eliminada', 'info');
       window.location.hash = '#journal';
-    }
+    });
   });
 
   // Click en prompts para insertarlos

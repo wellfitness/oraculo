@@ -17,6 +17,7 @@ import {
   deleteSpontaneousAchievement
 } from '../components/spontaneous-achievement.js';
 import { escapeHTML } from '../utils/sanitizer.js';
+import { emptyStateFor } from '../components/empty-state.js';
 
 let currentPeriod = 'week';
 
@@ -69,29 +70,29 @@ export const render = (data) => {
       </div>
 
       <!-- Resumen de contadores -->
-      <section class="achievements-summary">
-        <div class="stat-card">
-          <span class="material-symbols-outlined stat-icon">task_alt</span>
+      <section class="achievements-summary" role="region" aria-label="Resumen de logros">
+        <div class="stat-card" role="status" aria-label="${stats.totalTasks} tareas completadas">
+          <span class="material-symbols-outlined stat-icon" aria-hidden="true">task_alt</span>
           <span class="stat-value">${stats.totalTasks}</span>
           <span class="stat-label">Tareas completadas</span>
         </div>
-        <div class="stat-card">
-          <span class="material-symbols-outlined stat-icon filled icon-warning">local_fire_department</span>
+        <div class="stat-card" role="status" aria-label="${stats.habitDays} días de hábito">
+          <span class="material-symbols-outlined stat-icon filled icon-warning" aria-hidden="true">local_fire_department</span>
           <span class="stat-value">${stats.habitDays}</span>
           <span class="stat-label">Días de hábito</span>
         </div>
-        <div class="stat-card">
-          <span class="material-symbols-outlined stat-icon">folder_special</span>
+        <div class="stat-card" role="status" aria-label="${stats.projectsCompleted} proyectos completados">
+          <span class="material-symbols-outlined stat-icon" aria-hidden="true">folder_special</span>
           <span class="stat-value">${stats.projectsCompleted}</span>
           <span class="stat-label">Proyectos completados</span>
         </div>
-        <div class="stat-card">
-          <span class="material-symbols-outlined stat-icon">edit_note</span>
+        <div class="stat-card" role="status" aria-label="${stats.journalEntries} entradas de diario">
+          <span class="material-symbols-outlined stat-icon" aria-hidden="true">edit_note</span>
           <span class="stat-value">${stats.journalEntries}</span>
           <span class="stat-label">Entradas de diario</span>
         </div>
-        <div class="stat-card stat-card--spontaneous">
-          <span class="material-symbols-outlined stat-icon icon-warning">celebration</span>
+        <div class="stat-card stat-card--spontaneous" role="status" aria-label="${spontaneous.length} logros espontáneos">
+          <span class="material-symbols-outlined stat-icon icon-warning" aria-hidden="true">celebration</span>
           <span class="stat-value">${spontaneous.length}</span>
           <span class="stat-label">Logros espontáneos</span>
         </div>
@@ -355,15 +356,7 @@ const renderSpontaneousSection = (achievements) => {
           <span class="material-symbols-outlined icon-sm icon-warning">celebration</span>
           Logros espontáneos
         </h2>
-        <div class="spontaneous-empty">
-          <p class="empty-state">
-            Aún no has registrado logros espontáneos en este período.
-          </p>
-          <p class="hint">
-            Los logros espontáneos son cosas que conseguiste sin haberlas planificado:
-            una buena conversación, un problema resuelto creativamente, un momento de alegría inesperado...
-          </p>
-        </div>
+        ${emptyStateFor('spontaneous', { variant: 'inline' })}
       </section>
     `;
   }

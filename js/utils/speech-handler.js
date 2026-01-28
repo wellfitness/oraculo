@@ -55,6 +55,12 @@ export class SpeechHandler {
     };
 
     this.recognition.onresult = (event) => {
+      // Limpiar timeout al recibir cualquier resultado
+      if (this._timeout) {
+        clearTimeout(this._timeout);
+        this._timeout = null;
+      }
+
       let interimTranscript = '';
       let finalTranscript = '';
 
@@ -98,14 +104,20 @@ export class SpeechHandler {
 
     this.recognition.onend = () => {
       this.isListening = false;
+      // Limpiar timeout si existe
+      if (this._timeout) {
+        clearTimeout(this._timeout);
+        this._timeout = null;
+      }
       this._emit('end');
     };
   }
 
   /**
    * Iniciar reconocimiento de voz
+   * @param {number} [timeout=10000] - Timeout en ms (0 = sin timeout)
    */
-  start() {
+  start(timeout = 10000) {
     if (!this.supported) {
       this._emit('error', {
         code: 'not-supported',
@@ -121,6 +133,20 @@ export class SpeechHandler {
 
     try {
       this.recognition.start();
+
+      // Timeout de seguridad
+      if (timeout > 0) {
+        this._timeout = setTimeout(() => {
+          if (this.isListening) {
+            this.stop();
+            this._emit('error', {
+              code: 'timeout',
+              message: 'Micrófono sin respuesta. Inténtalo de nuevo.'
+            });
+          }
+        }, timeout);
+      }
+
       return true;
     } catch (error) {
       console.error('[SpeechHandler] Error al iniciar:', error);

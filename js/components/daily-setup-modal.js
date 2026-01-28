@@ -346,11 +346,29 @@ export const initDailySetupModal = (data, updateData) => {
     const checkboxes = document.querySelectorAll('.task-item__checkbox input');
 
     checkboxes.forEach(checkbox => {
+      // CLICK se dispara ANTES del cambio visual - usado para validar límite
+      checkbox.addEventListener('click', (e) => {
+        const source = checkbox.dataset.source;
+
+        // Solo validar al intentar MARCAR un checkbox de weekly (cuando está desmarcado)
+        if (source === 'weekly' && !checkbox.checked) {
+          const dailyCount = (data.objectives?.daily || []).filter(i => !i.completed).length;
+          const effectiveDailyCount = dailyCount - tasksToRemoveFromDaily.length;
+          const pendingToAdd = tasksToMoveToDaily.length;
+          const totalAfterAdd = effectiveDailyCount + pendingToAdd + 1;
+
+          if (totalAfterAdd > currentLimit) {
+            e.preventDefault(); // Evita que el checkbox se marque (sin parpadeo)
+            showNotification(`Solo puedes tener ${currentLimit} prioridad${currentLimit > 1 ? 'es' : ''} en foco`, 'warning');
+          }
+        }
+      });
+
+      // CHANGE se dispara DESPUÉS - maneja la lógica de arrays (si el click no fue prevenido)
       checkbox.addEventListener('change', () => {
         const taskId = checkbox.dataset.id;
         const source = checkbox.dataset.source; // 'daily' o 'weekly'
         const taskItem = checkbox.closest('.task-item');
-        const dailyCount = (data.objectives?.daily || []).filter(i => !i.completed).length;
 
         if (source === 'daily') {
           // === TAREA DE DAILY ===
@@ -368,18 +386,8 @@ export const initDailySetupModal = (data, updateData) => {
           }
         } else if (source === 'weekly') {
           // === TAREA DE WEEKLY ===
+          // La validación de límite ya se hizo en click, aquí solo actualizamos arrays
           if (checkbox.checked) {
-            // Verificar límite antes de añadir
-            const effectiveDailyCount = dailyCount - tasksToRemoveFromDaily.length;
-            const pendingToAdd = tasksToMoveToDaily.length;
-            const totalAfterAdd = effectiveDailyCount + pendingToAdd + 1;
-
-            if (totalAfterAdd > currentLimit) {
-              checkbox.checked = false;
-              showNotification(`Solo puedes tener ${currentLimit} prioridad${currentLimit > 1 ? 'es' : ''} en foco`, 'warning');
-              return;
-            }
-
             // Añadir a lista de mover
             if (!tasksToMoveToDaily.some(t => t.id === taskId)) {
               tasksToMoveToDaily.push({ id: taskId, column: 'weekly' });

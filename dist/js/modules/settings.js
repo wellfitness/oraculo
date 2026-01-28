@@ -434,8 +434,21 @@ export const init = (data, updateData) => {
   });
 
   document.getElementById('confirm-archive')?.addEventListener('click', () => {
-    handleArchiveYear();
-    archiveModal?.close();
+    const confirmBtn = document.getElementById('confirm-archive');
+    const cancelBtn = document.getElementById('cancel-archive');
+
+    // Deshabilitar botones y mostrar estado de carga
+    if (confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.innerHTML = '<span class="material-symbols-outlined spin">sync</span> Archivando...';
+    }
+    if (cancelBtn) cancelBtn.disabled = true;
+
+    // Pequeño delay para que la UI se actualice antes del proceso pesado
+    setTimeout(() => {
+      handleArchiveYear();
+      archiveModal?.close();
+    }, 50);
   });
 
   // Importar año archivado para consultar

@@ -12,6 +12,23 @@
 
 import { showNotification, navigateTo } from '../app.js';
 
+/**
+ * Navega al destino correcto después del setup.
+ * Si el usuario llegó con un hash en la URL (ej: #journal),
+ * se guardó en sessionStorage y ahora lo recuperamos.
+ */
+const navigatePostSetup = () => {
+  const postSetupView = sessionStorage.getItem('oraculo_postSetupView');
+  if (postSetupView) {
+    sessionStorage.removeItem('oraculo_postSetupView');
+    // El hash guardado puede ser "journal" o "kanban" etc.
+    const baseView = postSetupView.replace('#', '').split('#')[0];
+    navigateTo(baseView);
+  } else {
+    navigateTo('dashboard');
+  }
+};
+
 // Nombres de columnas para mostrar
 const COLUMN_NAMES = {
   backlog: 'Backlog',
@@ -457,7 +474,7 @@ export const init = (data, updateData) => {
     };
 
     updateData('dailySetup', data.dailySetup);
-    navigateTo('dashboard');
+    navigatePostSetup();
   };
 
   btnSkip?.addEventListener('click', handleSkipSetup);
@@ -541,7 +558,7 @@ export const init = (data, updateData) => {
     }
 
     showNotification(`¡Día configurado!${tasksMsg}`, 'success');
-    navigateTo('dashboard');
+    navigatePostSetup();
   });
 
   // Inicializar contador

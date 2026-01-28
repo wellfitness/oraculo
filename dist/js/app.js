@@ -48,7 +48,8 @@ export { getVisibleViews, USAGE_MODES };
 const state = {
   currentView: 'dashboard',
   data: null,
-  initialized: false
+  initialized: false,
+  pendingSync: null // Datos de Supabase pendientes de aplicar (cuando hay modal abierto)
 };
 
 // Variable para rastrear último campo de texto activo (para dictado por voz)
@@ -129,10 +130,16 @@ export const init = () => {
   const fullHash = window.location.hash.slice(1);
   const baseView = getBaseView(fullHash);
 
-  if (fullHash && VIEWS[baseView]) {
-    navigateTo(baseView, fullHash);
-  } else if (needsSetup) {
+  // IMPORTANTE: Daily setup tiene prioridad sobre URL hash (filosofía Burkeman)
+  // El usuario debe configurar su día ANTES de ir a cualquier otra vista
+  if (needsSetup) {
+    // Guardar destino original para después del setup (si hay uno válido)
+    if (fullHash && VIEWS[baseView] && baseView !== 'daily-setup') {
+      sessionStorage.setItem('oraculo_postSetupView', fullHash);
+    }
     navigateTo('daily-setup');
+  } else if (fullHash && VIEWS[baseView]) {
+    navigateTo(baseView, fullHash);
   } else {
     navigateTo('dashboard');
   }
@@ -157,9 +164,11 @@ const setupNavigation = () => {
 
   // Manejar navegación del navegador (back/forward)
   window.addEventListener('popstate', (e) => {
-    if (e.state && e.state.view) {
-      renderView(e.state.view);
-    }
+    // Manejar navegación atrás/adelante del navegador
+    // e.state puede ser null si el usuario navegó a un estado sin history.pushState
+    const view = e.state?.view || getBaseView(location.hash.slice(1)) || 'dashboard';
+    renderView(view);
+    updateActiveNav(view);
   });
 
   // Manejar cambios de hash (para subrutas como #journal/new/gratitude)
@@ -190,12 +199,34 @@ const setupGlobalEvents = () => {
 
   // Escuchar cuando llegan datos sincronizados desde Supabase
   window.addEventListener('data-synced-from-cloud', (e) => {
-    console.log('[App] Datos sincronizados desde la nube, recargando vista...');
-    state.data = e.detail.data;
-    // Re-renderizar la vista actual con los nuevos datos
-    renderView(state.currentView);
-    showNotification('✓ Datos sincronizados desde la nube', 'success');
+    console.log('[App] Datos sincronizados desde la nube');
+
+    // Verificar si hay algún modal abierto
+    const openModal = document.querySelector('dialog[open]');
+
+    if (openModal) {
+      // Hay un modal abierto - guardar datos para aplicar después
+      console.log('[App] Modal abierto, difiriendo actualización');
+      state.pendingSync = e.detail.data;
+      showNotification('Datos actualizados. Se aplicarán al cerrar el modal.', 'info');
+    } else {
+      // No hay modal - aplicar inmediatamente
+      state.data = e.detail.data;
+      renderView(state.currentView);
+      showNotification('✓ Datos sincronizados desde la nube', 'success');
+    }
   });
+
+  // Aplicar sync pendiente cuando se cierra un modal
+  document.addEventListener('close', (e) => {
+    if (e.target.tagName === 'DIALOG' && state.pendingSync) {
+      console.log('[App] Modal cerrado, aplicando sync pendiente');
+      state.data = state.pendingSync;
+      state.pendingSync = null;
+      renderView(state.currentView);
+      showNotification('✓ Datos sincronizados desde la nube', 'success');
+    }
+  }, true);
 
   // Guardar antes de cerrar (sin diálogo - los datos siempre se guardan automáticamente)
   window.addEventListener('beforeunload', () => {
@@ -232,8 +263,11 @@ const setupGlobalEvents = () => {
       });
     });
 
-    // Cerrar al hacer click fuera
+    // Cerrar al hacer click fuera (ignorar clicks en modales)
     document.addEventListener('click', (e) => {
+      // Ignorar clicks dentro de modales
+      if (e.target.closest('dialog')) return;
+
       if (!e.target.closest('.app-header')) {
         appNav.classList.remove('is-open');
         navToggle.setAttribute('aria-expanded', 'false');
@@ -566,6 +600,10 @@ export const navigateTo = (viewName) => {
     return;
   }
 
+  // Limpiar referencia a campo de texto de la vista anterior
+  // para evitar que el dictado por voz apunte a elementos obsoletos
+  lastActiveTextField = null;
+
   state.currentView = viewName;
 
   // Actualizar URL sin recargar
@@ -608,11 +646,16 @@ const renderView = async (viewName) => {
       }
     }
   } catch (error) {
-    console.error('Error cargando vista:', error);
+    console.error('Error cargando vista:', viewName, error);
     container.innerHTML = `
-      <div class="error-message">
-        <h3>Error cargando ${VIEWS[viewName]}</h3>
-        <p>Por favor, recarga la página.</p>
+      <div class="empty-state empty-state--large">
+        <span class="material-symbols-outlined icon-xl">error_outline</span>
+        <h3>No se pudo cargar "${VIEWS[viewName] || viewName}"</h3>
+        <p>Puede que haya un problema temporal. Intenta volver al inicio.</p>
+        <button class="btn btn--primary" onclick="window.location.hash='dashboard'">
+          <span class="material-symbols-outlined icon-sm">home</span>
+          Volver al inicio
+        </button>
       </div>
     `;
   }
@@ -671,6 +714,10 @@ export const showNotification = (message, type = 'info') => {
   const notification = document.createElement('div');
   notification.className = `notification notification--${type}`;
   notification.textContent = message;
+
+  // Atributos de accesibilidad
+  notification.setAttribute('role', 'alert');
+  notification.setAttribute('aria-live', type === 'warning' || type === 'danger' ? 'assertive' : 'polite');
 
   document.body.appendChild(notification);
 

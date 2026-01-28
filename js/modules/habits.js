@@ -6,6 +6,7 @@
 import { generateId, showNotification } from '../app.js';
 import { escapeHTML } from '../utils/sanitizer.js';
 import { getReflexionDelDia, getReflexionPorPilar } from '../data/burkeman.js';
+import { confirmDanger } from '../utils/confirm-modal.js';
 import { getHabitosManson } from '../data/markmanson.js';
 import { generateHabitHeatmapGrid, groupHabitGridByWeeks } from '../utils/achievements-calculator.js';
 
@@ -22,6 +23,63 @@ let currentView = 'lab';
 let wizardStep = 1;
 let wizardData = {};
 let auditStep = 1;
+
+// === Persistencia del Wizard ===
+const WIZARD_STORAGE_KEY = 'oraculo_habitWizardProgress';
+
+/**
+ * Obtiene la fecha local en formato YYYY-MM-DD
+ */
+const getLocalDateString = (date = new Date()) => {
+  return date.toLocaleDateString('en-CA');
+};
+
+/**
+ * Guarda el progreso del wizard en localStorage
+ */
+const saveWizardProgress = () => {
+  const progress = {
+    step: wizardStep,
+    data: wizardData,
+    savedAt: new Date().toISOString(),
+    date: getLocalDateString()
+  };
+  localStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify(progress));
+};
+
+/**
+ * Restaura el progreso del wizard desde localStorage
+ * Solo restaura si es del mismo día
+ * @returns {{ step: number, data: object } | null}
+ */
+const restoreWizardProgress = () => {
+  try {
+    const saved = localStorage.getItem(WIZARD_STORAGE_KEY);
+    if (!saved) return null;
+
+    const { step, data, date } = JSON.parse(saved);
+
+    // Solo restaurar si es del mismo día
+    if (date === getLocalDateString()) {
+      return { step, data };
+    }
+
+    // Si es de otro día, limpiar
+    clearWizardProgress();
+    return null;
+  } catch (e) {
+    console.warn('Error restaurando progreso del wizard:', e);
+    clearWizardProgress();
+    return null;
+  }
+};
+
+/**
+ * Limpia el progreso guardado del wizard
+ */
+const clearWizardProgress = () => {
+  localStorage.removeItem(WIZARD_STORAGE_KEY);
+};
 
 // Iconos disponibles para actividades atélicas
 const ATELIC_ICONS = [
@@ -484,9 +542,23 @@ export const init = (data, updateData) => {
 
   // Botón crear hábito (salta auditoría, va directo al wizard)
   document.getElementById('create-habit-btn')?.addEventListener('click', () => {
+    // Verificar si hay progreso guardado del mismo día
+    const savedProgress = restoreWizardProgress();
+    if (savedProgress && Object.keys(savedProgress.data).length > 0) {
+      // Preguntar si quiere continuar
+      if (confirm('Tienes un hábito sin terminar. ¿Quieres continuar donde lo dejaste?')) {
+        wizardStep = savedProgress.step;
+        wizardData = savedProgress.data;
+      } else {
+        wizardStep = 1;
+        wizardData = {};
+        clearWizardProgress();
+      }
+    } else {
+      wizardStep = 1;
+      wizardData = {};
+    }
     currentView = 'wizard';
-    wizardStep = 1;
-    wizardData = {};
     reRender(data);
   });
 
@@ -650,18 +722,42 @@ const initAuditEvents = (data) => {
     });
   });
 
-  // Crear hábito nuevo (sin auditoría)
+  // Crear hábito nuevo (sin auditoría) - con restauración de progreso
   document.getElementById('audit-create-new-btn')?.addEventListener('click', () => {
+    const savedProgress = restoreWizardProgress();
+    if (savedProgress && Object.keys(savedProgress.data).length > 0) {
+      if (confirm('Tienes un hábito sin terminar. ¿Quieres continuar donde lo dejaste?')) {
+        wizardStep = savedProgress.step;
+        wizardData = savedProgress.data;
+      } else {
+        wizardStep = 1;
+        wizardData = {};
+        clearWizardProgress();
+      }
+    } else {
+      wizardStep = 1;
+      wizardData = {};
+    }
     currentView = 'wizard';
-    wizardStep = 1;
-    wizardData = {};
     reRender(data);
   });
 
   document.getElementById('audit-skip-btn')?.addEventListener('click', () => {
+    const savedProgress = restoreWizardProgress();
+    if (savedProgress && Object.keys(savedProgress.data).length > 0) {
+      if (confirm('Tienes un hábito sin terminar. ¿Quieres continuar donde lo dejaste?')) {
+        wizardStep = savedProgress.step;
+        wizardData = savedProgress.data;
+      } else {
+        wizardStep = 1;
+        wizardData = {};
+        clearWizardProgress();
+      }
+    } else {
+      wizardStep = 1;
+      wizardData = {};
+    }
     currentView = 'wizard';
-    wizardStep = 1;
-    wizardData = {};
     reRender(data);
   });
 };
@@ -676,6 +772,7 @@ const initWizardEvents = (data) => {
       currentView = 'lab';
       wizardStep = 1;
       wizardData = {};
+      clearWizardProgress(); // Limpiar progreso guardado
       reRender(data);
     }
   });
@@ -685,6 +782,7 @@ const initWizardEvents = (data) => {
       currentView = 'lab';
       wizardStep = 1;
       wizardData = {};
+      clearWizardProgress(); // Limpiar progreso guardado
       reRender(data);
     }
   });
@@ -714,6 +812,18 @@ const initWizardEvents = (data) => {
       reRender(data);
     }
   });
+
+  // Habilitar/deshabilitar botón siguiente en paso 2 cuando se escribe la identidad
+  const wizardIdentityInput = document.getElementById('wizard-identity');
+  const wizardNextBtnStep2 = document.getElementById('wizard-next-btn');
+  if (wizardIdentityInput && wizardNextBtnStep2 && wizardStep === 2) {
+    wizardIdentityInput.addEventListener('input', () => {
+      const hasIdentity = wizardIdentityInput.value.trim().length > 0;
+      wizardNextBtnStep2.disabled = !hasIdentity;
+      // Actualizar wizardData en tiempo real
+      wizardData.identity = wizardIdentityInput.value.trim();
+    });
+  }
 
   // Habilitar/deshabilitar botón siguiente en paso 3 cuando se escribe el nombre
   const wizardNameInput = document.getElementById('wizard-name');
@@ -755,6 +865,7 @@ const initWizardEvents = (data) => {
 
 /**
  * Guarda los valores del paso actual del wizard
+ * También persiste en localStorage para recuperar si se cierra la pestaña
  */
 const saveCurrentWizardStep = () => {
   switch (wizardStep) {
@@ -784,6 +895,9 @@ const saveCurrentWizardStep = () => {
       }
       break;
   }
+
+  // Persistir progreso en localStorage
+  saveWizardProgress();
 };
 
 /**
@@ -797,9 +911,23 @@ const validateCurrentWizardStep = () => {
         return false;
       }
       break;
+    case 2:
+      // La identidad es importante en la filosofía de hábitos
+      // "No eres alguien que quiere correr, eres una corredora"
+      if (!wizardData.identity?.trim()) {
+        showNotification('Define tu identidad ("Soy una persona que...")', 'warning');
+        return false;
+      }
+      break;
     case 3:
       if (!wizardData.name?.trim()) {
         showNotification('El nombre del hábito es obligatorio', 'warning');
+        return false;
+      }
+      break;
+    case 7:
+      if (!wizardData.duration) {
+        showNotification('Selecciona una duración para el experimento', 'warning');
         return false;
       }
       break;
@@ -840,10 +968,11 @@ const saveHabitFromWizard = (data) => {
   data.habits.active = habitData;
   updateDataCallback('habits', data.habits);
 
-  // Resetear estado
+  // Resetear estado y limpiar progreso guardado
   currentView = 'lab';
   wizardStep = 1;
   wizardData = {};
+  clearWizardProgress();
 
   showNotification('¡Hábito activado! Recuerda: un día a la vez.', 'success');
   location.reload();
@@ -1255,8 +1384,8 @@ const renderHabitHeatmap = (habitId, history) => {
           ${weeks.map(week => `
             <div class="heatmap-week">
               ${week.map(day => `
-                <div class="heatmap-day ${day.completed ? 'level-4' : 'level-0'} ${day.isToday ? 'today' : ''}"
-                     title="${formatHeatmapDate(day.date)}: ${day.completed ? 'Completado' : 'No completado'}">
+                <div class="heatmap-day ${day.completed ? 'level-4' : 'level-0'} ${day.isToday ? 'heatmap-day--today' : ''}"
+                     title="${formatHeatmapDate(day.date)}: ${day.completed ? '✓ Completado' : day.isToday ? 'Hoy - Pendiente' : 'No completado'}">
                 </div>
               `).join('')}
             </div>
@@ -1351,10 +1480,13 @@ const renderAuditSection = (data) => {
 
         <footer class="wizard-footer">
           <button class="btn btn--tertiary" id="audit-back-to-lab-btn">Cancelar</button>
-          <button class="btn btn--primary" id="audit-next-btn" ${activities.length < 2 ? 'disabled' : ''}>
-            Siguiente
-            <span class="material-symbols-outlined icon-sm">arrow_forward</span>
-          </button>
+          <div class="wizard-footer__next">
+            <button class="btn btn--primary" id="audit-next-btn" ${activities.length < 2 ? 'disabled' : ''}>
+              Siguiente
+              <span class="material-symbols-outlined icon-sm">arrow_forward</span>
+            </button>
+            ${activities.length < 2 ? '<p class="hint hint--small">Añade al menos 2 actividades para continuar</p>' : ''}
+          </div>
         </footer>
       </div>
     `;
@@ -1410,10 +1542,13 @@ const renderAuditSection = (data) => {
             <span class="material-symbols-outlined icon-sm">arrow_back</span>
             Atrás
           </button>
-          <button class="btn btn--primary" id="audit-next-btn" ${activities.some(a => !a.evaluation) ? 'disabled' : ''}>
-            Siguiente
-            <span class="material-symbols-outlined icon-sm">arrow_forward</span>
-          </button>
+          <div class="wizard-footer__next">
+            <button class="btn btn--primary" id="audit-next-btn" ${activities.some(a => !a.evaluation) ? 'disabled' : ''}>
+              Siguiente
+              <span class="material-symbols-outlined icon-sm">arrow_forward</span>
+            </button>
+            ${activities.some(a => !a.evaluation) ? '<p class="hint hint--small">Evalúa todas las actividades para continuar</p>' : ''}
+          </div>
         </footer>
       </div>
     `;
@@ -1575,7 +1710,7 @@ const renderHabitWizard = () => {
             <span class="material-symbols-outlined icon-sm">arrow_back</span>
             Atrás
           </button>
-          <button class="btn btn--primary" id="wizard-next-btn">
+          <button class="btn btn--primary" id="wizard-next-btn" ${!wizardData.identity?.trim() ? 'disabled' : ''}>
             Siguiente
             <span class="material-symbols-outlined icon-sm">arrow_forward</span>
           </button>
@@ -2089,11 +2224,16 @@ const saveAtelicActivity = (data) => {
  * Elimina una actividad atélica
  */
 const deleteAtelicActivity = (activityId, data) => {
-  if (!confirm('¿Eliminar esta actividad?')) return;
-
-  data.atelicActivities = data.atelicActivities.filter(a => a.id !== activityId);
-  updateDataCallback('atelicActivities', data.atelicActivities);
-
-  showNotification('Actividad eliminada', 'info');
-  location.reload();
+  confirmDanger({
+    title: '¿Eliminar esta actividad?',
+    message: 'Es solo un registro de descanso, no pasa nada si la quitas.',
+    confirmText: 'Eliminar',
+    cancelText: 'Mantener',
+    type: 'warning'
+  }, () => {
+    data.atelicActivities = data.atelicActivities.filter(a => a.id !== activityId);
+    updateDataCallback('atelicActivities', data.atelicActivities);
+    showNotification('Actividad eliminada', 'info');
+    location.reload();
+  });
 };

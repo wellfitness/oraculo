@@ -9,6 +9,7 @@ import { getReflexionDelDia } from '../data/burkeman.js';
 
 let updateDataCallback = null;
 let currentWeekStart = getWeekStart(new Date());
+let currentData = null;
 
 /**
  * Renderiza el calendario
@@ -53,7 +54,8 @@ export const render = (data) => {
           <span class="material-symbols-outlined icon-sm">repeat</span>
           Evento recurrente
         </button>
-        <button class="btn btn--tertiary" id="export-ics-btn">
+        <button class="btn btn--tertiary" id="export-ics-btn"
+          title="Descargar archivo .ics para importar en Google Calendar, Outlook, etc.">
           <span class="material-symbols-outlined icon-sm">download</span>
           Exportar .ics
         </button>
@@ -132,13 +134,14 @@ export const render = (data) => {
           <div class="form-group">
             <label>Días de la semana</label>
             <div class="days-selector">
-              <label><input type="checkbox" name="recurring-day" value="1"> L</label>
-              <label><input type="checkbox" name="recurring-day" value="2"> M</label>
-              <label><input type="checkbox" name="recurring-day" value="3"> X</label>
-              <label><input type="checkbox" name="recurring-day" value="4"> J</label>
-              <label><input type="checkbox" name="recurring-day" value="5"> V</label>
-              <label><input type="checkbox" name="recurring-day" value="6"> S</label>
-              <label><input type="checkbox" name="recurring-day" value="0"> D</label>
+              <!-- Valores coinciden con JavaScript getDay(): 0=Dom, 1=Lun, 2=Mar, etc. -->
+              <label title="Lunes"><input type="checkbox" name="recurring-day" value="1"> Lun</label>
+              <label title="Martes"><input type="checkbox" name="recurring-day" value="2"> Mar</label>
+              <label title="Miércoles"><input type="checkbox" name="recurring-day" value="3"> Mié</label>
+              <label title="Jueves"><input type="checkbox" name="recurring-day" value="4"> Jue</label>
+              <label title="Viernes"><input type="checkbox" name="recurring-day" value="5"> Vie</label>
+              <label title="Sábado"><input type="checkbox" name="recurring-day" value="6"> Sáb</label>
+              <label title="Domingo"><input type="checkbox" name="recurring-day" value="0"> Dom</label>
             </div>
           </div>
 
@@ -164,25 +167,88 @@ export const render = (data) => {
 };
 
 /**
+ * Re-renderiza el calendario sin recargar la página
+ * Útil para navegación de semanas y actualización de eventos
+ */
+const reRender = () => {
+  if (!currentData) return;
+
+  const container = document.querySelector('.calendar-section');
+  if (!container) return;
+
+  // Re-generar HTML
+  const weekDays = generateWeekDays(currentWeekStart);
+  const events = currentData.calendar.events || [];
+  const recurring = currentData.calendar.recurring || [];
+
+  // Actualizar solo el contenido de navegación y la vista semanal
+  const navigation = container.querySelector('.calendar-navigation');
+  const weekView = container.querySelector('.week-view');
+
+  if (navigation) {
+    navigation.querySelector('.week-title').innerHTML = formatWeekRange(currentWeekStart);
+  }
+
+  if (weekView) {
+    weekView.innerHTML = weekDays.map(day => renderDayColumn(day, events, recurring)).join('');
+  }
+
+  // Re-bind event listeners para los nuevos elementos
+  bindWeekViewEvents();
+};
+
+/**
+ * Vincula eventos de la vista semanal (doble-clic en días, clic en eventos)
+ */
+const bindWeekViewEvents = () => {
+  // Click en día para añadir evento
+  document.querySelectorAll('.day-column').forEach(col => {
+    col.addEventListener('dblclick', (e) => {
+      if (e.target.classList.contains('day-column') || e.target.classList.contains('day-events')) {
+        const date = col.dataset.date;
+        openEventModal(null, date);
+      }
+    });
+  });
+
+  // Click en evento para editar
+  document.querySelectorAll('.event-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      const eventId = item.dataset.id;
+      const isRecurring = item.dataset.recurring === 'true';
+
+      if (isRecurring) {
+        const recurring = currentData.calendar.recurring.find(r => r.id === eventId);
+        if (recurring) openRecurringModal(recurring);
+      } else {
+        const event = currentData.calendar.events.find(ev => ev.id === eventId);
+        if (event) openEventModal(event);
+      }
+    });
+  });
+};
+
+/**
  * Inicializa eventos
  */
 export const init = (data, updateData) => {
   updateDataCallback = updateData;
+  currentData = data;
 
   // Navegación de semanas
   document.getElementById('prev-week')?.addEventListener('click', () => {
     currentWeekStart.setDate(currentWeekStart.getDate() - 7);
-    location.reload();
+    reRender();
   });
 
   document.getElementById('next-week')?.addEventListener('click', () => {
     currentWeekStart.setDate(currentWeekStart.getDate() + 7);
-    location.reload();
+    reRender();
   });
 
   document.getElementById('today-btn')?.addEventListener('click', () => {
     currentWeekStart = getWeekStart(new Date());
-    location.reload();
+    reRender();
   });
 
   // Modales
@@ -253,7 +319,8 @@ const renderDayColumn = (day, events, recurring) => {
   const isToday = day.dateStr === getLocalDateString();
 
   return `
-    <div class="day-column ${isToday ? 'day-column--today' : ''}" data-date="${day.dateStr}">
+    <div class="day-column ${isToday ? 'day-column--today' : ''}" data-date="${day.dateStr}"
+         title="Doble clic para crear evento">
       <div class="day-header">
         <span class="day-name">${day.dayName}</span>
         <span class="day-number">${day.dayNumber}</span>
@@ -281,6 +348,10 @@ const renderDayColumn = (day, events, recurring) => {
 
 /**
  * Obtiene eventos de un día
+ * @param {string} dateStr - Fecha en formato YYYY-MM-DD
+ * @param {Array} events - Eventos puntuales
+ * @param {Array} recurring - Eventos recurrentes
+ * @param {number} dayOfWeek - Día de la semana según JS getDay(): 0=Dom, 1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie, 6=Sáb
  */
 const getDayEvents = (dateStr, events, recurring, dayOfWeek) => {
   const dayEvents = [];
@@ -293,6 +364,7 @@ const getDayEvents = (dateStr, events, recurring, dayOfWeek) => {
   });
 
   // Eventos recurrentes
+  // Los valores en r.days coinciden con JS getDay(): 0=Dom, 1=Lun, 2=Mar, etc.
   recurring.forEach(r => {
     if (r.days && r.days.includes(dayOfWeek)) {
       dayEvents.push({ ...r, recurring: true });
@@ -339,6 +411,15 @@ function getWeekStart(date) {
 }
 
 /**
+ * Verifica si la semana mostrada es la semana actual
+ */
+const isCurrentWeek = (weekStart) => {
+  const today = new Date();
+  const currentStart = getWeekStart(today);
+  return weekStart.getTime() === currentStart.getTime();
+};
+
+/**
  * Formatea el rango de la semana
  */
 const formatWeekRange = (weekStart) => {
@@ -349,7 +430,10 @@ const formatWeekRange = (weekStart) => {
   const start = weekStart.toLocaleDateString('es-ES', options);
   const end = weekEnd.toLocaleDateString('es-ES', options);
 
-  return `${start} - ${end}`;
+  const current = isCurrentWeek(weekStart);
+  const indicator = current ? ' <span class="week-current-badge">Semana actual</span>' : '';
+
+  return `${start} - ${end}${indicator}`;
 };
 
 // --- Modal de eventos ---
@@ -383,9 +467,10 @@ const setupEventModal = (data) => {
     const id = document.getElementById('event-id').value;
     if (id && confirm('¿Eliminar este evento?')) {
       data.calendar.events = data.calendar.events.filter(e => e.id !== id);
+      currentData.calendar = data.calendar;
       updateDataCallback('calendar', data.calendar);
       modal.close();
-      location.reload();
+      reRender();
     }
   });
 
@@ -431,10 +516,11 @@ const saveEvent = (data) => {
     data.calendar.events.push(eventData);
   }
 
+  currentData.calendar = data.calendar;
   updateDataCallback('calendar', data.calendar);
   document.getElementById('event-modal').close();
   showNotification('Evento guardado', 'success');
-  location.reload();
+  reRender();
 };
 
 // --- Modal de eventos recurrentes ---
@@ -469,9 +555,10 @@ const setupRecurringModal = (data) => {
     const id = document.getElementById('recurring-id').value;
     if (id && confirm('¿Eliminar este evento recurrente?')) {
       data.calendar.recurring = data.calendar.recurring.filter(r => r.id !== id);
+      currentData.calendar = data.calendar;
       updateDataCallback('calendar', data.calendar);
       modal.close();
-      location.reload();
+      reRender();
     }
   });
 
@@ -518,10 +605,11 @@ const saveRecurring = (data) => {
     data.calendar.recurring.push(recurringData);
   }
 
+  currentData.calendar = data.calendar;
   updateDataCallback('calendar', data.calendar);
   document.getElementById('recurring-modal').close();
   showNotification('Evento recurrente guardado', 'success');
-  location.reload();
+  reRender();
 };
 
 // --- Exportar a ICS ---
