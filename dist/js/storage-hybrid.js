@@ -66,7 +66,11 @@ const getDefaultData = () => ({
     storageType: 'hybrid', // Cambiado de 'localStorage' a 'hybrid'
     notificationsEnabled: false,
     theme: 'light',
-    usageMode: 'complete' // 'complete' | 'habits' | 'journal' | 'complement'
+    usageMode: 'complete', // 'complete' | 'habits' | 'journal' | 'complement'
+    // GTD: Revisión Semanal
+    lastWeeklyReview: null,     // ISO string de última revisión
+    weeklyReviewDay: 0,         // 0=Domingo, 1=Lunes
+    weeklyReviewReminder: true  // Mostrar recordatorio en dashboard
   },
 
   // Onboarding (primera vez)
@@ -530,6 +534,25 @@ const migrateData = (oldData) => {
   }
   if (oldData.settings?.usageMode) {
     newData.settings.usageMode = oldData.settings.usageMode;
+  }
+
+  // Migraciones GTD: Próxima Acción en proyectos
+  if (newData.projects && newData.projects.length > 0) {
+    newData.projects = newData.projects.map(project => ({
+      ...project,
+      nextActionId: project.nextActionId || null
+    }));
+  }
+
+  // Migraciones GTD: Revisión Semanal en settings
+  if (!newData.settings.lastWeeklyReview) {
+    newData.settings.lastWeeklyReview = null;
+  }
+  if (newData.settings.weeklyReviewDay === undefined) {
+    newData.settings.weeklyReviewDay = 0; // Domingo por defecto
+  }
+  if (newData.settings.weeklyReviewReminder === undefined) {
+    newData.settings.weeklyReviewReminder = true;
   }
 
   saveData(newData);

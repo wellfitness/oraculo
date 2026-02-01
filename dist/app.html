@@ -104,6 +104,29 @@
       </div>
     </header>
 
+    <!-- Banner de Captura GTD -->
+    <div class="capture-banner">
+      <div class="capture-banner__content">
+        <span class="capture-banner__icon material-symbols-outlined">inbox</span>
+        <input
+          type="text"
+          id="global-capture-input"
+          class="capture-banner__input"
+          placeholder="¿Qué tienes en mente? Anota la cosa, no la acción..."
+          maxlength="150"
+          autocomplete="off"
+        >
+        <button type="button" id="global-capture-btn" class="capture-banner__btn" title="Capturar en Pendientes">
+          <span class="material-symbols-outlined">add</span>
+          <span class="capture-banner__btn-text">Capturar</span>
+        </button>
+        <span class="capture-banner__counter" id="capture-counter" hidden>
+          <span class="capture-banner__counter-num">0</span>
+          <span class="capture-banner__counter-label">pendientes</span>
+        </span>
+      </div>
+    </div>
+
     <!-- Contenido principal -->
     <main class="app-main" id="app-content">
       <div class="loading">Cargando...</div>

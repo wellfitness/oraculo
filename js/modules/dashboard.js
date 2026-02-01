@@ -3,7 +3,8 @@
  * Vista principal con resumen del día
  */
 
-import { generateId, formatDate, showNotification, openCalmTimer, openSpontaneousModal, openEveningCheckIn } from '../app.js';
+import { generateId, formatDate, showNotification, openCalmTimer, openSpontaneousModal, openEveningCheckIn, openWeeklyReview } from '../app.js';
+import { needsWeeklyReview, isReviewDay } from '../components/weekly-review-modal.js';
 import { escapeHTML } from '../utils/sanitizer.js';
 import { isEveningTime, hasEveningCheckIn } from '../components/evening-check-in.js';
 import { getAchievementsStats, isHabitCompletedToday } from '../utils/achievements-calculator.js';
@@ -86,6 +87,10 @@ export const render = (data) => {
           </div>
         `}
       </section>
+
+      ${renderNextActions(data)}
+
+      ${renderWeeklyReviewReminder(data)}
 
       <section class="dashboard__section dashboard__events">
         <h2 class="section-title">Próximos Eventos</h2>
@@ -208,6 +213,19 @@ export const init = (data, updateData) => {
       openEveningCheckIn();
     });
   }
+
+  // Revisión semanal desde dashboard
+  document.getElementById('start-review-from-dashboard')?.addEventListener('click', () => {
+    openWeeklyReview();
+  });
+
+  // Descartar recordatorio de revisión (solo para esta sesión)
+  document.getElementById('dismiss-review-reminder')?.addEventListener('click', () => {
+    const reminder = document.querySelector('.dashboard__review-reminder');
+    if (reminder) {
+      reminder.style.display = 'none';
+    }
+  });
 };
 
 /**
@@ -305,6 +323,102 @@ const renderActiveHabit = (habit, history) => {
     <a href="#habits" data-view="habits" class="link-subtle">
       Ver detalles del hábito →
     </a>
+  `;
+};
+
+/**
+ * Renderiza la sección de Próximas Acciones GTD
+ * Muestra la próxima acción de cada proyecto activo que tenga una definida
+ */
+const renderNextActions = (data) => {
+  const activeProjects = (data.projects || []).filter(p =>
+    p.status === 'active' && p.nextActionId
+  );
+
+  if (activeProjects.length === 0) return '';
+
+  // Obtener las próximas acciones de cada proyecto
+  const nextActions = activeProjects.map(project => {
+    // Buscar la tarea en todos los horizontes
+    const allHorizons = ['daily', 'weekly', 'monthly', 'quarterly', 'backlog'];
+    let task = null;
+
+    for (const horizon of allHorizons) {
+      const tasks = data.objectives?.[horizon] || [];
+      task = tasks.find(t => t.id === project.nextActionId && !t.completed);
+      if (task) break;
+    }
+
+    return task ? { project, task } : null;
+  }).filter(Boolean);
+
+  if (nextActions.length === 0) return '';
+
+  return `
+    <section class="dashboard__section dashboard__next-actions">
+      <h2 class="section-title">
+        <span class="material-symbols-outlined icon-sm">play_arrow</span>
+        Próximas Acciones
+      </h2>
+      <ul class="next-actions-list">
+        ${nextActions.map(({ project, task }) => `
+          <li class="next-action-item">
+            <span class="project-dot" style="background-color: ${project.color}"></span>
+            <div class="next-action-content">
+              <span class="next-action-project">${escapeHTML(project.name)}</span>
+              <span class="next-action-task">${escapeHTML(task.text)}</span>
+            </div>
+          </li>
+        `).join('')}
+      </ul>
+      <a href="#projects" data-view="projects" class="link-subtle">
+        Ver todos los proyectos →
+      </a>
+    </section>
+  `;
+};
+
+/**
+ * Renderiza el recordatorio de revisión semanal GTD
+ * Solo visible si:
+ * - Han pasado 7+ días desde la última revisión
+ * - Es el día configurado (domingo o lunes)
+ * - El recordatorio está activado en settings
+ */
+const renderWeeklyReviewReminder = (data) => {
+  // Verificar si el recordatorio está desactivado
+  if (data.settings?.weeklyReviewReminder === false) return '';
+
+  // Verificar si necesita revisión
+  if (!needsWeeklyReview(data)) return '';
+
+  // Solo mostrar en el día configurado o si han pasado más de 10 días
+  const lastReview = data.settings?.lastWeeklyReview;
+  const daysSinceReview = lastReview
+    ? Math.floor((Date.now() - new Date(lastReview).getTime()) / (1000 * 60 * 60 * 24))
+    : 999;
+
+  // Mostrar si es el día de revisión O si han pasado muchos días
+  if (!isReviewDay(data) && daysSinceReview < 10) return '';
+
+  return `
+    <section class="dashboard__section dashboard__review-reminder">
+      <div class="review-reminder">
+        <span class="material-symbols-outlined icon-lg">checklist_rtl</span>
+        <div class="review-reminder__content">
+          <strong>Es hora de revisar tu sistema</strong>
+          <p>La revisión semanal te ayuda a mantener todo bajo control.</p>
+        </div>
+        <div class="review-reminder__actions">
+          <button class="btn btn--primary btn--sm" id="start-review-from-dashboard">
+            Revisar ahora
+          </button>
+          <button class="btn btn--ghost btn--sm" id="dismiss-review-reminder">
+            Más tarde
+          </button>
+        </div>
+      </div>
+    </section>
   `;
 };
 

@@ -3,7 +3,7 @@
  * Gestión de datos, cuadernos anuales y preferencias
  */
 
-import { showNotification, autoBackup, reloadStateFromStorage, USAGE_MODES } from '../app.js';
+import { showNotification, autoBackup, reloadStateFromStorage, USAGE_MODES, openWeeklyReview } from '../app.js';
 import {
   exportData,
   importData,
@@ -21,6 +21,24 @@ import { escapeHTML } from '../utils/sanitizer.js';
 
 let updateDataCallback = null;
 let archivedYearData = null; // Para el visor de años anteriores
+
+/**
+ * Formatea la fecha de la última revisión semanal
+ */
+const formatReviewDate = (isoString) => {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'Hoy';
+  if (diffDays === 1) return 'Ayer';
+  if (diffDays < 7) return `Hace ${diffDays} días`;
+
+  return date.toLocaleDateString('es-ES', {
+    day: 'numeric',
+    month: 'long'
+  });
+};
 
 /**
  * Renderiza la página de configuración
@@ -165,6 +183,39 @@ export const render = (data) => {
         <label class="toggle-label">
           <input type="checkbox" id="notifications-toggle" ${data.settings?.notificationsEnabled ? 'checked' : ''}>
           <span>Activar notificaciones del navegador</span>
+        </label>
+      </section>
+
+      <!-- Revisión Semanal GTD -->
+      <section class="settings-section settings-section--review">
+        <h2>
+          <span class="material-symbols-outlined">checklist_rtl</span>
+          Revisión Semanal
+        </h2>
+
+        <div class="review-status">
+          ${data.settings?.lastWeeklyReview
+            ? `<p class="text-muted">Última revisión: <strong>${formatReviewDate(data.settings.lastWeeklyReview)}</strong></p>`
+            : `<p class="text-muted">Nunca has hecho una revisión semanal.</p>`
+          }
+        </div>
+
+        <button class="btn btn--primary" id="start-weekly-review">
+          <span class="material-symbols-outlined">play_arrow</span>
+          Iniciar Revisión Semanal
+        </button>
+
+        <div class="form-group" style="margin-top: var(--space-4);">
+          <label for="review-day-select">Recordarme los</label>
+          <select id="review-day-select" class="select">
+            <option value="0" ${data.settings?.weeklyReviewDay === 0 ? 'selected' : ''}>Domingos</option>
+            <option value="1" ${data.settings?.weeklyReviewDay === 1 ? 'selected' : ''}>Lunes</option>
+          </select>
+        </div>
+
+        <label class="toggle-label">
+          <input type="checkbox" id="review-reminder-toggle" ${data.settings?.weeklyReviewReminder !== false ? 'checked' : ''}>
+          <span>Mostrar recordatorio en Dashboard</span>
         </label>
       </section>
 
@@ -392,6 +443,30 @@ export const init = (data, updateData) => {
     }
     updateDataCallback('settings.notificationsEnabled', e.target.checked);
     showNotification(e.target.checked ? 'Notificaciones activadas' : 'Notificaciones desactivadas', 'info');
+  });
+
+  // === Revisión Semanal GTD ===
+
+  // Iniciar revisión semanal
+  document.getElementById('start-weekly-review')?.addEventListener('click', () => {
+    openWeeklyReview();
+  });
+
+  // Cambiar día de recordatorio
+  document.getElementById('review-day-select')?.addEventListener('change', (e) => {
+    const day = parseInt(e.target.value, 10);
+    updateDataCallback('settings.weeklyReviewDay', day);
+    const dayName = day === 0 ? 'domingos' : 'lunes';
+    showNotification(`Recordatorio configurado para los ${dayName}`, 'info');
+  });
+
+  // Toggle recordatorio en dashboard
+  document.getElementById('review-reminder-toggle')?.addEventListener('change', (e) => {
+    updateDataCallback('settings.weeklyReviewReminder', e.target.checked);
+    showNotification(
+      e.target.checked ? 'Recordatorio activado' : 'Recordatorio desactivado',
+      'info'
+    );
   });
 
   // Modo de uso
