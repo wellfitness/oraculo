@@ -294,6 +294,11 @@ const renderProjectCard = (project, objectives, compact = false) => {
   const previewTasks = pendingTasks.slice(0, 4);
   const hasMoreTasks = pendingTasks.length > 4;
 
+  // Próxima acción GTD (si está definida y no completada)
+  const nextAction = project.nextActionId
+    ? pendingTasks.find(t => t.id === project.nextActionId)
+    : null;
+
   return `
     <article class="project-card ${compact ? 'project-card--compact' : ''}"
       data-id="${project.id}" style="--project-color: ${project.color}">
@@ -316,7 +321,14 @@ const renderProjectCard = (project, objectives, compact = false) => {
         <span class="progress-text">${progress.completed}/${progress.total} tareas</span>
       </div>
 
-      ${!compact && previewTasks.length > 0 ? `
+      ${!compact && nextAction ? `
+        <div class="project-card__next-action">
+          <span class="material-symbols-outlined icon-xs">play_arrow</span>
+          <span class="next-action-text">${escapeHTML(nextAction.text)}</span>
+        </div>
+      ` : ''}
+
+      ${!compact && previewTasks.length > 0 && !nextAction ? `
         <ul class="project-card__tasks">
           ${previewTasks.map(task => `
             <li class="project-card__task">
@@ -448,11 +460,23 @@ const renderProjectDetail = (project) => {
       ` : `
         ${pendingTasks.length > 0 ? `
           <div class="task-group">
-            <h4 class="task-group__title">Pendientes (${pendingTasks.length})</h4>
+            <h4 class="task-group__title">
+              Pendientes (${pendingTasks.length})
+              <span class="task-group__hint">★ = Próxima acción</span>
+            </h4>
             <ul class="task-list">
               ${pendingTasks.map(task => `
-                <li class="task-item">
-                  <span class="task-item__checkbox"></span>
+                <li class="task-item ${task.id === project.nextActionId ? 'task-item--next-action' : ''}" data-task-id="${task.id}">
+                  <button
+                    type="button"
+                    class="btn btn--icon btn--ghost btn--xs set-next-action"
+                    data-task-id="${task.id}"
+                    title="${task.id === project.nextActionId ? 'Quitar como próxima acción' : 'Marcar como próxima acción'}"
+                  >
+                    <span class="material-symbols-outlined icon-sm">
+                      ${task.id === project.nextActionId ? 'star' : 'star_border'}
+                    </span>
+                  </button>
                   <span class="task-item__text">${escapeHTML(task.text)}</span>
                   <span class="task-item__horizon">${task.horizonName}</span>
                 </li>
@@ -777,6 +801,34 @@ const openProjectDetail = (project) => {
       deleteProject(project.id);
       modal.close();
     }
+  });
+
+  // === Próxima Acción GTD ===
+  document.querySelectorAll('.set-next-action').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const taskId = btn.dataset.taskId;
+
+      // Toggle: si ya es la próxima acción, quitar; si no, marcar
+      if (project.nextActionId === taskId) {
+        project.nextActionId = null;
+      } else {
+        project.nextActionId = taskId;
+      }
+
+      // Actualizar proyecto
+      project.updatedAt = new Date().toISOString();
+      updateDataCallback('projects', currentData.projects);
+
+      // Re-renderizar detalle
+      content.innerHTML = renderProjectDetail(project);
+      openProjectDetail(project);
+
+      showNotification(
+        project.nextActionId ? 'Próxima acción definida' : 'Próxima acción quitada',
+        'success'
+      );
+    });
   });
 
   // === Creación de tareas desde proyecto ===

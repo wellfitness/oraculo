@@ -26,6 +26,11 @@ import {
   openVoiceCapture
 } from './components/voice-capture-modal.js';
 import {
+  renderWeeklyReviewModal,
+  initWeeklyReviewModal,
+  openWeeklyReview
+} from './components/weekly-review-modal.js';
+import {
   renderWelcomeModal,
   initWelcomeModal,
   shouldShowWelcome,
@@ -39,7 +44,7 @@ import * as autoBackup from './utils/auto-backup.js';
 export { autoBackup };
 
 // Exportar funciones para uso en otros módulos
-export { openCalmTimer, openSpontaneousModal, openEveningCheckIn, openVoiceCapture };
+export { openCalmTimer, openSpontaneousModal, openEveningCheckIn, openVoiceCapture, openWeeklyReview };
 
 // Exportar funciones de modos de uso
 export { getVisibleViews, USAGE_MODES };
@@ -110,6 +115,9 @@ export const init = () => {
   // Inyectar modal de bienvenida (onboarding)
   injectWelcomeModal();
 
+  // Inyectar modal de revisión semanal GTD
+  injectWeeklyReviewModal();
+
   // Actualizar menú según modo de uso
   updateMenuVisibility();
 
@@ -118,6 +126,9 @@ export const init = () => {
 
   // Configurar botón de guardar backup en header
   setupSaveButton();
+
+  // Configurar captura rápida GTD
+  setupGlobalCapture();
 
   // Inicializar auto-backup
   initAutoBackup();
@@ -337,6 +348,18 @@ const injectWelcomeModal = () => {
 };
 
 /**
+ * Inyecta e inicializa el modal de revisión semanal GTD
+ */
+const injectWeeklyReviewModal = () => {
+  const modalContainer = document.createElement('div');
+  modalContainer.id = 'weekly-review-container';
+  modalContainer.innerHTML = renderWeeklyReviewModal();
+
+  document.body.appendChild(modalContainer);
+  initWeeklyReviewModal(state.data, updateData);
+};
+
+/**
  * Actualiza la visibilidad de las vistas en el menú según el modo de uso
  */
 const updateMenuVisibility = () => {
@@ -544,6 +567,113 @@ const setupSaveButton = () => {
     setTimeout(() => {
       saveBtn.classList.remove('saved');
     }, 1000);
+  });
+};
+
+/**
+ * Configura la captura rápida GTD en el header
+ * Captura "cosas" sin procesarlas (sin decidir horizonte)
+ */
+const setupGlobalCapture = () => {
+  const input = document.getElementById('global-capture-input');
+  const btn = document.getElementById('global-capture-btn');
+  const counter = document.getElementById('capture-counter');
+
+  if (!input || !btn) return;
+
+  /**
+   * Captura una idea y la envía directamente al backlog
+   */
+  const capture = () => {
+    const text = input.value.trim();
+    if (!text) {
+      input.focus();
+      return;
+    }
+
+    // Crear tarea mínima (sin procesar)
+    const newTask = {
+      id: generateId(),
+      text,
+      notes: null,
+      projectId: null,
+      taskType: null,
+      completed: false,
+      createdAt: new Date().toISOString()
+    };
+
+    // Asegurar que existe el backlog
+    if (!state.data.objectives) {
+      state.data.objectives = {};
+    }
+    if (!state.data.objectives.backlog) {
+      state.data.objectives.backlog = [];
+    }
+
+    // Añadir al inicio del backlog
+    state.data.objectives.backlog.unshift(newTask);
+    saveData(state.data);
+
+    // Limpiar input
+    input.value = '';
+    input.focus();
+
+    // Feedback visual
+    showNotification('Capturado en Pendientes', 'success');
+
+    // Actualizar contador
+    updateCaptureCounter();
+
+    // Re-renderizar si estamos en kanban o dashboard
+    if (state.currentView === 'kanban' || state.currentView === 'dashboard') {
+      renderView(state.currentView);
+    }
+  };
+
+  /**
+   * Actualiza el badge contador de ideas sin procesar
+   */
+  const updateCaptureCounter = () => {
+    const backlogCount = state.data.objectives?.backlog?.length || 0;
+    if (counter) {
+      const numEl = counter.querySelector('.capture-banner__counter-num');
+      if (numEl) {
+        numEl.textContent = backlogCount;
+      }
+      counter.hidden = backlogCount === 0;
+    }
+  };
+
+  // Event listeners
+  btn.addEventListener('click', capture);
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      capture();
+    }
+  });
+
+  // Mostrar hint al enfocar (solo la primera vez)
+  let hintShown = localStorage.getItem('oraculo_captureHintShown');
+  if (!hintShown) {
+    input.addEventListener('focus', () => {
+      if (!hintShown) {
+        showNotification('Anota "la cosa", no la acción. Ej: "Ana", no "Llamar a Ana"', 'info');
+        localStorage.setItem('oraculo_captureHintShown', 'true');
+        hintShown = true;
+      }
+    }, { once: true });
+  }
+
+  // Actualizar contador inicial
+  updateCaptureCounter();
+
+  // Actualizar contador cuando cambian los datos
+  window.addEventListener('data-updated', (e) => {
+    if (e.detail.section === 'objectives' || e.detail.section === 'objectives.backlog') {
+      updateCaptureCounter();
+    }
   });
 };
 
