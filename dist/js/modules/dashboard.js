@@ -404,13 +404,11 @@ const renderWeeklyReviewReminder = (data) => {
   return `
     <section class="dashboard__section dashboard__review-reminder">
       <div class="review-reminder">
-        <span class="material-symbols-outlined icon-lg">checklist_rtl</span>
-        <div class="review-reminder__content">
-          <strong>Es hora de revisar tu sistema</strong>
-          <p>La revisión semanal te ayuda a mantener todo bajo control.</p>
-        </div>
+        <span class="material-symbols-outlined review-reminder__icon">checklist_rtl</span>
+        <strong class="review-reminder__title">Es hora de revisar tu sistema</strong>
+        <p class="review-reminder__text">La revisión semanal te ayuda a mantener todo bajo control.</p>
         <div class="review-reminder__actions">
-          <button class="btn btn--primary btn--sm" id="start-review-from-dashboard">
+          <button class="btn btn--primary" id="start-review-from-dashboard">
             Revisar ahora
           </button>
           <button class="btn btn--ghost btn--sm" id="dismiss-review-reminder">
