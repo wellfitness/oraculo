@@ -68,11 +68,14 @@ export const filterByDateRange = (items, startDate, endDate, dateField = 'comple
 
 /**
  * Obtiene tareas completadas en un período
+ * Busca tanto en los horizontes originales como en objectives.completed
+ * (las tareas se mueven a completed al completarse en el kanban)
  */
 export const getCompletedTasksInPeriod = (objectives, period) => {
   const { start, end } = getPeriodRange(period);
   const completed = [];
 
+  // Tareas completadas que aún estén en sus horizontes (compatibilidad)
   ['quarterly', 'monthly', 'weekly', 'daily'].forEach(horizon => {
     const tasks = filterByDateRange(objectives[horizon] || [], start, end);
     tasks.forEach(task => {
@@ -80,21 +83,38 @@ export const getCompletedTasksInPeriod = (objectives, period) => {
     });
   });
 
+  // Tareas movidas a objectives.completed (flujo actual del kanban)
+  const completedTasks = filterByDateRange(objectives.completed || [], start, end);
+  completedTasks.forEach(task => {
+    completed.push({ ...task, horizon: task.originalColumn || 'daily' });
+  });
+
   return completed;
 };
 
 /**
  * Cuenta tareas completadas por horizonte en un período
+ * Incluye tareas movidas a objectives.completed (por originalColumn)
  */
 export const getCompletedCountByHorizon = (objectives, period) => {
   const { start, end } = getPeriodRange(period);
 
-  return {
+  const counts = {
     quarterly: filterByDateRange(objectives.quarterly || [], start, end).length,
     monthly: filterByDateRange(objectives.monthly || [], start, end).length,
     weekly: filterByDateRange(objectives.weekly || [], start, end).length,
     daily: filterByDateRange(objectives.daily || [], start, end).length
   };
+
+  // Sumar las que están en objectives.completed por su horizonte original
+  filterByDateRange(objectives.completed || [], start, end).forEach(task => {
+    const origin = task.originalColumn || 'daily';
+    if (counts[origin] !== undefined) {
+      counts[origin]++;
+    }
+  });
+
+  return counts;
 };
 
 /**
@@ -197,8 +217,8 @@ export const getJournalEntriesInPeriod = (journal, period) => {
 export const generateHeatmapData = (data, year = new Date().getFullYear()) => {
   const heatmap = {};
 
-  // Contar actividad de tareas completadas
-  ['quarterly', 'monthly', 'weekly', 'daily'].forEach(horizon => {
+  // Contar actividad de tareas completadas (en horizontes y en completed)
+  ['quarterly', 'monthly', 'weekly', 'daily', 'completed'].forEach(horizon => {
     (data.objectives?.[horizon] || []).forEach(task => {
       if (task.completedAt) {
         const date = task.completedAt.split('T')[0];
