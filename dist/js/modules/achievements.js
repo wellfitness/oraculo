@@ -258,6 +258,7 @@ const updateSpontaneousList = (data) => {
 
 /**
  * Renderiza las barras de progreso por horizonte
+ * Cuenta tareas activas + completadas (incluyendo las movidas a objectives.completed)
  */
 const renderProgressBars = (objectives) => {
   const horizons = [
@@ -267,11 +268,19 @@ const renderProgressBars = (objectives) => {
     { key: 'daily', name: 'Hoy' }
   ];
 
+  // Contar tareas completadas por horizonte desde objectives.completed
+  const completedFromPool = {};
+  (objectives.completed || []).forEach(task => {
+    const origin = task.originalColumn || 'daily';
+    completedFromPool[origin] = (completedFromPool[origin] || 0) + 1;
+  });
+
   return horizons.map(({ key, name }) => {
     const items = objectives[key] || [];
-    const completed = items.filter(i => i.completed).length;
-    const total = items.length;
-    const limit = LIMITS[key];
+    const stillInHorizon = items.filter(i => i.completed).length;
+    const movedToCompleted = completedFromPool[key] || 0;
+    const completed = stillInHorizon + movedToCompleted;
+    const total = items.length + movedToCompleted;
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
     return `

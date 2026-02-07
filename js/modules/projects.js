@@ -571,6 +571,11 @@ const renderProjectDetail = (project) => {
       ` : ''}
 
       ${project.status === 'completed' ? `
+        <button class="btn btn--secondary" id="reactivate-project-btn" data-id="${project.id}"
+          title="Devolver a proyecto activo">
+          <span class="material-symbols-outlined">play_arrow</span>
+          Reactivar
+        </button>
         <button class="btn btn--secondary" id="archive-project-btn" data-id="${project.id}"
           title="${PROJECT_STATUS.archived.description}">
           <span class="material-symbols-outlined">inventory_2</span>
@@ -791,6 +796,16 @@ const openProjectDetail = (project) => {
     modal.close();
   });
 
+  document.getElementById('reactivate-project-btn')?.addEventListener('click', () => {
+    const activeCount = countActiveProjects(currentData.projects);
+    if (activeCount >= MAX_ACTIVE_PROJECTS) {
+      showNotification(`Máximo ${MAX_ACTIVE_PROJECTS} proyectos activos. Pausa o completa uno primero.`, 'warning');
+      return;
+    }
+    reactivateProject(project.id);
+    modal.close();
+  });
+
   document.getElementById('archive-project-btn')?.addEventListener('click', () => {
     updateProjectStatus(project.id, 'archived');
     modal.close();
@@ -927,6 +942,7 @@ const saveProject = (data) => {
 
 /**
  * Actualiza el estado de un proyecto
+ * Al completar: auto-completa todas las tareas pendientes del proyecto
  */
 const updateProjectStatus = (projectId, newStatus) => {
   const project = currentData.projects.find(p => p.id === projectId);
@@ -937,10 +953,59 @@ const updateProjectStatus = (projectId, newStatus) => {
 
   if (newStatus === 'completed') {
     project.completedAt = new Date().toISOString();
+    completeProjectTasks(projectId);
   }
 
   updateDataCallback('projects', currentData.projects);
   showNotification(`Proyecto ${PROJECT_STATUS[newStatus].name.toLowerCase()}`, 'success');
+  location.reload();
+};
+
+/**
+ * Completa automáticamente todas las tareas pendientes de un proyecto
+ * Las mueve a objectives.completed (mismo flujo que el kanban)
+ */
+const completeProjectTasks = (projectId) => {
+  if (!currentData.objectives.completed) {
+    currentData.objectives.completed = [];
+  }
+
+  const now = new Date().toISOString();
+  const horizons = ['backlog', 'quarterly', 'monthly', 'weekly', 'daily'];
+
+  horizons.forEach(horizon => {
+    const items = currentData.objectives[horizon] || [];
+    const toComplete = items.filter(t => t.projectId === projectId && !t.completed);
+
+    toComplete.forEach(task => {
+      task.completed = true;
+      task.completedAt = now;
+      task.originalColumn = horizon;
+      currentData.objectives.completed.push(task);
+    });
+
+    // Eliminar las tareas movidas del horizonte original
+    currentData.objectives[horizon] = items.filter(
+      t => !(t.projectId === projectId && t.completed && t.completedAt === now)
+    );
+  });
+
+  updateDataCallback('objectives', currentData.objectives);
+};
+
+/**
+ * Reactiva un proyecto completado: vuelve a estado activo y limpia completedAt
+ */
+const reactivateProject = (projectId) => {
+  const project = currentData.projects.find(p => p.id === projectId);
+  if (!project) return;
+
+  project.status = 'active';
+  project.completedAt = null;
+  project.updatedAt = new Date().toISOString();
+
+  updateDataCallback('projects', currentData.projects);
+  showNotification('Proyecto reactivado', 'success');
   location.reload();
 };
 
