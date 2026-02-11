@@ -28,13 +28,6 @@ let auditStep = 1;
 const WIZARD_STORAGE_KEY = 'oraculo_habitWizardProgress';
 
 /**
- * Obtiene la fecha local en formato YYYY-MM-DD
- */
-const getLocalDateString = (date = new Date()) => {
-  return date.toLocaleDateString('en-CA');
-};
-
-/**
  * Guarda el progreso del wizard en localStorage
  */
 const saveWizardProgress = () => {
@@ -845,7 +838,17 @@ const initWizardEvents = (data) => {
     });
   });
 
-  // Selección de duración
+  // Boton anadir contratiempo (paso 7)
+  document.getElementById('wizard-add-obstacle')?.addEventListener('click', () => {
+    saveCurrentWizardStep();
+    const current = wizardData.obstacles || [];
+    if (current.length < 3) {
+      wizardData.obstacles = [...current, { obstacle: '', plan: '' }];
+      reRender(data);
+    }
+  });
+
+  // Seleccion de duracion
   document.querySelectorAll('input[name="duration"]').forEach(radio => {
     radio.addEventListener('change', () => {
       wizardData.duration = parseInt(radio.value);
@@ -888,12 +891,28 @@ const saveCurrentWizardStep = () => {
       wizardData.easy = document.getElementById('wizard-easy')?.value?.trim() || '';
       wizardData.reward = document.getElementById('wizard-reward')?.value?.trim() || '';
       break;
-    case 7:
+    case 7: {
+      // Paso de obstaculos: recoger todos los pares Si.../Entonces...
+      const obstacleInputs = document.querySelectorAll('.wizard-obstacle-input');
+      const planInputs = document.querySelectorAll('.wizard-obstacle-plan');
+      const obstacles = [];
+      obstacleInputs.forEach((input, idx) => {
+        const obstacle = input.value?.trim() || '';
+        const plan = planInputs[idx]?.value?.trim() || '';
+        if (obstacle || plan) {
+          obstacles.push({ obstacle, plan });
+        }
+      });
+      wizardData.obstacles = obstacles.length > 0 ? obstacles : [];
+      break;
+    }
+    case 8: {
       const selectedDuration = document.querySelector('input[name="duration"]:checked');
       if (selectedDuration) {
         wizardData.duration = parseInt(selectedDuration.value);
       }
       break;
+    }
   }
 
   // Persistir progreso en localStorage
@@ -925,9 +944,9 @@ const validateCurrentWizardStep = () => {
         return false;
       }
       break;
-    case 7:
+    case 8:
       if (!wizardData.duration) {
-        showNotification('Selecciona una duración para el experimento', 'warning');
+        showNotification('Selecciona una duracion para el experimento', 'warning');
         return false;
       }
       break;
@@ -960,6 +979,8 @@ const saveHabitFromWizard = (data) => {
     location: wizardData.location || null,
     fromAudit: wizardData.fromAudit || false,
     originalActivity: wizardData.originalActivity || null,
+    // Contratiempos (v2.0)
+    obstacles: (wizardData.obstacles || []).filter(o => o.obstacle || o.plan),
     // Timestamps
     createdAt: wizardData.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -1039,11 +1060,34 @@ const evaluateAuditActivity = (activityId, evaluation, data) => {
  * Renderiza el hábito activo con su tracker
  */
 const renderActiveHabit = (habit, history) => {
-  const streak = calculateStreak(habit.id, history);
-  const completedToday = isCompletedToday(habit.id, history);
+  const ctx = getStreakContext(habit.id, history);
+  const completedToday = ctx.completedToday;
+  const streak = ctx.streak;
   const progress = calculateProgress(habit, history);
   const calendarDays = generateCalendarDays(habit, history);
   const areaInfo = LIFE_AREAS.find(a => a.id === habit.area);
+  const obstacles = habit.obstacles || [];
+
+  // Mensaje contextual segun racha
+  let streakMessage = '';
+  if (streak > 0) {
+    streakMessage = '';
+  } else if (!completedToday && ctx.completedYesterday) {
+    streakMessage = `<p class="streak-encouragement">
+      <span class="material-symbols-outlined icon-sm">trending_up</span>
+      Hoy es tu dia. No te lo saltes dos veces.
+    </p>`;
+  } else if (!completedToday && ctx.daysSinceLastCompletion !== null && ctx.daysSinceLastCompletion <= 3) {
+    streakMessage = `<p class="streak-encouragement">
+      <span class="material-symbols-outlined icon-sm">refresh</span>
+      Cada dia es una oportunidad de volver a empezar.
+    </p>`;
+  } else if (!completedToday && ctx.daysSinceLastCompletion !== null && ctx.daysSinceLastCompletion > 3) {
+    streakMessage = `<p class="streak-encouragement">
+      <span class="material-symbols-outlined icon-sm">favorite</span>
+      No importa cuanto tiempo ha pasado. Hoy puedes volver.
+    </p>`;
+  }
 
   return `
     <div class="active-habit-card">
@@ -1064,18 +1108,53 @@ const renderActiveHabit = (habit, history) => {
         ` : ''}
       </div>
 
-      <div class="habit-formula">
-        ${habit.trigger ? `<p><strong>Señal:</strong> ${escapeHTML(habit.trigger)}</p>` : ''}
-        ${habit.micro ? `<p><strong>Micro-versión:</strong> ${escapeHTML(habit.micro)}</p>` : ''}
-        ${habit.attractive ? `<p><strong>Lo hago atractivo:</strong> ${escapeHTML(habit.attractive)}</p>` : ''}
-        ${habit.easy ? `<p><strong>Lo hago fácil:</strong> ${escapeHTML(habit.easy)}</p>` : ''}
-        ${habit.reward ? `<p><strong>Recompensa:</strong> ${escapeHTML(habit.reward)}</p>` : ''}
+      ${streakMessage}
+
+      ${(habit.trigger || habit.attractive || habit.easy || habit.reward) ? `
+      <div class="habit-laws-matrix">
+        <div class="law-card law--obvio">
+          <span class="material-symbols-outlined law-icon">visibility</span>
+          <span class="law-label">Hacerlo Obvio</span>
+          <p class="law-strategy">${habit.trigger ? escapeHTML(habit.trigger) : '<em>Sin definir</em>'}</p>
+          ${habit.micro ? `<p class="law-detail"><span class="material-symbols-outlined icon-sm">timer</span> ${escapeHTML(habit.micro)}</p>` : ''}
+        </div>
+        <div class="law-card law--atractivo">
+          <span class="material-symbols-outlined law-icon">favorite</span>
+          <span class="law-label">Hacerlo Atractivo</span>
+          <p class="law-strategy">${habit.attractive ? escapeHTML(habit.attractive) : '<em>Sin definir</em>'}</p>
+        </div>
+        <div class="law-card law--facil">
+          <span class="material-symbols-outlined law-icon">touch_app</span>
+          <span class="law-label">Hacerlo Facil</span>
+          <p class="law-strategy">${habit.easy ? escapeHTML(habit.easy) : '<em>Sin definir</em>'}</p>
+        </div>
+        <div class="law-card law--satisfactorio">
+          <span class="material-symbols-outlined law-icon">emoji_events</span>
+          <span class="law-label">Hacerlo Satisfactorio</span>
+          <p class="law-strategy">${habit.reward ? escapeHTML(habit.reward) : '<em>Sin definir</em>'}</p>
+        </div>
       </div>
+      ` : ''}
+
+      ${obstacles.length > 0 && obstacles.some(o => o.obstacle || o.plan) ? `
+      <div class="habit-obstacles">
+        <h4>
+          <span class="material-symbols-outlined icon-sm">shield</span>
+          Mi plan para contratiempos
+        </h4>
+        ${obstacles.filter(o => o.obstacle || o.plan).map(o => `
+          <div class="obstacle-item">
+            ${o.obstacle ? `<span class="obstacle-if">Si: ${escapeHTML(o.obstacle)}</span>` : ''}
+            ${o.plan ? `<span class="obstacle-then">Entonces: ${escapeHTML(o.plan)}</span>` : ''}
+          </div>
+        `).join('')}
+      </div>
+      ` : ''}
 
       <div class="habit-stats">
         <div class="stat">
           <span class="stat-value">${streak}</span>
-          <span class="stat-label">días seguidos</span>
+          <span class="stat-label">dias de racha</span>
         </div>
         <div class="stat">
           <span class="stat-value">${progress.completed}</span>
@@ -1224,8 +1303,11 @@ const markHabitDone = (data) => {
   const today = getLocalDateString();
   const habitId = data.habits.active.id;
 
-  // Verificar si ya está marcado
+  // Verificar si ya esta marcado
   if (isCompletedToday(habitId, data.habits.history)) return;
+
+  // Contexto antes de marcar (para mensaje)
+  const ctx = getStreakContext(habitId, data.habits.history);
 
   data.habits.history.push({
     habitId,
@@ -1234,7 +1316,16 @@ const markHabitDone = (data) => {
   });
 
   updateDataCallback('habits', data.habits);
-  showNotification('¡Genial! Otro día más en tu racha. 🔥', 'success');
+
+  // Mensaje contextual segun situacion
+  if (ctx.daysSinceLastCompletion !== null && ctx.daysSinceLastCompletion >= 2) {
+    showNotification('Has vuelto al camino. Eso es lo que importa.', 'success');
+  } else if (ctx.streak >= 7) {
+    showNotification('Una semana mas. Tu constancia es inspiradora.', 'success');
+  } else {
+    showNotification('Otro dia mas. Sigue asi.', 'success');
+  }
+
   location.reload();
 };
 
@@ -1321,6 +1412,43 @@ const calculateStreak = (habitId, history) => {
 const isCompletedToday = (habitId, history) => {
   const today = getLocalDateString();
   return history.some(h => h.habitId === habitId && h.date === today);
+};
+
+/**
+ * Contexto de racha para mensajes "nunca falles dos veces"
+ * @returns {{ streak, completedToday, completedYesterday, daysSinceLastCompletion }}
+ */
+const getStreakContext = (habitId, history) => {
+  const habitHistory = history
+    .filter(h => h.habitId === habitId)
+    .map(h => h.date)
+    .sort()
+    .reverse();
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = getLocalDateString(today);
+
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = getLocalDateString(yesterday);
+
+  const completedToday = habitHistory.includes(todayStr);
+  const completedYesterday = habitHistory.includes(yesterdayStr);
+
+  let daysSinceLastCompletion = null;
+  if (habitHistory.length > 0) {
+    const lastDate = new Date(habitHistory[0] + 'T00:00:00');
+    const diffMs = today.getTime() - lastDate.getTime();
+    daysSinceLastCompletion = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  }
+
+  return {
+    streak: calculateStreak(habitId, history),
+    completedToday,
+    completedYesterday,
+    daysSinceLastCompletion
+  };
 };
 
 const calculateProgress = (habit, history) => {
@@ -1621,7 +1749,7 @@ const renderAuditSection = (data) => {
  * Renderiza el wizard de creación de hábito (página completa)
  */
 const renderHabitWizard = () => {
-  const totalSteps = 7;
+  const totalSteps = 8;
 
   // Paso 1: Área de vida
   if (wizardStep === 1) {
@@ -1862,25 +1990,38 @@ const renderHabitWizard = () => {
 
         <main class="wizard-content">
           <div class="wizard-law-badge">Ley 1: Hacerlo Obvio</div>
-          <h1 class="wizard-title">Habit Stacking</h1>
+          <h1 class="wizard-title">Acumulacion de Habitos</h1>
           <p class="wizard-subtitle">
-            Vincular el nuevo hábito a uno que ya haces automáticamente.
+            Vincula tu nuevo habito a algo que ya haces automaticamente.
+            <em>Despues de [HABITO ACTUAL], hare [NUEVO HABITO].</em>
           </p>
 
           <div class="wizard-form-group">
-            <label for="wizard-trigger">Después de...</label>
+            <label for="wizard-trigger">Despues de...</label>
             <input
               type="text"
               id="wizard-trigger"
               class="input input--large"
-              placeholder="servir mi café de la mañana"
+              placeholder="servir mi cafe de la manana, hare 2 minutos de estiramientos"
               value="${wizardData.trigger || ''}"
-              maxlength="100"
+              maxlength="150"
             >
             <small class="wizard-examples">
-              Ejemplos: "lavarme los dientes", "vestirme", "terminar de comer"
+              Ejemplos: "lavarme los dientes", "sentarme a desayunar", "aparcar el coche al llegar a casa"
             </small>
           </div>
+
+          <details class="wizard-law-tips">
+            <summary>
+              <span class="material-symbols-outlined icon-sm">lightbulb</span>
+              Tecnicas para hacerlo obvio
+            </summary>
+            <ul>
+              <li><strong>Disena tu entorno</strong>: Coloca senales visuales donde las veas (las senales visuales son las mas poderosas)</li>
+              <li><strong>Un espacio, un uso</strong>: Si puedes, dedica un lugar especifico para tu habito</li>
+              <li><strong>Senala y verbaliza</strong>: Di en voz alta "Voy a hacer [habito] ahora" para hacerlo consciente</li>
+            </ul>
+          </details>
         </main>
 
         <footer class="wizard-footer">
@@ -1914,45 +2055,85 @@ const renderHabitWizard = () => {
         </header>
 
         <main class="wizard-content">
-          <h1 class="wizard-title">Diseña tu entorno</h1>
+          <h1 class="wizard-title">Disena tu entorno</h1>
+          <p class="wizard-subtitle">
+            Aplica las 3 leyes restantes para que tu habito sea mas facil de mantener.
+          </p>
 
-          <div class="wizard-form-group">
+          <div class="wizard-law-guide">
             <div class="wizard-law-badge small">Ley 2: Hacerlo Atractivo</div>
-            <label for="wizard-attractive">¿Con qué lo emparejamos?</label>
+            <p class="wizard-law-principle">Empareja lo que TIENES que hacer con algo que QUIERAS hacer.</p>
+            <label for="wizard-attractive">¿Con que lo emparejas?</label>
             <input
               type="text"
               id="wizard-attractive"
               class="input"
-              placeholder="Mientras escucho mi podcast favorito"
+              placeholder="Escucho mi podcast favorito mientras lo hago"
               value="${wizardData.attractive || ''}"
-              maxlength="100"
+              maxlength="150"
             >
+            <details class="wizard-law-tips">
+              <summary>
+                <span class="material-symbols-outlined icon-sm">lightbulb</span>
+                Tecnicas
+              </summary>
+              <ul>
+                <li><strong>Acumulacion de tentaciones</strong>: Combina el habito con algo que disfrutes</li>
+                <li><strong>Entorno social</strong>: Rodearme de personas que ya hacen lo que quiero hacer</li>
+                <li><strong>Cambio de mentalidad</strong>: En vez de "tengo que...", piensa "elijo... porque..."</li>
+              </ul>
+            </details>
           </div>
 
-          <div class="wizard-form-group">
-            <div class="wizard-law-badge small">Ley 3: Hacerlo Fácil</div>
-            <label for="wizard-easy">¿Cómo reducimos la fricción?</label>
+          <div class="wizard-law-guide">
+            <div class="wizard-law-badge small">Ley 3: Hacerlo Facil</div>
+            <p class="wizard-law-principle">Centrate en la version factible, no en la ideal. Empezar es mas importante que ser perfecta.</p>
+            <label for="wizard-easy">¿Como reduces la friccion?</label>
             <input
               type="text"
               id="wizard-easy"
               class="input"
-              placeholder="Dejo la esterilla desplegada junto a la cama"
+              placeholder="Dejo la ropa de deporte preparada la noche anterior"
               value="${wizardData.easy || ''}"
-              maxlength="100"
+              maxlength="150"
             >
+            <details class="wizard-law-tips">
+              <summary>
+                <span class="material-symbols-outlined icon-sm">lightbulb</span>
+                Tecnicas
+              </summary>
+              <ul>
+                <li><strong>Reduce la friccion</strong>: Elimina pasos entre tu y el habito</li>
+                <li><strong>Momentos decisivos</strong>: Identifica el momento clave del dia donde todo cambia</li>
+                <li><strong>Dispositivos de compromiso</strong>: Prepara las cosas para que sea inevitable hacerlo</li>
+                <li><strong>Automatiza</strong>: Usa recordatorios, alarmas o rutinas fijas</li>
+              </ul>
+            </details>
           </div>
 
-          <div class="wizard-form-group">
+          <div class="wizard-law-guide">
             <div class="wizard-law-badge small">Ley 4: Hacerlo Satisfactorio</div>
-            <label for="wizard-reward">¿Qué recompensa te das justo después?</label>
+            <p class="wizard-law-principle">El coste de los buenos habitos se paga ahora; la recompensa llega despues. Anade algo inmediato.</p>
+            <label for="wizard-reward">¿Que recompensa te das justo despues?</label>
             <input
               type="text"
               id="wizard-reward"
               class="input"
-              placeholder="Me digo: ¡Bien hecho! y marco el día"
+              placeholder="Me preparo mi te favorito como celebracion"
               value="${wizardData.reward || ''}"
-              maxlength="100"
+              maxlength="150"
             >
+            <details class="wizard-law-tips">
+              <summary>
+                <span class="material-symbols-outlined icon-sm">lightbulb</span>
+                Tecnicas
+              </summary>
+              <ul>
+                <li><strong>Recompensa inmediata</strong>: Date algo placentero justo al terminar</li>
+                <li><strong>Seguimiento visible</strong>: Marcar el dia completado ya es satisfactorio</li>
+                <li><strong>Nunca te lo saltes dos veces</strong>: Si fallas un dia, el siguiente es el que importa</li>
+              </ul>
+            </details>
           </div>
         </main>
 
@@ -1970,8 +2151,90 @@ const renderHabitWizard = () => {
     `;
   }
 
-  // Paso 7: Duración y Confirmación
+  // Paso 7: Prepárate para los Contratiempos (NUEVO)
   if (wizardStep === 7) {
+    const currentObstacles = wizardData.obstacles || [{ obstacle: '', plan: '' }];
+
+    return `
+      <div class="wizard-page">
+        <header class="wizard-header">
+          <button class="btn btn--icon" id="wizard-prev-btn">
+            <span class="material-symbols-outlined">arrow_back</span>
+          </button>
+          <div class="wizard-progress">
+            ${Array.from({length: totalSteps}, (_, i) => `
+              <span class="wizard-step ${i + 1 === wizardStep ? 'active' : i + 1 < wizardStep ? 'completed' : ''}"></span>
+            `).join('')}
+          </div>
+          <div class="wizard-progress-label">Paso ${wizardStep} de ${totalSteps}</div>
+        </header>
+
+        <main class="wizard-content">
+          <div class="wizard-law-badge">Preparacion</div>
+          <h1 class="wizard-title">Preparate para los contratiempos</h1>
+          <p class="wizard-subtitle">
+            No se trata de ser perfecta. Se trata de volver siempre al camino.
+          </p>
+
+          <div class="wizard-obstacles-table">
+            ${currentObstacles.map((item, idx) => `
+              <div class="wizard-obstacle-row" data-idx="${idx}">
+                <div class="wizard-form-group">
+                  <label>Si...</label>
+                  <input
+                    type="text"
+                    class="input wizard-obstacle-input"
+                    placeholder="${idx === 0 ? 'Estoy muy cansada por la manana' : 'Llueve y no puedo salir'}"
+                    value="${escapeHTML(item.obstacle || '')}"
+                    maxlength="100"
+                    data-field="obstacle"
+                    data-idx="${idx}"
+                  >
+                </div>
+                <div class="wizard-form-group">
+                  <label>Entonces...</label>
+                  <input
+                    type="text"
+                    class="input wizard-obstacle-plan"
+                    placeholder="${idx === 0 ? 'Hago solo la micro-version de 2 minutos' : 'Hago la version indoor en casa'}"
+                    value="${escapeHTML(item.plan || '')}"
+                    maxlength="100"
+                    data-field="plan"
+                    data-idx="${idx}"
+                  >
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          ${currentObstacles.length < 3 ? `
+            <button class="btn btn--tertiary btn--sm" id="wizard-add-obstacle">
+              <span class="material-symbols-outlined icon-sm">add</span>
+              Anadir otro contratiempo
+            </button>
+          ` : ''}
+
+          <blockquote class="quote quote--secondary wizard-quote">
+            <p>"${getReflexionPorPilar('imperfeccion')}"</p>
+          </blockquote>
+        </main>
+
+        <footer class="wizard-footer">
+          <button class="btn btn--tertiary" id="wizard-prev-footer-btn">
+            <span class="material-symbols-outlined icon-sm">arrow_back</span>
+            Atras
+          </button>
+          <button class="btn btn--primary" id="wizard-next-btn">
+            Siguiente
+            <span class="material-symbols-outlined icon-sm">arrow_forward</span>
+          </button>
+        </footer>
+      </div>
+    `;
+  }
+
+  // Paso 8: Duración y Confirmación (antes paso 7)
+  if (wizardStep === 8) {
     const areaInfo = LIFE_AREAS.find(a => a.id === wizardData.area);
 
     return `

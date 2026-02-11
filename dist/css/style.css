@@ -12749,6 +12749,255 @@ select,
 }
 
 /* --------------------------------------------------------------------------
+   WIZARD - Guia expandida de leyes (Habitos Atomicos v2.0)
+   -------------------------------------------------------------------------- */
+
+/* Bloque de guia por ley en el wizard */
+.wizard-law-guide {
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--gris-100);
+}
+
+.wizard-law-guide:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.wizard-law-principle {
+  font-style: italic;
+  color: var(--gris-500);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-2);
+  line-height: 1.4;
+}
+
+/* Tips expandibles del libro */
+.wizard-law-tips {
+  margin-top: var(--space-2);
+}
+
+.wizard-law-tips summary {
+  cursor: pointer;
+  color: var(--turquesa-600);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+}
+
+.wizard-law-tips summary:hover {
+  color: var(--turquesa-700);
+}
+
+.wizard-law-tips ul {
+  padding-left: var(--space-3);
+  margin-top: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--gris-600);
+  line-height: 1.6;
+}
+
+.wizard-law-tips li {
+  margin-bottom: 4px;
+}
+
+.wizard-law-tips li strong {
+  color: var(--gris-700);
+}
+
+/* --------------------------------------------------------------------------
+   WIZARD - Paso de obstaculos
+   -------------------------------------------------------------------------- */
+
+.wizard-obstacles-table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.wizard-obstacle-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: white;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--gris-200);
+}
+
+.wizard-obstacle-row label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--gris-600);
+}
+
+.wizard-quote {
+  margin-top: var(--space-3);
+}
+
+@media (max-width: 480px) {
+  .wizard-obstacle-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   TARJETA HABITO - Matriz de 4 Leyes
+   -------------------------------------------------------------------------- */
+
+.habit-laws-matrix {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+
+.law-card {
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--gris-50);
+  border-left: 3px solid var(--gris-300);
+}
+
+.law-card .law-icon {
+  font-size: 18px;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.law-card .law-label {
+  font-weight: 600;
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  color: var(--gris-500);
+  letter-spacing: 0.5px;
+}
+
+.law-card .law-strategy {
+  font-size: var(--font-size-sm);
+  color: var(--gris-700);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.law-card .law-strategy em {
+  color: var(--gris-400);
+}
+
+.law-card .law-detail {
+  font-size: var(--font-size-xs);
+  color: var(--gris-500);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Colores por ley */
+.law--obvio {
+  border-left-color: var(--turquesa-500);
+}
+
+.law--obvio .law-icon {
+  color: var(--turquesa-500);
+}
+
+.law--atractivo {
+  border-left-color: var(--rosa-500);
+}
+
+.law--atractivo .law-icon {
+  color: var(--rosa-500);
+}
+
+.law--facil {
+  border-left-color: var(--tulip-tree-500);
+}
+
+.law--facil .law-icon {
+  color: var(--tulip-tree-500);
+}
+
+.law--satisfactorio {
+  border-left-color: var(--color-success);
+}
+
+.law--satisfactorio .law-icon {
+  color: var(--color-success);
+}
+
+@media (max-width: 480px) {
+  .habit-laws-matrix {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   TARJETA HABITO - Obstaculos
+   -------------------------------------------------------------------------- */
+
+.habit-obstacles {
+  margin: var(--space-2) 0;
+  padding: var(--space-2);
+  background: var(--gris-50);
+  border-radius: var(--radius-md);
+}
+
+.habit-obstacles h4 {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--gris-600);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: var(--space-1);
+}
+
+.obstacle-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--gris-100);
+}
+
+.obstacle-item:last-child {
+  border-bottom: none;
+}
+
+.obstacle-if {
+  font-size: var(--font-size-sm);
+  color: var(--gris-500);
+}
+
+.obstacle-then {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--gris-700);
+}
+
+/* --------------------------------------------------------------------------
+   MENSAJE "NUNCA FALLES DOS VECES"
+   -------------------------------------------------------------------------- */
+
+.streak-encouragement {
+  font-size: var(--font-size-sm);
+  color: var(--turquesa-600);
+  font-style: italic;
+  padding: var(--space-2);
+  background: var(--turquesa-50);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: var(--space-2) 0;
+}
+
+/* --------------------------------------------------------------------------
    EVALUACION RUEDA DE LA VIDA - Diseno Minimalista
    -------------------------------------------------------------------------- */
 

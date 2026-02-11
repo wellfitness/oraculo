@@ -278,9 +278,23 @@ const renderActiveHabit = (habit, history) => {
   const streak = calculateStreak(habit.id, history);
   const completedToday = isHabitCompletedToday(habit.id, history);
 
+  // Contexto "nunca falles dos veces"
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = getLocalDateString(yesterday);
+  const completedYesterday = history.some(h => h.habitId === habit.id && h.date === yesterdayStr);
+
   // Determinar el icono del trigger segun el contexto
   const triggerIcon = habit.scheduledTime ? 'schedule' : 'event';
   const triggerText = habit.trigger || '';
+
+  // Mensaje de animo si no se ha hecho hoy
+  let encouragement = '';
+  if (!completedToday && completedYesterday && streak === 0) {
+    encouragement = `<p class="streak-encouragement">No te lo saltes dos veces.</p>`;
+  } else if (!completedToday && !completedYesterday && history.some(h => h.habitId === habit.id)) {
+    encouragement = `<p class="streak-encouragement">Hoy puedes volver a empezar.</p>`;
+  }
 
   return `
     <div class="habit-card ${completedToday ? 'habit-card--completed' : ''}">
@@ -303,7 +317,7 @@ const renderActiveHabit = (habit, history) => {
       <div class="habit-card__footer">
         <div class="habit-streak">
           <span class="streak-icon material-symbols-outlined filled icon-warning">local_fire_department</span>
-          <span class="streak-count">${streak} ${streak === 1 ? 'día' : 'días'}</span>
+          <span class="streak-count">${streak} ${streak === 1 ? 'dia' : 'dias'}</span>
         </div>
 
         ${completedToday ? `
@@ -318,10 +332,12 @@ const renderActiveHabit = (habit, history) => {
           </button>
         `}
       </div>
+
+      ${encouragement}
     </div>
 
     <a href="#habits" data-view="habits" class="link-subtle">
-      Ver detalles del hábito →
+      Ver detalles del habito
     </a>
   `;
 };
