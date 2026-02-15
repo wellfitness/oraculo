@@ -239,15 +239,20 @@ const setupGlobalEvents = () => {
     }
   }, true);
 
-  // Guardar antes de cerrar (sin diálogo - los datos siempre se guardan automáticamente)
+  // Guardar en localStorage antes de cerrar (sin diálogo)
+  // IMPORTANTE: Solo guardamos en localStorage, NO sincronizamos a Supabase.
+  // Sincronizar en beforeunload es peligroso porque puede subir datos stale
+  // a Supabase si localStorage tenía una versión incompleta.
   window.addEventListener('beforeunload', () => {
     if (state.data) {
-      saveData(state.data);
+      // Guardar directamente en localStorage sin triggear sync a cloud
+      try {
+        state.data.updatedAt = new Date().toISOString();
+        localStorage.setItem('oraculo_data', JSON.stringify(state.data));
+      } catch (e) {
+        console.warn('[App] Error guardando en beforeunload:', e);
+      }
     }
-    // NOTA: No mostramos diálogo de confirmación porque:
-    // 1. Los datos siempre se guardan automáticamente en localStorage
-    // 2. El mensaje genérico "los cambios no se guardarán" confunde a los usuarios
-    // 3. Si queremos recordar sobre el backup, mejor usar notificaciones en la app
   });
 
   // Escuchar cambios en el modo de uso para actualizar el menú
