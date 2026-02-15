@@ -2,7 +2,12 @@
  * Oráculo Cloud - Lógica de Sincronización
  *
  * Maneja la sincronización entre localStorage y Supabase.
- * Estrategia: Last-Write-Wins con timestamps.
+ * Estrategia: Last-Write-Wins + protección contra pérdida de datos.
+ *
+ * PROTECCIONES (v2.0):
+ * 1. Comparación de "riqueza" de datos — datos más pobres NUNCA sobreescriben datos más ricos
+ * 2. Backup automático en localStorage antes de sobreescribir con datos remotos
+ * 3. Logs detallados de cada decisión de sync para debugging
  */
 
 import { getSupabase, isAuthenticated, getCurrentUser } from './client.js';
@@ -17,6 +22,9 @@ const syncState = {
 
 // Constante para debounce (2 segundos)
 const SYNC_DEBOUNCE_MS = 2000;
+
+// Clave para backup pre-sync en localStorage
+const SYNC_BACKUP_KEY = 'oraculo_pre_sync_backup';
 
 /**
  * Carga datos desde Supabase
@@ -61,7 +69,7 @@ export const loadFromSupabase = async () => {
 };
 
 /**
- * Guarda datos en Supabase
+ * Guarda datos en Supabase (con protección contra regresión)
  * @param {object} data - Datos a guardar
  * @returns {Promise<boolean>}
  */
@@ -91,6 +99,36 @@ export const saveToSupabase = async (data) => {
   syncState.inProgress = true;
 
   try {
+    // PROTECCIÓN: Leer datos actuales de Supabase antes de sobreescribir
+    const { data: currentRemote, error: readError } = await supabase
+      .from('user_data')
+      .select('data, updated_at')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!readError && currentRemote?.data) {
+      const remoteRichness = calculateDataRichness(currentRemote.data);
+      const localRichness = calculateDataRichness(data);
+
+      // Si los datos que vamos a subir son significativamente más pobres, BLOQUEAR
+      if (remoteRichness > 0 && localRichness < remoteRichness * 0.5) {
+        console.warn('[Sync] BLOQUEADO: Los datos locales son mucho más pobres que Supabase', {
+          localRichness,
+          remoteRichness,
+          ratio: (localRichness / remoteRichness).toFixed(2)
+        });
+
+        // Guardar backup de lo que hay en Supabase por si acaso
+        savePreSyncBackup(currentRemote.data, 'blocked-overwrite');
+        return false;
+      }
+
+      // Guardar backup de datos remotos antes de sobreescribir
+      if (remoteRichness > 0) {
+        savePreSyncBackup(currentRemote.data, 'pre-overwrite');
+      }
+    }
+
     const { error } = await supabase
       .from('user_data')
       .upsert({
@@ -108,7 +146,7 @@ export const saveToSupabase = async (data) => {
 
     syncState.lastSyncAt = new Date().toISOString();
     clearPendingSync();
-    console.log('[Sync] Datos guardados en Supabase');
+    console.log('[Sync] Datos guardados en Supabase (riqueza:', calculateDataRichness(data), ')');
 
     // Emitir evento de sync completado
     window.dispatchEvent(new CustomEvent('supabase-synced', {
@@ -142,32 +180,102 @@ export const saveToSupabaseDebounced = (data) => {
 };
 
 /**
+ * Calcula una puntuación de "riqueza" de los datos.
+ * Cuenta el total de items en todas las secciones.
+ * Se usa para detectar si unos datos son significativamente más pobres que otros.
+ *
+ * @param {object} data - Datos a evaluar
+ * @returns {number} Puntuación de riqueza (0 = vacío)
+ */
+const calculateDataRichness = (data) => {
+  if (!data) return 0;
+
+  let score = 0;
+
+  // Valores (peso alto - es contenido creado por el usuario)
+  score += (data.values?.length || 0) * 2;
+
+  // Objetivos
+  if (data.objectives) {
+    score += (data.objectives.backlog?.length || 0);
+    score += (data.objectives.quarterly?.length || 0) * 2;
+    score += (data.objectives.monthly?.length || 0) * 2;
+    score += (data.objectives.weekly?.length || 0) * 2;
+    score += (data.objectives.daily?.length || 0);
+  }
+
+  // Proyectos (peso alto)
+  score += (data.projects?.length || 0) * 3;
+
+  // Journal (peso alto - contenido personal)
+  score += (data.journal?.length || 0) * 3;
+
+  // Hábitos
+  if (data.habits) {
+    score += data.habits.active ? 5 : 0;
+    score += (data.habits.graduated?.length || 0) * 3;
+    score += (data.habits.history?.length || 0);
+    if (data.habits.audit?.activities?.length > 0) score += 2;
+  }
+
+  // Calendario
+  if (data.calendar) {
+    score += (data.calendar.events?.length || 0) * 2;
+    score += (data.calendar.recurring?.length || 0) * 2;
+  }
+
+  // Logros espontáneos
+  score += (data.spontaneousAchievements?.length || 0) * 2;
+
+  // Actividades atélicas
+  score += (data.atelicActivities?.length || 0);
+
+  // Rueda de la vida
+  if (data.lifeWheel?.evaluations?.length > 0) {
+    score += data.lifeWheel.evaluations.length * 2;
+  }
+
+  return score;
+};
+
+/**
  * Verifica si los datos son "vacíos" (recién creados, sin contenido real)
  * @param {object} data - Datos a verificar
  * @returns {boolean}
  */
 const isEmptyData = (data) => {
-  if (!data) return true;
+  return calculateDataRichness(data) === 0;
+};
 
-  const hasValues = data.values && data.values.length > 0;
-  const hasJournal = data.journal && data.journal.length > 0;
-  const hasProjects = data.projects && data.projects.length > 0;
-  const hasObjectives = data.objectives && (
-    (data.objectives.backlog && data.objectives.backlog.length > 0) ||
-    (data.objectives.quarterly && data.objectives.quarterly.length > 0) ||
-    (data.objectives.monthly && data.objectives.monthly.length > 0) ||
-    (data.objectives.weekly && data.objectives.weekly.length > 0) ||
-    (data.objectives.daily && data.objectives.daily.length > 0)
-  );
-
-  return !hasValues && !hasJournal && !hasProjects && !hasObjectives;
+/**
+ * Guarda un backup pre-sync en localStorage
+ * Útil para recuperar datos si la sync salió mal
+ * @param {object} data - Datos a respaldar
+ * @param {string} reason - Razón del backup
+ */
+const savePreSyncBackup = (data, reason) => {
+  try {
+    const backup = {
+      data,
+      reason,
+      savedAt: new Date().toISOString(),
+      richness: calculateDataRichness(data)
+    };
+    localStorage.setItem(SYNC_BACKUP_KEY, JSON.stringify(backup));
+    console.log(`[Sync] Backup pre-sync guardado (razón: ${reason}, riqueza: ${backup.richness})`);
+  } catch (error) {
+    console.warn('[Sync] No se pudo guardar backup pre-sync:', error);
+  }
 };
 
 /**
  * Resuelve conflictos entre datos locales y remotos
- * Estrategia:
+ *
+ * Estrategia (v2.0 - protección contra pérdida de datos):
  * 1. Si datos locales están vacíos y remotos tienen contenido → usar remotos
- * 2. Si no, Last-Write-Wins (el más reciente gana)
+ * 2. Si datos remotos son significativamente más ricos que locales → usar remotos
+ *    (protección contra sobreescritura accidental por localStorage con datos stale)
+ * 3. Si ambos tienen datos similares → Last-Write-Wins (el más reciente gana)
  *
  * @param {object} localData - Datos de localStorage
  * @param {object} remoteData - Datos de Supabase
@@ -177,22 +285,42 @@ const isEmptyData = (data) => {
 export const resolveConflict = (localData, remoteData, remoteUpdatedAt) => {
   const localTime = new Date(localData?.updatedAt || 0).getTime();
   const remoteTime = new Date(remoteUpdatedAt || 0).getTime();
+  const localRichness = calculateDataRichness(localData);
+  const remoteRichness = calculateDataRichness(remoteData);
 
   console.log('[Sync] Resolviendo conflicto:', {
     localTime: new Date(localTime).toISOString(),
     remoteTime: new Date(remoteTime).toISOString(),
+    localRichness,
+    remoteRichness,
     localEmpty: isEmptyData(localData),
     remoteEmpty: isEmptyData(remoteData)
   });
 
-  // Caso especial: datos locales vacíos pero remotos tienen contenido
-  // Esto ocurre típicamente en el primer login en un dispositivo nuevo
+  // Caso 1: datos locales vacíos pero remotos tienen contenido
   if (isEmptyData(localData) && !isEmptyData(remoteData)) {
     console.log('[Sync] Datos locales vacíos, usando datos remotos (primera sincronización)');
     return { source: 'remote', data: remoteData };
   }
 
-  // Caso normal: Last-Write-Wins
+  // Caso 2: PROTECCIÓN ANTI-REGRESIÓN
+  // Si los datos remotos son significativamente más ricos que los locales,
+  // preferir remotos sin importar timestamps.
+  // Esto previene que localStorage con datos stale/parciales sobreescriba Supabase.
+  if (remoteRichness > 0 && localRichness < remoteRichness * 0.5) {
+    console.warn('[Sync] PROTECCIÓN: Datos remotos mucho más ricos que locales', {
+      localRichness,
+      remoteRichness,
+      ratio: (localRichness / remoteRichness).toFixed(2)
+    });
+
+    // Guardar backup de datos locales por si el usuario realmente los quiere
+    savePreSyncBackup(localData, 'local-overridden-by-richer-remote');
+
+    return { source: 'remote', data: remoteData };
+  }
+
+  // Caso 3: Last-Write-Wins (ambos tienen datos comparables)
   if (remoteTime > localTime) {
     console.log('[Sync] Usando datos remotos (más recientes)');
     return { source: 'remote', data: remoteData };
@@ -237,3 +365,20 @@ export const getSyncStatus = () => {
 export const canSync = async () => {
   return isOnline() && await isAuthenticated();
 };
+
+/**
+ * Recupera el backup pre-sync guardado (si existe)
+ * @returns {object|null} Datos del backup o null
+ */
+export const getPreSyncBackup = () => {
+  try {
+    const raw = localStorage.getItem(SYNC_BACKUP_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
+
+// Exportar para uso en debugging desde consola
+export { calculateDataRichness };
