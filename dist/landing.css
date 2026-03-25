@@ -1502,6 +1502,7 @@ section {
 
 .hero-extension {
   margin-top: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .feature-card--clickable {
