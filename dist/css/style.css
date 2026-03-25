@@ -18364,18 +18364,20 @@ select,
 /* --- Grid de herramientas --- */
 
 .launcher__grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
   margin-bottom: var(--space-3);
 }
 
 .launcher__tool {
+  width: calc(25% - 6px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 10px 4px 8px;
+  gap: 6px;
+  padding: 14px 4px 12px;
   border-radius: var(--radius-lg, 12px);
   background: white;
   text-decoration: none;
@@ -18397,7 +18399,7 @@ select,
 }
 
 .launcher__tool-icon {
-  font-size: 26px;
+  font-size: 30px;
   color: var(--turquesa-400, #06b6d4);
 }
 
@@ -18406,8 +18408,8 @@ select,
 }
 
 .launcher__tool-label {
-  font-size: 0.65rem;
-  font-weight: 500;
+  font-size: 0.7rem;
+  font-weight: 600;
   text-align: center;
   line-height: 1.2;
 }

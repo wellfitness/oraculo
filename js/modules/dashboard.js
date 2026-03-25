@@ -45,8 +45,7 @@ const renderExtensionLauncher = (data) => {
     { view: 'journal', icon: 'auto_stories', label: 'Diario' },
     { view: 'values', icon: 'explore', label: 'Valores' },
     { view: 'life-wheel', icon: 'donut_large', label: 'Rueda' },
-    { view: 'achievements', icon: 'emoji_events', label: 'Logros' },
-    { view: 'settings', icon: 'settings', label: 'Ajustes' }
+    { view: 'achievements', icon: 'emoji_events', label: 'Logros' }
   ];
 
   const toolsGrid = tools.map(t => `
