@@ -958,6 +958,10 @@ const validateCurrentWizardStep = () => {
  * Guarda el hábito desde el wizard
  */
 const saveHabitFromWizard = (data) => {
+  if (!wizardData.area) {
+    showNotification('Selecciona un área de vida', 'warning');
+    return;
+  }
   if (!wizardData.name?.trim()) {
     showNotification('El nombre del hábito es obligatorio', 'warning');
     return;
@@ -996,7 +1000,7 @@ const saveHabitFromWizard = (data) => {
   clearWizardProgress();
 
   showNotification('¡Hábito activado! Recuerda: un día a la vez.', 'success');
-  location.reload();
+  reRender(data);
 };
 
 // ============================================================
@@ -1291,7 +1295,7 @@ const saveHabit = (data) => {
 
   document.getElementById('habit-modal').close();
   showNotification('¡Hábito activado! Recuerda: un día a la vez.', 'success');
-  location.reload();
+  reRender(data);
 };
 
 /**
@@ -1326,7 +1330,7 @@ const markHabitDone = (data) => {
     showNotification('Otro dia mas. Sigue asi.', 'success');
   }
 
-  location.reload();
+  reRender(data);
 };
 
 /**
@@ -1349,7 +1353,7 @@ const graduateHabit = (data) => {
 
   updateDataCallback('habits', data.habits);
   showNotification('🎉 ¡Felicidades! Hábito consolidado. Ya puedes empezar uno nuevo.', 'success');
-  location.reload();
+  reRender(data);
 };
 
 /**
@@ -1363,7 +1367,7 @@ const abandonHabit = (data) => {
   data.habits.active = null;
   updateDataCallback('habits', data.habits);
   showNotification('Hábito abandonado. Cuando quieras, puedes empezar otro.', 'info');
-  location.reload();
+  reRender(data);
 };
 
 // --- Funciones auxiliares ---
@@ -2480,7 +2484,7 @@ const saveAtelicActivity = (data) => {
 
   document.getElementById('atelic-modal').close();
   showNotification('¡Actividad de ocio registrada! El ocio es un fin en sí mismo.', 'success');
-  location.reload();
+  reRender(data);
 };
 
 /**
@@ -2497,6 +2501,6 @@ const deleteAtelicActivity = (activityId, data) => {
     data.atelicActivities = data.atelicActivities.filter(a => a.id !== activityId);
     updateDataCallback('atelicActivities', data.atelicActivities);
     showNotification('Actividad eliminada', 'info');
-    location.reload();
+    reRender(data);
   });
 };

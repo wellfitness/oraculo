@@ -5,7 +5,7 @@
 
 import { generateId, showNotification } from '../app.js';
 import { escapeHTML } from '../utils/sanitizer.js';
-import { MAX_ACTIVE_PROJECTS } from '../storage.js';
+const MAX_ACTIVE_PROJECTS = 4;
 import {
   renderObjectiveEvaluator,
   initObjectiveEvaluator,
@@ -17,6 +17,14 @@ import { emptyStateFor } from '../components/empty-state.js';
 
 let updateDataCallback = null;
 let currentData = null;
+
+const reRender = () => {
+  const container = document.getElementById('app-content');
+  if (container && currentData) {
+    container.innerHTML = render(currentData);
+    init(currentData, updateDataCallback);
+  }
+};
 
 // Estados de proyecto con descripciones para tooltips
 const PROJECT_STATUS = {
@@ -937,7 +945,7 @@ const saveProject = (data) => {
   updateDataCallback('projects', data.projects);
   document.getElementById('project-modal').close();
   showNotification(id ? 'Proyecto actualizado' : 'Proyecto creado', 'success');
-  location.reload();
+  reRender();
 };
 
 /**
@@ -958,7 +966,7 @@ const updateProjectStatus = (projectId, newStatus) => {
 
   updateDataCallback('projects', currentData.projects);
   showNotification(`Proyecto ${PROJECT_STATUS[newStatus].name.toLowerCase()}`, 'success');
-  location.reload();
+  reRender();
 };
 
 /**
@@ -1006,7 +1014,7 @@ const reactivateProject = (projectId) => {
 
   updateDataCallback('projects', currentData.projects);
   showNotification('Proyecto reactivado', 'success');
-  location.reload();
+  reRender();
 };
 
 /**
@@ -1028,7 +1036,7 @@ const saveProjectEvaluation = (projectId, evaluation) => {
     reconsider: 'Quizás no sea el momento para este proyecto'
   };
   showNotification(resultMessages[evaluation.result.recommendation] || 'Evaluación guardada', 'success');
-  location.reload();
+  reRender();
 };
 
 /**
@@ -1094,5 +1102,5 @@ const deleteProject = (projectId) => {
   updateDataCallback('projects', currentData.projects);
   updateDataCallback('objectives', currentData.objectives);
   showNotification('Proyecto eliminado', 'info');
-  location.reload();
+  reRender();
 };
