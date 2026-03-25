@@ -163,16 +163,16 @@ export const initEveningCheckInModal = (data, updateData) => {
       return;
     }
 
-    // Formatear contenido
+    // Formatear contenido (texto plano, sin Markdown)
     let content = '';
     if (wentWell) {
-      content += `**¿Qué salió bien hoy?**\n${wentWell}\n\n`;
+      content += `¿Qué salió bien hoy?\n${wentWell}\n\n`;
     }
     if (learned) {
-      content += `**¿Qué aprendí?**\n${learned}\n\n`;
+      content += `¿Qué aprendí?\n${learned}\n\n`;
     }
     if (letGo) {
-      content += `**¿Hay algo que necesito soltar?**\n${letGo}`;
+      content += `¿Hay algo que necesito soltar?\n${letGo}`;
     }
 
     // Crear entrada de diario

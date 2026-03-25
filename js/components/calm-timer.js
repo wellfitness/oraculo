@@ -229,8 +229,10 @@ const resetTimer = () => {
   updateDisplay(remainingTime);
 
   // Mostrar body inicial, ocultar completed
-  document.getElementById('calm-body').style.display = 'block';
-  document.getElementById('calm-completed').style.display = 'none';
+  const calmBody = document.getElementById('calm-body');
+  const calmCompleted = document.getElementById('calm-completed');
+  if (calmBody) calmBody.style.display = 'block';
+  if (calmCompleted) calmCompleted.style.display = 'none';
 
   // Restaurar botón inicial
   const actionsDiv = document.getElementById('calm-actions');
@@ -251,9 +253,12 @@ const completeTimer = () => {
   stopTimer();
 
   // Ocultar body, mostrar completed
-  document.getElementById('calm-body').style.display = 'none';
-  document.getElementById('calm-completed').style.display = 'block';
-  document.getElementById('calm-journal-text').value = '';
+  const bodyEl = document.getElementById('calm-body');
+  const completedEl = document.getElementById('calm-completed');
+  if (bodyEl) bodyEl.style.display = 'none';
+  if (completedEl) completedEl.style.display = 'block';
+  const journalText = document.getElementById('calm-journal-text');
+  if (journalText) journalText.value = '';
 
   // Sonido de campana (si está soportado)
   try {
