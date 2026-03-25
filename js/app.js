@@ -3,7 +3,11 @@
  * Sistema de gestión personal consciente
  */
 
-import { loadData, saveData, getStorageUsage } from './storage-hybrid.js';
+// Storage: se resuelve dinámicamente en bootstrap() según el contexto (web vs extensión)
+let _storage = {};
+const loadData = (...args) => _storage.loadData(...args);
+const saveData = (...args) => _storage.saveData(...args);
+const getStorageUsage = (...args) => _storage.getStorageUsage(...args);
 import { needsDailySetup } from './components/daily-setup-modal.js';
 import {
   renderCalmTimerModal,
@@ -39,6 +43,7 @@ import {
 } from './components/welcome-modal.js';
 import { getSpeechHandler, isSpeechSupported } from './utils/speech-handler.js';
 import * as autoBackup from './utils/auto-backup.js';
+import { initMueveteTimer } from './components/muevete-timer.js';
 
 // Exportar módulo de auto-backup para uso en settings
 export { autoBackup };
@@ -72,6 +77,7 @@ const VIEWS = {
   calendar: 'Calendario',
   journal: 'Diario',
   achievements: 'Logros',
+  muevete: 'Muévete',
   settings: 'Configuración',
   help: 'Ayuda'
 };
@@ -117,6 +123,9 @@ export const init = () => {
 
   // Inyectar modal de revisión semanal GTD
   injectWeeklyReviewModal();
+
+  // Inicializar Muévete timer (motor global, persiste entre vistas)
+  initMueveteTimer(state.data, updateData, () => state.data);
 
   // Actualizar menú según modo de uso
   updateMenuVisibility();
@@ -888,9 +897,18 @@ export const generateId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 };
 
-// Iniciar cuando el DOM esté listo
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
-} else {
+// Bootstrap: cargar storage dinámicamente según contexto e iniciar app
+const bootstrap = async () => {
+  const isExtension = !!(window.__ORACULO_EXTENSION__ || (typeof chrome !== 'undefined' && chrome.runtime?.id));
+  const mod = isExtension
+    ? await import('./storage-local.js')
+    : await import('./storage-hybrid.js');
+  _storage = mod;
   init();
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrap);
+} else {
+  bootstrap();
 }

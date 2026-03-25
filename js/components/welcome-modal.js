@@ -19,7 +19,7 @@ export const USAGE_MODES = {
     description: 'Todas las funciones de Oráculo',
     idealFor: 'Quien quiere una gestión integral de su vida',
     includes: ['Dashboard', 'Valores', 'Rueda de la Vida', 'Horizontes', 'Proyectos', 'Hábitos', 'Calendario', 'Diario', 'Logros'],
-    views: ['dashboard', 'values', 'life-wheel', 'kanban', 'projects', 'habits', 'calendar', 'journal', 'achievements', 'settings', 'help', 'daily-setup']
+    views: ['dashboard', 'values', 'life-wheel', 'kanban', 'projects', 'habits', 'calendar', 'journal', 'achievements', 'muevete', 'settings', 'help', 'daily-setup']
   },
   habits: {
     id: 'habits',
@@ -27,8 +27,8 @@ export const USAGE_MODES = {
     icon: 'science',
     description: 'Laboratorio de hábitos + reflexión',
     idealFor: 'Quien ya tiene otra app de tareas pero quiere crear hábitos',
-    includes: ['Dashboard', 'Hábitos', 'Diario', 'Logros', 'Valores', 'Rueda de la Vida'],
-    views: ['dashboard', 'values', 'life-wheel', 'habits', 'journal', 'achievements', 'settings', 'help']
+    includes: ['Dashboard', 'Hábitos', 'Diario', 'Logros', 'Valores', 'Rueda de la Vida', 'Muévete'],
+    views: ['dashboard', 'values', 'life-wheel', 'habits', 'journal', 'achievements', 'muevete', 'settings', 'help']
   },
   journal: {
     id: 'journal',
@@ -36,8 +36,8 @@ export const USAGE_MODES = {
     icon: 'auto_stories',
     description: 'Reflexiones y check-ins',
     idealFor: 'Quien busca un espacio de reflexión personal',
-    includes: ['Dashboard', 'Diario', 'Logros', 'Valores', 'Rueda de la Vida'],
-    views: ['dashboard', 'values', 'life-wheel', 'journal', 'achievements', 'settings', 'help']
+    includes: ['Dashboard', 'Diario', 'Logros', 'Valores', 'Rueda de la Vida', 'Muévete'],
+    views: ['dashboard', 'values', 'life-wheel', 'journal', 'achievements', 'muevete', 'settings', 'help']
   },
   complement: {
     id: 'complement',
@@ -45,8 +45,8 @@ export const USAGE_MODES = {
     icon: 'add_circle',
     description: 'Valores + reflexión junto a otra app',
     idealFor: 'Quien usa Todoist/Notion y quiere añadir claridad',
-    includes: ['Dashboard', 'Valores', 'Rueda de la Vida', 'Diario'],
-    views: ['dashboard', 'values', 'life-wheel', 'journal', 'settings', 'help']
+    includes: ['Dashboard', 'Valores', 'Rueda de la Vida', 'Diario', 'Muévete'],
+    views: ['dashboard', 'values', 'life-wheel', 'journal', 'muevete', 'settings', 'help']
   }
 };
 

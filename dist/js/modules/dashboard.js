@@ -9,6 +9,7 @@ import { escapeHTML } from '../utils/sanitizer.js';
 import { isEveningTime, hasEveningCheckIn } from '../components/evening-check-in.js';
 import { getAchievementsStats, isHabitCompletedToday } from '../utils/achievements-calculator.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
+import { getMueveteState, formatTime } from '../components/muevete-timer.js';
 
 let updateDataCallback = null;
 
@@ -114,6 +115,10 @@ export const render = (data) => {
       </section>
 
       ${renderTodayAchievements(data)}
+
+      <section class="dashboard__section dashboard__muevete">
+        ${renderMueveteCard()}
+      </section>
 
       <section class="dashboard__section dashboard__calm">
         <button class="calm-trigger" id="open-calm-timer">
@@ -274,6 +279,57 @@ const renderFocusTask = (task, projects = []) => {
 /**
  * Renderiza el hábito activo
  */
+const renderMueveteCard = () => {
+  const state = getMueveteState();
+
+  if (state.status === 'idle') {
+    return `
+      <a href="#muevete" data-view="muevete" class="calm-trigger muevete-dashboard-card">
+        <span class="material-symbols-outlined">directions_run</span>
+        <div class="calm-trigger__content">
+          <span class="calm-trigger__title">Muévete</span>
+          <span class="calm-trigger__subtitle">Inicia un bloque de trabajo</span>
+        </div>
+      </a>
+    `;
+  }
+
+  if (state.status === 'working') {
+    return `
+      <a href="#muevete" data-view="muevete" class="calm-trigger muevete-dashboard-card muevete-dashboard-card--active">
+        <span class="material-symbols-outlined">directions_run</span>
+        <div class="calm-trigger__content">
+          <span class="calm-trigger__title">Muévete — ${formatTime(state.workBlockRemaining)}</span>
+          <span class="calm-trigger__subtitle">${state.blocksCompleted} vitamina${state.blocksCompleted !== 1 ? 's' : ''} M hoy</span>
+        </div>
+      </a>
+    `;
+  }
+
+  if (state.status === 'break_alert') {
+    return `
+      <a href="#muevete" data-view="muevete" class="calm-trigger muevete-dashboard-card muevete-dashboard-card--alert">
+        <span class="material-symbols-outlined">warning</span>
+        <div class="calm-trigger__content">
+          <span class="calm-trigger__title">¡Hora de moverse!</span>
+          <span class="calm-trigger__subtitle">Tu cuerpo necesita una pausa</span>
+        </div>
+      </a>
+    `;
+  }
+
+  // active_break
+  return `
+    <a href="#muevete" data-view="muevete" class="calm-trigger muevete-dashboard-card muevete-dashboard-card--break">
+      <span class="material-symbols-outlined">self_improvement</span>
+      <div class="calm-trigger__content">
+        <span class="calm-trigger__title">Vitamina M — ${formatTime(state.breakRemaining)}</span>
+        <span class="calm-trigger__subtitle">Break activo</span>
+      </div>
+    </a>
+  `;
+};
+
 const renderActiveHabit = (habit, history) => {
   const streak = calculateStreak(habit.id, history);
   const completedToday = isHabitCompletedToday(habit.id, history);

@@ -157,6 +157,27 @@ const getDefaultData = () => ({
       proceed: 75,    // >= 75% = adelante
       review: 50      // >= 50% y < 75% = revisar, < 50% = reconsiderar
     }
+  },
+
+  // Muévete - Breaks de movimiento
+  muevete: {
+    timerState: {
+      status: 'idle',
+      startTime: null,
+      breakStartTime: null,
+      blocksCompleted: 0,
+      lastResetDate: null,
+      soleusEnabled: true,
+      workBlockDuration: 7200000,
+      breakDuration: 480000,
+      soleusInterval: 1800000,
+      soundEnabled: true
+    },
+    activityLog: {
+      entries: [],
+      currentStreak: 0,
+      bestStreak: 0
+    }
   }
 });
 
@@ -418,6 +439,15 @@ const migrateData = (oldData) => {
 
   // Los campos nuevos del hábito (area, scheduledTime, location)
   // son opcionales y se añadirán cuando el usuario cree/edite un hábito
+
+  // Migración Muévete
+  if (oldData.muevete) {
+    newData.muevete = {
+      ...newData.muevete,
+      timerState: { ...newData.muevete.timerState, ...(oldData.muevete.timerState || {}) },
+      activityLog: { ...newData.muevete.activityLog, ...(oldData.muevete.activityLog || {}) }
+    };
+  }
 
   saveData(newData);
   console.log('Datos migrados a versión', STORAGE_VERSION);

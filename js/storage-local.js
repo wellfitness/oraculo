@@ -1,6 +1,8 @@
 /**
- * Oráculo - Sistema de Almacenamiento
- * Gestiona localStorage con opción de migrar a SQLite
+ * Oráculo - Sistema de Almacenamiento Local
+ *
+ * Solo localStorage, sin Supabase. Misma API que storage-hybrid.js.
+ * Usado por la extensión Chrome y como fallback de la web.
  */
 
 import { validateDataStructure } from './utils/validator.js';
@@ -15,101 +17,81 @@ const getDefaultData = () => ({
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 
-  // Brújula de valores
   values: [],
 
-  // Objetivos por horizonte temporal (Listas Duales Burkeman)
   objectives: {
-    backlog: [],    // Lista abierta - sin límite (captura de ideas)
-    quarterly: [],  // Máx 3 objetivos trimestrales
-    monthly: [],    // Hitos mensuales
-    weekly: [],     // Tareas de la semana
-    daily: []       // En Foco - lista cerrada (máx 3)
+    backlog: [],
+    quarterly: [],
+    monthly: [],
+    weekly: [],
+    daily: []
   },
 
-  // Laboratorio de hábitos
   habits: {
-    active: null,       // Solo 1 hábito activo a la vez
-    graduated: [],      // Hábitos consolidados
-    history: [],        // Registro de cumplimiento
-    // Auditoría de hábitos (v1.5) - Reflexión previa a crear hábito
+    active: null,
+    graduated: [],
+    history: [],
     audit: {
-      activities: [],   // { id, name, evaluation: 'maintain'|'change'|'indifferent', createdAt }
-      lastAuditAt: null // Timestamp de última auditoría
+      activities: [],
+      lastAuditAt: null
     }
   },
 
-  // Calendario
   calendar: {
     events: [],
     recurring: []
   },
 
-  // Diario
   journal: [],
-
-  // Proyectos (máx 4 activos)
   projects: [],
 
-  // Configuración
   settings: {
     storageType: 'localStorage',
     notificationsEnabled: false,
-    theme: 'light'
+    theme: 'light',
+    usageMode: 'complete',
+    lastWeeklyReview: null,
+    weeklyReviewDay: 0,
+    weeklyReviewReminder: true
   },
 
-  // Cuaderno actual (sistema de archivos anuales)
+  onboarding: {
+    completed: false,
+    completedAt: null,
+    selectedMode: null
+  },
+
   notebook: {
     year: new Date().getFullYear(),
     startedAt: new Date().toISOString(),
     name: `Cuaderno ${new Date().getFullYear()}`
   },
 
-  // Metadatos de cuadernos archivados
   archivedNotebooks: [],
 
-  // ============================================================
-  // SISTEMA BURKEMAN (v1.3)
-  // ============================================================
-
-  // Setup diario - Volumen Fijo
-  // Define tiempo/energía disponible ANTES de elegir tareas
   dailySetup: {
-    date: null,                    // YYYY-MM-DD del setup
-    availableTime: null,           // '2h' | '4h' | '6h' | 'full'
-    energyLevel: null,             // 'low' | 'medium' | 'high'
-    dailyLimit: 3,                 // Límite dinámico para tareas diarias
-    rocaPrincipal: null,           // ID de la tarea prioritaria del día
-    setupAt: null,                 // Timestamp del setup
-    // Anticipación de obstáculos (v1.6)
-    potentialObstacle: null,       // "¿Qué podría dificultar hoy?"
-    contingencyPlan: null          // "Si pasa, haré..."
+    date: null,
+    availableTime: null,
+    energyLevel: null,
+    dailyLimit: 3,
+    rocaPrincipal: null,
+    setupAt: null,
+    potentialObstacle: null,
+    contingencyPlan: null
   },
 
-  // Logros espontáneos - Done List
-  // Registro de logros que no estaban planificados
-  spontaneousAchievements: [],     // { id, text, createdAt, mood }
+  spontaneousAchievements: [],
+  atelicActivities: [],
 
-  // Actividades atélicas - Descanso sin objetivo
-  // Ocio donde está permitido "ser malo"
-  atelicActivities: [],            // { id, name, date, duration?, note?, icon }
-
-  // Preferencias del Sistema Burkeman
   burkemanSettings: {
-    showReflexiones: true,         // Mostrar reflexiones rotativas
-    menuModeDefault: false,        // Kanban en modo menú por defecto
-    dailySetupEnabled: true,       // Mostrar modal de setup diario
-    atelicReminder: true,          // Recordar tomar descansos atélicos
-    askValueOnPriority: true       // Preguntar valor al marcar roca principal
+    showReflexiones: true,
+    menuModeDefault: false,
+    dailySetupEnabled: true,
+    atelicReminder: true,
+    askValueOnPriority: true
   },
 
-  // ============================================================
-  // RUEDA DE LA VIDA (v1.4)
-  // ============================================================
-
-  // Sistema de evaluación de áreas de vida
   lifeWheel: {
-    // Áreas personalizables (8 por defecto)
     areas: [
       { id: 'health', name: 'Salud física', icon: 'fitness_center', order: 0, linkedValueId: null },
       { id: 'emotional', name: 'Estado emocional', icon: 'psychology', order: 1, linkedValueId: null },
@@ -120,21 +102,14 @@ const getDefaultData = () => ({
       { id: 'finances', name: 'Finanzas', icon: 'savings', order: 6, linkedValueId: null },
       { id: 'leisure', name: 'Ocio/Tiempo libre', icon: 'spa', order: 7, linkedValueId: null }
     ],
-
-    // Histórico de evaluaciones trimestrales
-    // Cada evaluación: { id, date, quarter, scores: {areaId: {current, desired, reflection: {why, improve, actions}}}, overallReflection, createdAt }
     evaluations: [],
-
-    // Configuración de la rueda
     settings: {
-      reminderEnabled: true,           // Recordar evaluación trimestral
-      lastReminderDismissed: null      // Fecha último recordatorio ignorado
+      reminderEnabled: true,
+      lastReminderDismissed: null
     }
   },
 
-  // Sistema de evaluación de objetivos (10 criterios ponderados)
   objectiveEvaluation: {
-    // Criterios con pesos para calcular puntuación
     criteria: [
       { id: 'relevance', name: 'Relevancia para mis valores', weight: 1.5, icon: 'explore' },
       { id: 'intrinsic', name: 'Valor intrínseco (disfrute)', weight: 1.2, icon: 'mood' },
@@ -147,15 +122,10 @@ const getDefaultData = () => ({
       { id: 'resources', name: 'Recursos necesarios', weight: 1.0, icon: 'inventory_2' },
       { id: 'strength', name: 'Fortaleza/Motivación', weight: 1.2, icon: 'bolt' }
     ],
-
-    // Historial de evaluaciones de objetivos
-    // { id, objectiveId, objectiveText, date, scores: {criterionId: 1-10}, totalScore, recommendation, notes, createdAt }
     evaluations: [],
-
-    // Umbrales para recomendación
     thresholds: {
-      proceed: 75,    // >= 75% = adelante
-      review: 50      // >= 50% y < 75% = revisar, < 50% = reconsiderar
+      proceed: 75,
+      review: 50
     }
   },
 
@@ -181,44 +151,30 @@ const getDefaultData = () => ({
   }
 });
 
-/**
- * Carga los datos desde localStorage
- */
-export const loadData = () => {
+// ============================================================
+// FUNCIONES DE LOCALSTORAGE
+// ============================================================
+
+const loadFromLocalStorage = () => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) {
-      const defaultData = getDefaultData();
-      saveData(defaultData);
-      return defaultData;
+      return null;
     }
-
-    const data = JSON.parse(stored);
-
-    // Migración si la versión es diferente
-    if (data.version !== STORAGE_VERSION) {
-      return migrateData(data);
-    }
-
-    return data;
+    return JSON.parse(stored);
   } catch (error) {
-    console.error('Error cargando datos:', error);
-    return getDefaultData();
+    console.error('[Storage] Error cargando de localStorage:', error);
+    return null;
   }
 };
 
-/**
- * Guarda los datos en localStorage
- */
-export const saveData = (data) => {
+const saveToLocalStorage = (data) => {
   try {
     data.updatedAt = new Date().toISOString();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     return true;
   } catch (error) {
-    console.error('Error guardando datos:', error);
-
-    // Verificar si es error de espacio
+    console.error('[Storage] Error guardando en localStorage:', error);
     if (error.name === 'QuotaExceededError') {
       showStorageWarning();
     }
@@ -226,14 +182,31 @@ export const saveData = (data) => {
   }
 };
 
-/**
- * Actualiza una sección específica de los datos
- */
+// ============================================================
+// API PÚBLICA (compatible con storage-hybrid.js)
+// ============================================================
+
+export const loadData = () => {
+  let localData = loadFromLocalStorage();
+
+  if (!localData) {
+    localData = getDefaultData();
+    saveToLocalStorage(localData);
+  } else if (localData.version !== STORAGE_VERSION) {
+    localData = migrateData(localData);
+  }
+
+  return localData;
+};
+
+export const saveData = (data) => {
+  return saveToLocalStorage(data);
+};
+
 export const updateSection = (section, newData) => {
   const data = loadData();
 
   if (section.includes('.')) {
-    // Soportar rutas anidadas como 'objectives.daily'
     const parts = section.split('.');
     let target = data;
     for (let i = 0; i < parts.length - 1; i++) {
@@ -247,9 +220,21 @@ export const updateSection = (section, newData) => {
   return saveData(data);
 };
 
-/**
- * Exporta todos los datos como JSON
- */
+// Stubs para compatibilidad con storage-hybrid.js
+export const forceSyncNow = async () => false;
+
+export const getSyncStatus = async () => ({
+  isAuthenticated: false,
+  userEmail: null,
+  isOnline: navigator.onLine,
+  hasPendingSync: false,
+  storageType: 'local'
+});
+
+// ============================================================
+// FUNCIONES DE DATOS
+// ============================================================
+
 export const exportData = () => {
   const data = loadData();
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -264,66 +249,43 @@ export const exportData = () => {
   URL.revokeObjectURL(url);
 };
 
-/**
- * Importa datos desde un archivo JSON
- */
 export const importData = (file) => {
   return new Promise((resolve, reject) => {
-    console.log('[Storage] Iniciando importación de:', file.name);
     const reader = new FileReader();
 
     reader.onload = (e) => {
       try {
-        console.log('[Storage] Archivo leído, parseando JSON...');
         const importedData = JSON.parse(e.target.result);
-        console.log('[Storage] JSON parseado correctamente, campos:', Object.keys(importedData));
 
-        // Validar estructura básica
-        console.log('[Storage] Validando estructura...');
         const validation = validateDataStructure(importedData);
-        console.log('[Storage] Resultado validación:', validation);
-
         if (!validation.valid) {
           throw new Error('Archivo no válido: ' + validation.error);
         }
 
-        // Hacer backup antes de importar
-        console.log('[Storage] Guardando backup de datos actuales...');
+        // Backup antes de importar
         const currentData = loadData();
         localStorage.setItem(STORAGE_KEY + '_backup', JSON.stringify(currentData));
 
-        // Importar
-        console.log('[Storage] Guardando datos importados...');
         const saved = saveData(importedData);
-        console.log('[Storage] Datos guardados:', saved);
-
         if (saved) {
-          console.log('[Storage] Importación completada con éxito');
           resolve(importedData);
         } else {
           throw new Error('No se pudieron guardar los datos');
         }
       } catch (error) {
-        console.error('[Storage] Error en importación:', error);
         reject(new Error('Error al importar: ' + error.message));
       }
     };
 
-    reader.onerror = () => {
-      console.error('[Storage] Error leyendo archivo');
-      reject(new Error('Error leyendo archivo'));
-    };
+    reader.onerror = () => reject(new Error('Error leyendo archivo'));
     reader.readAsText(file);
   });
 };
 
-/**
- * Calcula el espacio usado en localStorage
- */
 export const getStorageUsage = () => {
   const data = localStorage.getItem(STORAGE_KEY) || '';
   const usedBytes = new Blob([data]).size;
-  const maxBytes = 5 * 1024 * 1024; // ~5MB límite típico
+  const maxBytes = 5 * 1024 * 1024;
 
   return {
     used: usedBytes,
@@ -334,23 +296,19 @@ export const getStorageUsage = () => {
   };
 };
 
-/**
- * Muestra advertencia cuando el almacenamiento está casi lleno
- */
 const showStorageWarning = () => {
   const usage = getStorageUsage();
   console.warn(`Almacenamiento casi lleno: ${usage.percentage}% usado`);
-  // El UI manejará mostrar esto al usuario
   window.dispatchEvent(new CustomEvent('storage-warning', { detail: usage }));
 };
 
-/**
- * Migra datos de versiones anteriores
- */
+// ============================================================
+// MIGRACIÓN
+// ============================================================
+
 const migrateData = (oldData) => {
   const newData = getDefaultData();
 
-  // Copiar datos existentes que sean compatibles
   if (oldData.values) newData.values = oldData.values;
   if (oldData.objectives) newData.objectives = { ...newData.objectives, ...oldData.objectives };
   if (oldData.habits) newData.habits = { ...newData.habits, ...oldData.habits };
@@ -358,24 +316,14 @@ const migrateData = (oldData) => {
   if (oldData.journal) newData.journal = oldData.journal;
   if (oldData.projects) newData.projects = oldData.projects;
   if (oldData.settings) newData.settings = { ...newData.settings, ...oldData.settings };
-
-  // Migrar notebook y archivedNotebooks si existen
   if (oldData.notebook) newData.notebook = oldData.notebook;
   if (oldData.archivedNotebooks) newData.archivedNotebooks = oldData.archivedNotebooks;
 
-  // ============================================================
-  // Migración v1.2 → v1.3 (Sistema Burkeman)
-  // ============================================================
-
-  // Migrar campos Burkeman si existen (en caso de migración parcial)
   if (oldData.dailySetup) newData.dailySetup = { ...newData.dailySetup, ...oldData.dailySetup };
   if (oldData.spontaneousAchievements) newData.spontaneousAchievements = oldData.spontaneousAchievements;
   if (oldData.atelicActivities) newData.atelicActivities = oldData.atelicActivities;
-  if (oldData.burkemanSettings) {
-    newData.burkemanSettings = { ...newData.burkemanSettings, ...oldData.burkemanSettings };
-  }
+  if (oldData.burkemanSettings) newData.burkemanSettings = { ...newData.burkemanSettings, ...oldData.burkemanSettings };
 
-  // Migrar tareas diarias: añadir campos Burkeman si no existen
   if (newData.objectives.daily) {
     newData.objectives.daily = newData.objectives.daily.map(task => ({
       ...task,
@@ -385,7 +333,6 @@ const migrateData = (oldData) => {
     }));
   }
 
-  // Migrar eventos: añadir campo isSincronia si no existe
   if (newData.calendar.events) {
     newData.calendar.events = newData.calendar.events.map(event => ({
       ...event,
@@ -393,11 +340,6 @@ const migrateData = (oldData) => {
     }));
   }
 
-  // ============================================================
-  // Migración v1.3 → v1.4 (Rueda de la Vida)
-  // ============================================================
-
-  // Migrar lifeWheel si existe (en caso de migración parcial)
   if (oldData.lifeWheel) {
     newData.lifeWheel = {
       ...newData.lifeWheel,
@@ -407,7 +349,6 @@ const migrateData = (oldData) => {
     };
   }
 
-  // Migrar objectiveEvaluation si existe
   if (oldData.objectiveEvaluation) {
     newData.objectiveEvaluation = {
       ...newData.objectiveEvaluation,
@@ -417,28 +358,36 @@ const migrateData = (oldData) => {
     };
   }
 
-  // ============================================================
-  // Migración v1.4 → v1.5 (Auditoría de Hábitos + Wizard mejorado)
-  // ============================================================
-
-  // Asegurar que habits.audit existe
   if (!newData.habits.audit) {
-    newData.habits.audit = {
-      activities: [],
-      lastAuditAt: null
-    };
+    newData.habits.audit = { activities: [], lastAuditAt: null };
   }
-
-  // Migrar audit si existe en datos antiguos
   if (oldData.habits?.audit) {
-    newData.habits.audit = {
-      ...newData.habits.audit,
-      ...oldData.habits.audit
-    };
+    newData.habits.audit = { ...newData.habits.audit, ...oldData.habits.audit };
   }
 
-  // Los campos nuevos del hábito (area, scheduledTime, location)
-  // son opcionales y se añadirán cuando el usuario cree/edite un hábito
+  if (oldData.onboarding) {
+    newData.onboarding = { ...newData.onboarding, ...oldData.onboarding };
+  }
+  if (oldData.settings?.usageMode) {
+    newData.settings.usageMode = oldData.settings.usageMode;
+  }
+
+  if (newData.projects && newData.projects.length > 0) {
+    newData.projects = newData.projects.map(project => ({
+      ...project,
+      nextActionId: project.nextActionId || null
+    }));
+  }
+
+  if (!newData.settings.lastWeeklyReview) {
+    newData.settings.lastWeeklyReview = null;
+  }
+  if (newData.settings.weeklyReviewDay === undefined) {
+    newData.settings.weeklyReviewDay = 0;
+  }
+  if (newData.settings.weeklyReviewReminder === undefined) {
+    newData.settings.weeklyReviewReminder = true;
+  }
 
   // Migración Muévete
   if (oldData.muevete) {
@@ -450,14 +399,15 @@ const migrateData = (oldData) => {
   }
 
   saveData(newData);
-  console.log('Datos migrados a versión', STORAGE_VERSION);
+  console.log('[Storage] Datos migrados a versión', STORAGE_VERSION);
 
   return newData;
 };
 
-/**
- * Limpia todos los datos (con confirmación)
- */
+// ============================================================
+// FUNCIONES DE LIMPIEZA
+// ============================================================
+
 export const clearAllData = () => {
   if (confirm('¿Estás segura de que quieres borrar TODOS los datos? Esta acción no se puede deshacer.')) {
     localStorage.removeItem(STORAGE_KEY);
@@ -466,9 +416,6 @@ export const clearAllData = () => {
   return false;
 };
 
-/**
- * Borrado parcial: Identidad (valores, hábitos, rueda de la vida)
- */
 export const clearIdentityData = () => {
   if (confirm('¿Borrar valores, hábitos y rueda de la vida?\n\nLas tareas, proyectos y diario se mantienen.')) {
     const data = loadData();
@@ -480,53 +427,35 @@ export const clearIdentityData = () => {
       audit: { activities: [], lastAuditAt: null }
     };
     if (data.lifeWheel) data.lifeWheel = null;
-    data.updatedAt = new Date().toISOString();
     saveData(data);
     return true;
   }
   return false;
 };
 
-/**
- * Borrado parcial: Productividad (tareas, proyectos, logros)
- */
 export const clearProductivityData = () => {
   if (confirm('¿Borrar tareas, proyectos y logros?\n\nValores, hábitos y diario se mantienen.')) {
     const data = loadData();
-    data.objectives = {
-      backlog: [],
-      quarterly: [],
-      monthly: [],
-      weekly: [],
-      daily: []
-    };
+    data.objectives = { backlog: [], quarterly: [], monthly: [], weekly: [], daily: [] };
     data.projects = [];
     data.spontaneousAchievements = [];
     data.dailySetup = null;
-    data.updatedAt = new Date().toISOString();
     saveData(data);
     return true;
   }
   return false;
 };
 
-/**
- * Borrado parcial: Diario
- */
 export const clearJournalData = () => {
   if (confirm('¿Borrar todas las entradas del diario?\n\nTodo lo demás se mantiene.')) {
     const data = loadData();
     data.journal = [];
-    data.updatedAt = new Date().toISOString();
     saveData(data);
     return true;
   }
   return false;
 };
 
-/**
- * Genera un resumen automático de los datos para archivado
- */
 export const generateYearSummary = (data) => {
   const countCompleted = (items) => items.filter(i => i.completed).length;
 
@@ -544,15 +473,10 @@ export const generateYearSummary = (data) => {
   };
 };
 
-/**
- * Archiva el año actual y prepara para empezar uno nuevo
- * Retorna el archivo JSON para descargar
- */
 export const archiveCurrentYear = () => {
   const data = loadData();
   const year = data.notebook?.year || new Date().getFullYear();
 
-  // Crear archivo de archivo con resumen
   const archiveData = {
     ...data,
     notebook: {
@@ -562,7 +486,6 @@ export const archiveCurrentYear = () => {
     summary: generateYearSummary(data)
   };
 
-  // Generar y descargar archivo
   const blob = new Blob([JSON.stringify(archiveData, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -573,7 +496,6 @@ export const archiveCurrentYear = () => {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  // Registrar en archivedNotebooks
   const archivedNotebooks = data.archivedNotebooks || [];
   archivedNotebooks.push({
     year,
@@ -586,35 +508,27 @@ export const archiveCurrentYear = () => {
   return { archiveData, archivedNotebooks };
 };
 
-/**
- * Inicia un nuevo año limpiando datos transitorios
- * Mantiene: values, habits.graduated, settings, archivedNotebooks
- */
 export const startNewYear = (archivedNotebooks = []) => {
   const data = loadData();
   const newYear = new Date().getFullYear();
 
-  // Crear nueva estructura limpia
   const newData = {
     ...getDefaultData(),
-    // Mantener datos permanentes
     values: data.values || [],
     settings: data.settings || getDefaultData().settings,
     archivedNotebooks: archivedNotebooks,
-    // Mantener hábitos graduados pero limpiar historial
     habits: {
       active: null,
       graduated: data.habits?.graduated || [],
-      history: []
+      history: [],
+      audit: { activities: [], lastAuditAt: null }
     },
-    // Archivar proyectos completados, mantener activos
     projects: (data.projects || []).map(p => {
       if (p.status === 'completed') {
         return { ...p, status: 'archived' };
       }
       return p;
     }),
-    // Nuevo cuaderno
     notebook: {
       year: newYear,
       startedAt: new Date().toISOString(),
@@ -626,10 +540,6 @@ export const startNewYear = (archivedNotebooks = []) => {
   return newData;
 };
 
-/**
- * Carga un archivo de año archivado para consulta (solo lectura)
- * Retorna los datos parseados o null si hay error
- */
 export const loadArchivedYear = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -638,7 +548,6 @@ export const loadArchivedYear = (file) => {
       try {
         const archivedData = JSON.parse(e.target.result);
 
-        // Validar que es un archivo de Oráculo
         if (!archivedData.version || !archivedData.notebook) {
           throw new Error('Este archivo no es un cuaderno de Oráculo válido');
         }
@@ -654,5 +563,4 @@ export const loadArchivedYear = (file) => {
   });
 };
 
-// Exportar constantes
 export { MAX_ACTIVE_PROJECTS };
