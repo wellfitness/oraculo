@@ -1,35 +1,24 @@
 /**
- * Oráculo Cloud - Sistema de Almacenamiento Híbrido
+ * Oráculo - Sistema de Almacenamiento Local
  *
- * Combina localStorage (offline-first) con Supabase (sincronización cloud).
- * - Sin login: funciona igual que storage.js original (solo localStorage)
- * - Con login: localStorage + sync automático con Supabase
- *
- * API compatible con storage.js original - los módulos no necesitan cambios.
+ * Solo localStorage, sin Supabase. Misma API que storage-hybrid.js.
+ * Usado por la extensión Chrome y como fallback de la web.
  */
 
 import { validateDataStructure } from './utils/validator.js';
-import { isAuthenticated, getCurrentUser } from './supabase/client.js';
-import { loadFromSupabase, saveToSupabaseDebounced, resolveConflict, syncNow } from './supabase/sync.js';
-import { initConnectionMonitor, isOnline, hasPendingSync } from './supabase/connection.js';
 
 const STORAGE_KEY = 'oraculo_data';
 const STORAGE_VERSION = '1.5';
 const MAX_ACTIVE_PROJECTS = 4;
 
-// Flag para evitar sync loops
-let isInitialLoad = true;
-
-// Estructura inicial de datos (igual que storage.js original)
+// Estructura inicial de datos
 const getDefaultData = () => ({
   version: STORAGE_VERSION,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 
-  // Brújula de valores
   values: [],
 
-  // Objetivos por horizonte temporal (Listas Duales Burkeman)
   objectives: {
     backlog: [],
     quarterly: [],
@@ -38,7 +27,6 @@ const getDefaultData = () => ({
     daily: []
   },
 
-  // Laboratorio de hábitos
   habits: {
     active: null,
     graduated: [],
@@ -49,48 +37,38 @@ const getDefaultData = () => ({
     }
   },
 
-  // Calendario
   calendar: {
     events: [],
     recurring: []
   },
 
-  // Diario
   journal: [],
-
-  // Proyectos
   projects: [],
 
-  // Configuración
   settings: {
-    storageType: 'hybrid', // Cambiado de 'localStorage' a 'hybrid'
+    storageType: 'localStorage',
     notificationsEnabled: false,
     theme: 'light',
-    usageMode: 'complete', // 'complete' | 'habits' | 'journal' | 'complement'
-    // GTD: Revisión Semanal
-    lastWeeklyReview: null,     // ISO string de última revisión
-    weeklyReviewDay: 0,         // 0=Domingo, 1=Lunes
-    weeklyReviewReminder: true  // Mostrar recordatorio en dashboard
+    usageMode: 'complete',
+    lastWeeklyReview: null,
+    weeklyReviewDay: 0,
+    weeklyReviewReminder: true
   },
 
-  // Onboarding (primera vez)
   onboarding: {
     completed: false,
     completedAt: null,
     selectedMode: null
   },
 
-  // Cuaderno actual
   notebook: {
     year: new Date().getFullYear(),
     startedAt: new Date().toISOString(),
     name: `Cuaderno ${new Date().getFullYear()}`
   },
 
-  // Metadatos de cuadernos archivados
   archivedNotebooks: [],
 
-  // Sistema Burkeman (v1.3)
   dailySetup: {
     date: null,
     availableTime: null,
@@ -113,7 +91,6 @@ const getDefaultData = () => ({
     askValueOnPriority: true
   },
 
-  // Rueda de la Vida (v1.4)
   lifeWheel: {
     areas: [
       { id: 'health', name: 'Salud física', icon: 'fitness_center', order: 0, linkedValueId: null },
@@ -132,7 +109,6 @@ const getDefaultData = () => ({
     }
   },
 
-  // Sistema de evaluación de objetivos
   objectiveEvaluation: {
     criteria: [
       { id: 'relevance', name: 'Relevancia para mis valores', weight: 1.5, icon: 'explore' },
@@ -176,12 +152,9 @@ const getDefaultData = () => ({
 });
 
 // ============================================================
-// FUNCIONES DE LOCALSTORAGE (Base, siempre disponible)
+// FUNCIONES DE LOCALSTORAGE
 // ============================================================
 
-/**
- * Carga datos desde localStorage
- */
 const loadFromLocalStorage = () => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -195,9 +168,6 @@ const loadFromLocalStorage = () => {
   }
 };
 
-/**
- * Guarda datos en localStorage
- */
 const saveToLocalStorage = (data) => {
   try {
     data.updatedAt = new Date().toISOString();
@@ -213,128 +183,26 @@ const saveToLocalStorage = (data) => {
 };
 
 // ============================================================
-// FUNCIONES HÍBRIDAS (localStorage + Supabase)
+// API PÚBLICA (compatible con storage-hybrid.js)
 // ============================================================
 
-/**
- * Carga los datos - Híbrido: localStorage primero, luego sync con Supabase
- * Esta función es SÍNCRONA para mantener compatibilidad con el código existente.
- * La sincronización con Supabase se hace en background.
- */
 export const loadData = () => {
-  // 1. Siempre cargar primero de localStorage (rápido, disponible offline)
   let localData = loadFromLocalStorage();
 
   if (!localData) {
-    // Primera vez - crear datos por defecto
     localData = getDefaultData();
     saveToLocalStorage(localData);
   } else if (localData.version !== STORAGE_VERSION) {
-    // Migrar si es versión antigua
     localData = migrateData(localData);
-  }
-
-  // 2. Iniciar sync con Supabase en background (si está autenticado)
-  if (isInitialLoad) {
-    isInitialLoad = false;
-    syncWithSupabaseInBackground(localData);
   }
 
   return localData;
 };
 
-/**
- * Sincroniza con Supabase en background (no bloquea la carga inicial)
- */
-const syncWithSupabaseInBackground = async (localData) => {
-  try {
-    // Verificar si hay autenticación
-    const authenticated = await isAuthenticated();
-    if (!authenticated) {
-      console.log('[Storage] Sin autenticación - usando solo localStorage');
-      return;
-    }
-
-    // Inicializar monitor de conexión con callback de reconexión
-    initConnectionMonitor(async () => {
-      // Al reconectar, sincronizar datos pendientes
-      const currentData = loadFromLocalStorage();
-      if (currentData) {
-        await syncNow(currentData);
-      }
-    });
-
-    if (!isOnline()) {
-      console.log('[Storage] Sin conexión - datos pendientes de sync');
-      return;
-    }
-
-    // Cargar datos de Supabase
-    const { data: remoteData, updatedAt: remoteUpdatedAt } = await loadFromSupabase();
-
-    if (remoteData) {
-      // Resolver conflictos (last-write-wins)
-      const resolved = resolveConflict(localData, remoteData, remoteUpdatedAt);
-
-      if (resolved.source === 'remote') {
-        // Datos remotos son más recientes - actualizar localStorage
-        console.log('[Storage] Usando datos de Supabase (más recientes)');
-        saveToLocalStorage(resolved.data);
-
-        // Notificar a la app que los datos cambiaron
-        window.dispatchEvent(new CustomEvent('data-synced-from-cloud', {
-          detail: { data: resolved.data }
-        }));
-      } else {
-        // Datos locales son más recientes - subir a Supabase
-        console.log('[Storage] Subiendo datos locales a Supabase');
-        saveToSupabaseDebounced(localData);
-      }
-    } else {
-      // No hay datos remotos - primera sincronización, subir datos locales
-      console.log('[Storage] Primera sync - subiendo datos a Supabase');
-      saveToSupabaseDebounced(localData);
-    }
-  } catch (error) {
-    console.error('[Storage] Error en sync background:', error);
-  }
-};
-
-/**
- * Guarda los datos - localStorage inmediato + Supabase en background
- */
 export const saveData = (data) => {
-  // 1. Guardar en localStorage (siempre, inmediato)
-  const localSaved = saveToLocalStorage(data);
-
-  if (!localSaved) {
-    return false;
-  }
-
-  // 2. Sincronizar con Supabase en background (si está autenticado)
-  syncToCloudIfAuthenticated(data);
-
-  return true;
+  return saveToLocalStorage(data);
 };
 
-/**
- * Sincroniza con Supabase si hay autenticación
- */
-const syncToCloudIfAuthenticated = async (data) => {
-  try {
-    const authenticated = await isAuthenticated();
-    if (authenticated && isOnline()) {
-      saveToSupabaseDebounced(data);
-    }
-  } catch (error) {
-    // Silenciar errores de sync - localStorage ya tiene los datos
-    console.warn('[Storage] Error en sync a cloud:', error);
-  }
-};
-
-/**
- * Actualiza una sección específica de los datos
- */
 export const updateSection = (section, newData) => {
   const data = loadData();
 
@@ -352,51 +220,21 @@ export const updateSection = (section, newData) => {
   return saveData(data);
 };
 
-/**
- * Fuerza una sincronización inmediata con Supabase
- */
-export const forceSyncNow = async () => {
-  const authenticated = await isAuthenticated();
-  if (!authenticated) {
-    console.log('[Storage] No autenticado - no se puede sincronizar');
-    return false;
-  }
+// Stubs para compatibilidad con storage-hybrid.js
+export const forceSyncNow = async () => false;
 
-  if (!isOnline()) {
-    console.log('[Storage] Sin conexión - no se puede sincronizar');
-    return false;
-  }
-
-  const data = loadFromLocalStorage();
-  if (data) {
-    return await syncNow(data);
-  }
-  return false;
-};
-
-/**
- * Obtiene el estado de sincronización
- */
-export const getSyncStatus = async () => {
-  const authenticated = await isAuthenticated();
-  const user = authenticated ? await getCurrentUser() : null;
-
-  return {
-    isAuthenticated: authenticated,
-    userEmail: user?.email || null,
-    isOnline: isOnline(),
-    hasPendingSync: hasPendingSync(),
-    storageType: authenticated ? 'cloud' : 'local'
-  };
-};
+export const getSyncStatus = async () => ({
+  isAuthenticated: false,
+  userEmail: null,
+  isOnline: navigator.onLine,
+  hasPendingSync: false,
+  storageType: 'local'
+});
 
 // ============================================================
-// FUNCIONES ORIGINALES DE STORAGE.JS (sin cambios)
+// FUNCIONES DE DATOS
 // ============================================================
 
-/**
- * Exporta todos los datos como JSON
- */
 export const exportData = () => {
   const data = loadData();
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -411,17 +249,12 @@ export const exportData = () => {
   URL.revokeObjectURL(url);
 };
 
-/**
- * Importa datos desde un archivo JSON
- */
 export const importData = (file) => {
   return new Promise((resolve, reject) => {
-    console.log('[Storage] Iniciando importación de:', file.name);
     const reader = new FileReader();
 
-    reader.onload = async (e) => {
+    reader.onload = (e) => {
       try {
-        console.log('[Storage] Archivo leído, parseando JSON...');
         const importedData = JSON.parse(e.target.result);
 
         const validation = validateDataStructure(importedData);
@@ -433,22 +266,13 @@ export const importData = (file) => {
         const currentData = loadData();
         localStorage.setItem(STORAGE_KEY + '_backup', JSON.stringify(currentData));
 
-        // Importar
         const saved = saveData(importedData);
-
         if (saved) {
-          // Sincronizar con Supabase si está autenticado
-          const authenticated = await isAuthenticated();
-          if (authenticated) {
-            await syncNow(importedData);
-          }
-
           resolve(importedData);
         } else {
           throw new Error('No se pudieron guardar los datos');
         }
       } catch (error) {
-        console.error('[Storage] Error en importación:', error);
         reject(new Error('Error al importar: ' + error.message));
       }
     };
@@ -458,9 +282,6 @@ export const importData = (file) => {
   });
 };
 
-/**
- * Calcula el espacio usado en localStorage
- */
 export const getStorageUsage = () => {
   const data = localStorage.getItem(STORAGE_KEY) || '';
   const usedBytes = new Blob([data]).size;
@@ -481,13 +302,13 @@ const showStorageWarning = () => {
   window.dispatchEvent(new CustomEvent('storage-warning', { detail: usage }));
 };
 
-/**
- * Migra datos de versiones anteriores
- */
+// ============================================================
+// MIGRACIÓN
+// ============================================================
+
 const migrateData = (oldData) => {
   const newData = getDefaultData();
 
-  // Copiar datos existentes
   if (oldData.values) newData.values = oldData.values;
   if (oldData.objectives) newData.objectives = { ...newData.objectives, ...oldData.objectives };
   if (oldData.habits) newData.habits = { ...newData.habits, ...oldData.habits };
@@ -498,13 +319,11 @@ const migrateData = (oldData) => {
   if (oldData.notebook) newData.notebook = oldData.notebook;
   if (oldData.archivedNotebooks) newData.archivedNotebooks = oldData.archivedNotebooks;
 
-  // Migraciones Burkeman
   if (oldData.dailySetup) newData.dailySetup = { ...newData.dailySetup, ...oldData.dailySetup };
   if (oldData.spontaneousAchievements) newData.spontaneousAchievements = oldData.spontaneousAchievements;
   if (oldData.atelicActivities) newData.atelicActivities = oldData.atelicActivities;
   if (oldData.burkemanSettings) newData.burkemanSettings = { ...newData.burkemanSettings, ...oldData.burkemanSettings };
 
-  // Migrar tareas diarias
   if (newData.objectives.daily) {
     newData.objectives.daily = newData.objectives.daily.map(task => ({
       ...task,
@@ -514,7 +333,6 @@ const migrateData = (oldData) => {
     }));
   }
 
-  // Migrar eventos
   if (newData.calendar.events) {
     newData.calendar.events = newData.calendar.events.map(event => ({
       ...event,
@@ -522,7 +340,6 @@ const migrateData = (oldData) => {
     }));
   }
 
-  // Migraciones Rueda de la Vida
   if (oldData.lifeWheel) {
     newData.lifeWheel = {
       ...newData.lifeWheel,
@@ -541,7 +358,6 @@ const migrateData = (oldData) => {
     };
   }
 
-  // Migraciones Auditoría de Hábitos
   if (!newData.habits.audit) {
     newData.habits.audit = { activities: [], lastAuditAt: null };
   }
@@ -549,7 +365,6 @@ const migrateData = (oldData) => {
     newData.habits.audit = { ...newData.habits.audit, ...oldData.habits.audit };
   }
 
-  // Migraciones Onboarding y usageMode
   if (oldData.onboarding) {
     newData.onboarding = { ...newData.onboarding, ...oldData.onboarding };
   }
@@ -557,7 +372,6 @@ const migrateData = (oldData) => {
     newData.settings.usageMode = oldData.settings.usageMode;
   }
 
-  // Migraciones GTD: Próxima Acción en proyectos
   if (newData.projects && newData.projects.length > 0) {
     newData.projects = newData.projects.map(project => ({
       ...project,
@@ -565,12 +379,11 @@ const migrateData = (oldData) => {
     }));
   }
 
-  // Migraciones GTD: Revisión Semanal en settings
   if (!newData.settings.lastWeeklyReview) {
     newData.settings.lastWeeklyReview = null;
   }
   if (newData.settings.weeklyReviewDay === undefined) {
-    newData.settings.weeklyReviewDay = 0; // Domingo por defecto
+    newData.settings.weeklyReviewDay = 0;
   }
   if (newData.settings.weeklyReviewReminder === undefined) {
     newData.settings.weeklyReviewReminder = true;
@@ -591,20 +404,13 @@ const migrateData = (oldData) => {
   return newData;
 };
 
-/**
- * Limpia todos los datos (con confirmación)
- */
-export const clearAllData = async () => {
+// ============================================================
+// FUNCIONES DE LIMPIEZA
+// ============================================================
+
+export const clearAllData = () => {
   if (confirm('¿Estás segura de que quieres borrar TODOS los datos? Esta acción no se puede deshacer.')) {
     localStorage.removeItem(STORAGE_KEY);
-
-    // También limpiar en Supabase si está autenticado
-    const authenticated = await isAuthenticated();
-    if (authenticated) {
-      // TODO: Implementar borrado en Supabase si se desea
-      console.log('[Storage] Datos borrados. Nota: Los datos en Supabase se mantienen como backup.');
-    }
-
     return true;
   }
   return false;
@@ -757,5 +563,4 @@ export const loadArchivedYear = (file) => {
   });
 };
 
-// Exportar constantes
 export { MAX_ACTIVE_PROJECTS };

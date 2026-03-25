@@ -543,7 +543,10 @@ export const acknowledgeBreak = () => {
 
 export const snoozeBreak = () => {
   const now = Date.now();
-  startTime = now;
+  // Ajustar startTime para que remaining = SNOOZE_MS usando la fórmula:
+  // remaining = workBlockDuration - (now - startTime) = SNOOZE_MS
+  // → startTime = now - (workBlockDuration - SNOOZE_MS)
+  startTime = now - (timerState.workBlockDuration - SNOOZE_MS);
   soleusStartTime = timerState.soleusEnabled ? now : null;
 
   timerState.status = 'working';
@@ -551,8 +554,6 @@ export const snoozeBreak = () => {
   timerState.soleusRemaining = timerState.soleusInterval;
   timerState.showSoleusReminder = false;
 
-  // Para snooze, el workBlockDuration se mantiene para el display correcto
-  // pero el startTime se calcula para que expire en SNOOZE_MS
   persist();
   startInterval();
   emitChange();

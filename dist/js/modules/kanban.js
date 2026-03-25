@@ -1016,7 +1016,10 @@ const clearAllSelections = () => {
 /**
  * Configura deselección global al hacer clic fuera
  */
+let globalDeselectionActive = false;
 const setupGlobalDeselection = () => {
+  if (globalDeselectionActive) return;
+  globalDeselectionActive = true;
   document.addEventListener('click', (e) => {
     const isInsideItem = e.target.closest('.horizon-item, .focus-item, .backlog-item');
     const isInsideActions = e.target.closest('.section-actions, .horizons-actions');
@@ -1584,8 +1587,7 @@ const saveItem = (data, keepOpen = false) => {
     document.getElementById('item-text').focus();
     showNotification('Añadida. ¡Sigue!', 'success');
     // Actualizar vista sin recargar
-    render(data);
-    setupEventListeners(data);
+    reRender(data);
   } else {
     document.getElementById('item-modal').close();
     showNotification('Guardado', 'success');

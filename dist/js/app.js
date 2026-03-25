@@ -59,7 +59,7 @@ const state = {
   currentView: 'dashboard',
   data: null,
   initialized: false,
-  pendingSync: null // Datos de Supabase pendientes de aplicar (cuando hay modal abierto)
+  pendingSync: null // Datos pendientes de aplicar (cuando hay modal abierto)
 };
 
 // Variable para rastrear último campo de texto activo (para dictado por voz)
@@ -217,9 +217,9 @@ const setupGlobalEvents = () => {
     );
   });
 
-  // Escuchar cuando llegan datos sincronizados desde Supabase
+  // Escuchar cuando llegan datos sincronizados desde fuente externa
   window.addEventListener('data-synced-from-cloud', (e) => {
-    console.log('[App] Datos sincronizados desde la nube');
+    console.log('[App] Datos sincronizados desde fuente externa');
 
     // Verificar si hay algún modal abierto
     const openModal = document.querySelector('dialog[open]');
@@ -249,12 +249,9 @@ const setupGlobalEvents = () => {
   }, true);
 
   // Guardar en localStorage antes de cerrar (sin diálogo)
-  // IMPORTANTE: Solo guardamos en localStorage, NO sincronizamos a Supabase.
-  // Sincronizar en beforeunload es peligroso porque puede subir datos stale
-  // a Supabase si localStorage tenía una versión incompleta.
   window.addEventListener('beforeunload', () => {
     if (state.data) {
-      // Guardar directamente en localStorage sin triggear sync a cloud
+      // Guardar directamente en localStorage
       try {
         state.data.updatedAt = new Date().toISOString();
         localStorage.setItem('oraculo_data', JSON.stringify(state.data));

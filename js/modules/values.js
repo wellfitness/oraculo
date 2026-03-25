@@ -12,7 +12,7 @@ import { confirmDanger } from '../utils/confirm-modal.js';
 
 let updateDataCallback = null;
 let currentData = null;
-const MAX_VALUES = 4;
+const MAX_VALUES = 5;
 
 /**
  * Verifica si un string es un emoji válido

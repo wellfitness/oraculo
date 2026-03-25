@@ -47,7 +47,9 @@ const INCLUDE = [
   'portada.webp',
   // 'logo.png', // No subir - es muy grande (900KB)
   'icons',
-  'landing'
+  'landing',
+  'sounds',
+  'oraculo-extension.zip'
 ];
 
 const EXCLUDE = [/\.map$/, /\.test\.js$/, /\.md$/, /node_modules/, /\.git/, /\.env/];
