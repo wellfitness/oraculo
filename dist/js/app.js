@@ -139,6 +139,9 @@ export const init = () => {
   // Configurar captura rápida GTD
   setupGlobalCapture();
 
+  // Inicializar recordatorio de hábito
+  setupHabitReminder();
+
   // Inicializar auto-backup
   initAutoBackup();
 
@@ -585,6 +588,52 @@ const setupSaveButton = () => {
  * Configura la captura rápida GTD en el header
  * Captura "cosas" sin procesarlas (sin decidir horizonte)
  */
+/**
+ * Recordatorio de hábito a la hora programada
+ * Verifica cada minuto si es la hora del hábito y envía notificación
+ */
+const setupHabitReminder = () => {
+  let lastNotifiedMinute = null;
+
+  const checkHabitTime = () => {
+    const habit = state.data?.habits?.active;
+    if (!habit || !habit.scheduledTime) return;
+
+    // Verificar si ya se completó hoy
+    const today = new Date().toISOString().split('T')[0];
+    const history = state.data.habits?.history || [];
+    const completedToday = history.some(h => h.habitId === habit.id && h.date === today);
+    if (completedToday) return;
+
+    // Comparar hora actual con la programada
+    const now = new Date();
+    const currentMinute = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    if (currentMinute === habit.scheduledTime && lastNotifiedMinute !== currentMinute) {
+      lastNotifiedMinute = currentMinute;
+
+      // Enviar notificación
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification(`Hora de: ${habit.name}`, {
+            body: habit.micro ? `Empieza con: ${habit.micro}` : 'Tu hábito te espera',
+            tag: 'habit-reminder'
+          });
+        } catch (e) {
+          showNotification(`Hora de: ${habit.name}`, 'info');
+        }
+      } else {
+        showNotification(`Hora de: ${habit.name}`, 'info');
+      }
+    }
+  };
+
+  // Verificar cada 30 segundos
+  setInterval(checkHabitTime, 30000);
+  // Verificar inmediatamente
+  checkHabitTime();
+};
+
 const setupGlobalCapture = () => {
   const input = document.getElementById('global-capture-input');
   const btn = document.getElementById('global-capture-btn');
