@@ -90,8 +90,9 @@ html, body {
    ============================================================ */
 
 .capture-banner {
-  position: relative;
-  z-index: 50;
+  position: sticky;
+  top: 52px;
+  z-index: 100;
 }
 
 .capture-banner__btn-text {
@@ -103,7 +104,12 @@ html, body {
    ============================================================ */
 
 .app-main {
-  padding: var(--space-2, 16px) var(--space-1, 8px);
+  padding: var(--space-1, 8px);
+}
+
+/* Launcher: compacto sin padding extra */
+.launcher {
+  padding: var(--space-1, 8px) var(--space-1, 8px) 0;
 }
 
 /* Tarjetas: ancho completo */
