@@ -18307,3 +18307,198 @@ select,
     font-size: 0.65rem;
   }
 }
+
+/* ============================================================
+   LAUNCHER - Dashboard compacto para extensión Chrome
+   ============================================================ */
+
+.launcher {
+  padding: var(--space-2) var(--space-1);
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+/* --- Grid de herramientas --- */
+
+.launcher__grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-bottom: var(--space-3);
+}
+
+.launcher__tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px 8px;
+  border-radius: var(--radius-lg, 12px);
+  background: white;
+  text-decoration: none;
+  color: var(--gris-600, #475569);
+  transition: all 0.15s ease;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.launcher__tool:hover {
+  background: var(--turquesa-50, #ecfeff);
+  color: var(--turquesa-700, #0e7490);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.launcher__tool:active {
+  transform: translateY(0);
+}
+
+.launcher__tool-icon {
+  font-size: 26px;
+  color: var(--turquesa-400, #06b6d4);
+}
+
+.launcher__tool:hover .launcher__tool-icon {
+  color: var(--turquesa-600, #0891b2);
+}
+
+.launcher__tool-label {
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.launcher__tool-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--rosa-500, #e11d48);
+  color: white;
+  font-size: 0.6rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- Widgets activos --- */
+
+.launcher__widgets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: var(--space-3);
+}
+
+.launcher__widget {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px var(--space-2);
+  border-radius: var(--radius-md, 8px);
+  background: white;
+  text-decoration: none;
+  color: var(--gris-700, #334155);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border-left: 3px solid var(--turquesa-400, #06b6d4);
+  transition: all 0.15s ease;
+}
+
+.launcher__widget:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateX(2px);
+}
+
+.launcher__widget .material-symbols-outlined {
+  font-size: 24px;
+  color: var(--turquesa-400, #06b6d4);
+  flex-shrink: 0;
+}
+
+.launcher__widget-title {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--gris-400, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.launcher__widget-value {
+  display: block;
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--gris-700, #334155);
+}
+
+/* Widget: Roca del día */
+.launcher__widget--roca {
+  border-left-color: var(--amarillo-500, #eab308);
+}
+
+.launcher__widget--roca .material-symbols-outlined {
+  color: var(--amarillo-500, #eab308);
+}
+
+/* Widget: Muévete working */
+.launcher__widget--working {
+  border-left-color: var(--turquesa-400, #06b6d4);
+}
+
+/* Widget: Muévete break alert */
+.launcher__widget--alert {
+  border-left-color: var(--rosa-500, #e11d48);
+  animation: muevete-pulse 1.5s ease-in-out infinite;
+}
+
+.launcher__widget--alert .material-symbols-outlined {
+  color: var(--rosa-500, #e11d48);
+}
+
+.launcher__widget--alert .launcher__widget-value {
+  color: var(--rosa-500, #e11d48);
+}
+
+/* Widget: Muévete active break */
+.launcher__widget--break {
+  border-left-color: var(--rosa-400, #fb7185);
+}
+
+.launcher__widget--break .material-symbols-outlined {
+  color: var(--rosa-400, #fb7185);
+}
+
+/* Widget: Hábito */
+.launcher__widget--habit {
+  border-left-color: var(--turquesa-300, #67e8f9);
+}
+
+.launcher__widget--habit .material-symbols-outlined {
+  color: var(--turquesa-400, #06b6d4);
+}
+
+/* --- Cita Burkeman --- */
+
+.launcher__quote {
+  text-align: center;
+  padding: var(--space-2);
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--gris-400, #94a3b8);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.launcher__quote p {
+  margin: 0;
+}
+
+/* --- Responsive: pantallas muy pequeñas --- */
+@media (max-width: 340px) {
+  .launcher__grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
