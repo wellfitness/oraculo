@@ -171,6 +171,14 @@ export const render = (data) => {
             Importar backup
             <input type="file" id="import-data-input" accept=".json" hidden>
           </label>
+          <button class="btn btn--secondary" id="copy-data-btn" title="Copiar datos al portapapeles para sincronizar con la extensión Chrome o viceversa">
+            <span class="material-symbols-outlined">content_copy</span>
+            Copiar datos
+          </button>
+          <button class="btn btn--secondary" id="paste-data-btn" title="Pegar datos desde el portapapeles (web ↔ extensión)">
+            <span class="material-symbols-outlined">content_paste</span>
+            Pegar datos
+          </button>
         </div>
       </section>
 
@@ -392,6 +400,36 @@ export const init = (data, updateData) => {
     } catch (error) {
       console.error('[Settings] Error importando:', error);
       showNotification('Error: ' + error.message, 'error');
+    }
+  });
+
+  // Copiar datos al portapapeles (sync web ↔ extensión)
+  document.getElementById('copy-data-btn')?.addEventListener('click', async () => {
+    try {
+      const data = localStorage.getItem('oraculo_data') || '{}';
+      await navigator.clipboard.writeText(data);
+      showNotification('Datos copiados al portapapeles', 'success');
+    } catch (e) {
+      showNotification('No se pudo copiar. Usa Exportar backup.', 'error');
+    }
+  });
+
+  // Pegar datos desde portapapeles (sync web ↔ extensión)
+  document.getElementById('paste-data-btn')?.addEventListener('click', async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const parsed = JSON.parse(text);
+      if (!parsed.version || !parsed.objectives) {
+        throw new Error('No es un backup de Oráculo válido');
+      }
+      if (confirm('¿Reemplazar TODOS los datos actuales con los del portapapeles?')) {
+        localStorage.setItem('oraculo_data', text);
+        reloadStateFromStorage();
+        showNotification('Datos pegados correctamente', 'success');
+        location.reload();
+      }
+    } catch (e) {
+      showNotification('Error: ' + (e.message || 'Datos no válidos en el portapapeles'), 'error');
     }
   });
 
