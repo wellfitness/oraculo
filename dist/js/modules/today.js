@@ -11,6 +11,7 @@ import { getReflexionDelDia } from '../data/burkeman.js';
 import { escapeHTML } from '../utils/sanitizer.js';
 
 let updateDataCallback = null;
+let todayTimerHandler = null;
 
 const reRender = (data) => {
   const container = document.getElementById('app-content');
@@ -176,11 +177,14 @@ export const init = (data, updateData) => {
     reRender(data);
   });
 
-  // Escuchar cambios del timer
-  const handler = () => {
+  // Escuchar cambios del timer (con cleanup)
+  if (todayTimerHandler) {
+    window.removeEventListener('muevete-state-changed', todayTimerHandler);
+  }
+  todayTimerHandler = () => {
     if (location.hash === '#today') reRender(data);
   };
-  window.addEventListener('muevete-state-changed', handler);
+  window.addEventListener('muevete-state-changed', todayTimerHandler);
 };
 
 export default { render, init };
