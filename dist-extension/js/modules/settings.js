@@ -405,6 +405,10 @@ export const init = (data, updateData) => {
 
   // Copiar datos al portapapeles (sync web ↔ extensión)
   document.getElementById('copy-data-btn')?.addEventListener('click', async () => {
+    if (!navigator.clipboard) {
+      showNotification('Portapapeles no disponible (requiere HTTPS)', 'error');
+      return;
+    }
     try {
       const data = localStorage.getItem('oraculo_data') || '{}';
       await navigator.clipboard.writeText(data);
@@ -416,6 +420,10 @@ export const init = (data, updateData) => {
 
   // Pegar datos desde portapapeles (sync web ↔ extensión)
   document.getElementById('paste-data-btn')?.addEventListener('click', async () => {
+    if (!navigator.clipboard) {
+      showNotification('Portapapeles no disponible (requiere HTTPS)', 'error');
+      return;
+    }
     try {
       const text = await navigator.clipboard.readText();
       const parsed = JSON.parse(text);
