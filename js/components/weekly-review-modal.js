@@ -37,10 +37,22 @@ const REVIEW_STEPS = [
     description: 'Verifica las próximas acciones'
   },
   {
+    id: 'habitos',
+    title: 'Hábitos',
+    icon: 'science',
+    description: 'Revisa tu hábito activo'
+  },
+  {
     id: 'propositos',
     title: 'Propósitos',
     icon: 'flag',
     description: 'Elige tus prioridades'
+  },
+  {
+    id: 'celebrar',
+    title: 'Celebrar',
+    icon: 'celebration',
+    description: 'Reconoce lo logrado'
   }
 ];
 
@@ -111,8 +123,12 @@ const renderStepContent = (stepIndex) => {
       return renderHorizontesStep();
     case 'proyectos':
       return renderProyectosStep();
+    case 'habitos':
+      return renderHabitosStep();
     case 'propositos':
       return renderPropositosStep();
+    case 'celebrar':
+      return renderCelebrarStep();
     default:
       return '';
   }
@@ -273,6 +289,117 @@ const renderProyectosStep = () => {
 /**
  * Paso 4: Propósitos de la semana
  */
+const renderHabitosStep = () => {
+  const habit = currentData.habits?.active;
+  const history = currentData.habits?.history || [];
+  const graduated = currentData.habits?.graduated || [];
+
+  if (!habit) {
+    return `
+      <div class="review-step-content">
+        <h3><span class="material-symbols-outlined">science</span> Hábitos</h3>
+        <p class="review-info">No tienes un hábito activo en este momento.</p>
+        ${graduated.length > 0 ? `
+          <p class="review-info">Tienes <strong>${graduated.length} hábito${graduated.length > 1 ? 's' : ''} graduado${graduated.length > 1 ? 's' : ''}</strong>. ¿Es momento de empezar uno nuevo?</p>
+          <a href="#habits" data-view="habits" class="btn btn--secondary" onclick="document.getElementById('weekly-review-modal')?.close()">
+            <span class="material-symbols-outlined">add</span>
+            Crear nuevo hábito
+          </a>
+        ` : `
+          <p class="review-info">¿Quieres crear tu primer hábito? Un hábito a la vez.</p>
+        `}
+      </div>
+    `;
+  }
+
+  // Calcular racha de los últimos 7 días
+  const today = new Date();
+  let daysThisWeek = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    if (history.some(h => h.habitId === habit.id && h.date === dateStr)) {
+      daysThisWeek++;
+    }
+  }
+
+  return `
+    <div class="review-step-content">
+      <h3><span class="material-symbols-outlined">science</span> Tu hábito: ${escapeHTML(habit.name)}</h3>
+      <div class="review-stat-row">
+        <div class="review-stat">
+          <span class="review-stat__number">${daysThisWeek}/7</span>
+          <span class="review-stat__label">días esta semana</span>
+        </div>
+      </div>
+      ${habit.identity ? `<p class="review-info"><em>"${escapeHTML(habit.identity)}"</em></p>` : ''}
+      <div class="review-checklist">
+        <label><input type="checkbox"> He cumplido mi hábito la mayoría de los días</label>
+        <label><input type="checkbox"> La micro-versión sigue siendo realista</label>
+        <label><input type="checkbox"> Mi disparador funciona bien</label>
+      </div>
+      <p class="review-tip">
+        <span class="material-symbols-outlined">tips_and_updates</span>
+        Si fallaste algún día, no pasa nada. La regla: nunca falles dos veces seguidas.
+      </p>
+    </div>
+  `;
+};
+
+const renderCelebrarStep = () => {
+  const objectives = currentData.objectives || {};
+  const completedThisWeek = ['daily', 'weekly', 'monthly', 'quarterly'].reduce((acc, h) => {
+    return acc + (objectives[h] || []).filter(t => {
+      if (!t.completed || !t.completedAt) return false;
+      const completedDate = new Date(t.completedAt);
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return completedDate >= weekAgo;
+    }).length;
+  }, 0);
+
+  const spontaneous = (currentData.spontaneousAchievements || []).filter(a => {
+    const created = new Date(a.createdAt);
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    return created >= weekAgo;
+  }).length;
+
+  const journalEntries = (currentData.journal || []).filter(j => {
+    const created = new Date(j.createdAt);
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    return created >= weekAgo;
+  }).length;
+
+  return `
+    <div class="review-step-content review-step-content--celebrar">
+      <h3><span class="material-symbols-outlined">celebration</span> Tu semana</h3>
+      <div class="review-stat-row">
+        <div class="review-stat">
+          <span class="review-stat__number">${completedThisWeek}</span>
+          <span class="review-stat__label">tareas completadas</span>
+        </div>
+        <div class="review-stat">
+          <span class="review-stat__number">${spontaneous}</span>
+          <span class="review-stat__label">logros espontáneos</span>
+        </div>
+        <div class="review-stat">
+          <span class="review-stat__number">${journalEntries}</span>
+          <span class="review-stat__label">entradas de diario</span>
+        </div>
+      </div>
+      <p class="review-celebration">
+        Celebra lo que has conseguido. Cada pequeño paso cuenta.
+      </p>
+      <p class="review-quote">
+        <em>"No se trata de hacerlo todo. Se trata de elegir bien qué vale la pena hacer."</em>
+      </p>
+    </div>
+  `;
+};
+
 const renderPropositosStep = () => {
   const weekly = currentData.objectives?.weekly || [];
   const daily = currentData.objectives?.daily || [];
