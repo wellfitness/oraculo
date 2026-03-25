@@ -1,0 +1,133 @@
+/**
+ * Oráculo Extension - CSS Overrides para Side Panel
+ *
+ * El side panel de Chrome tiene un ancho fijo de ~400px.
+ * Estos estilos fuerzan el modo móvil sin depender de media queries,
+ * ya que el viewport del side panel no siempre las dispara correctamente.
+ */
+
+/* ============================================================
+   LAYOUT GENERAL
+   ============================================================ */
+
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* ============================================================
+   HEADER: siempre modo hamburguesa (replica @media 900px)
+   ============================================================ */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+
+.nav-toggle {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-nav {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+  background: rgba(30, 41, 59, 0.97);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  flex-direction: row;
+  flex-wrap: wrap;
+  padding: 8px;
+  gap: 2px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  border-radius: 0 0 var(--radius-lg, 12px) var(--radius-lg, 12px);
+  z-index: 1000;
+}
+
+.app-nav.is-open {
+  display: flex;
+}
+
+.app-nav .nav-link {
+  flex: 1 1 calc(50% - 2px);
+  justify-content: flex-start;
+  padding: 8px 10px;
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.8rem;
+  gap: 6px;
+}
+
+.app-nav .nav-link .nav-icon {
+  font-size: 20px;
+}
+
+.app-nav .nav-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.app-nav .nav-text {
+  display: inline;
+}
+
+.logo-text {
+  display: none;
+}
+
+.logo-img {
+  width: 32px;
+  height: 32px;
+}
+
+/* ============================================================
+   CAPTURA: siempre sticky arriba (la función más importante)
+   ============================================================ */
+
+.capture-banner {
+  position: relative;
+  z-index: 50;
+}
+
+.capture-banner__btn-text {
+  display: none;
+}
+
+/* ============================================================
+   CONTENIDO: ajustes para ancho estrecho
+   ============================================================ */
+
+.app-main {
+  padding: var(--space-2, 16px) var(--space-1, 8px);
+}
+
+/* Tarjetas: ancho completo */
+.card,
+.stat-card,
+.module-card {
+  max-width: 100%;
+}
+
+/* Kanban: columnas en vertical */
+.kanban-columns,
+.horizons-grid {
+  grid-template-columns: 1fr;
+}
+
+/* ============================================================
+   FOOTER: más compacto
+   ============================================================ */
+
+.app-footer {
+  padding: var(--space-1, 8px);
+  font-size: var(--font-size-xs, 0.75rem);
+}
+
+.footer-small {
+  display: none;
+}
