@@ -115,6 +115,12 @@
               Conocer más
             </a>
           </div>
+          <div class="hero-extension">
+            <button class="btn btn-secondary btn-large" onclick="document.getElementById('extensionModal').classList.add('active')">
+              <span class="material-symbols-outlined">extension</span>
+              Descargar extensión Chrome
+            </button>
+          </div>
           <p class="hero-note">
             <span class="material-symbols-outlined">check_circle</span>
             Gratis, sin registro, 100% privado. Web app + extensión Chrome.
@@ -424,13 +430,14 @@
             </div>
           </article>
 
-          <article class="feature-card">
+          <article class="feature-card feature-card--clickable" onclick="document.getElementById('extensionModal').classList.add('active')">
             <div class="feature-icon">
               <span class="material-symbols-outlined">extension</span>
             </div>
             <div class="feature-content">
               <h3>Extensión Chrome</h3>
               <p>Instala Oráculo como panel lateral en tu navegador. Captura ideas, gestiona tu día y recibe recordatorios de movimiento sin salir de lo que estés haciendo.</p>
+              <span class="feature-install-link">Descargar e instalar &rarr;</span>
             </div>
           </article>
 
@@ -705,14 +712,85 @@
             Abrir Oráculo
           </a>
 
+          <button class="btn btn-secondary btn-large cta-extension-btn" onclick="document.getElementById('extensionModal').classList.add('active')">
+            <span class="material-symbols-outlined">extension</span>
+            Extensión Chrome
+          </button>
           <p class="cta-note">
-            Funciona en cualquier navegador moderno. Chrome, Firefox, Safari, Edge.<br>
-            También disponible como <strong>extensión Chrome</strong> (panel lateral).
+            Funciona en cualquier navegador moderno. Chrome, Firefox, Safari, Edge.
           </p>
         </div>
       </div>
     </section>
   </main>
+
+  <!-- Modal: Instalar Extensión Chrome -->
+  <div class="extension-modal-overlay" id="extensionModal">
+    <div class="extension-modal" role="dialog" aria-labelledby="extensionModalTitle" aria-modal="true">
+      <button class="extension-modal-close" onclick="document.getElementById('extensionModal').classList.remove('active')" aria-label="Cerrar modal">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+
+      <div class="extension-modal-header">
+        <span class="material-symbols-outlined extension-modal-icon">extension</span>
+        <h2 id="extensionModalTitle">Instalar Extensión Chrome</h2>
+        <p>Oráculo como panel lateral en tu navegador</p>
+      </div>
+
+      <div class="extension-modal-steps">
+        <div class="extension-step">
+          <div class="extension-step-number">1</div>
+          <div class="extension-step-content">
+            <h3>Descarga el archivo</h3>
+            <p>Haz clic en el botón de abajo para descargar el archivo <code>.zip</code> de la extensión.</p>
+            <a href="oraculo-extension.zip" download class="btn btn-primary">
+              <span class="material-symbols-outlined">download</span>
+              Descargar oraculo-extension.zip
+            </a>
+          </div>
+        </div>
+
+        <div class="extension-step">
+          <div class="extension-step-number">2</div>
+          <div class="extension-step-content">
+            <h3>Descomprime el ZIP</h3>
+            <p>Extrae el contenido del archivo en una carpeta de tu ordenador. Recuerda dónde la guardas.</p>
+          </div>
+        </div>
+
+        <div class="extension-step">
+          <div class="extension-step-number">3</div>
+          <div class="extension-step-content">
+            <h3>Abre las extensiones de Chrome</h3>
+            <p>Ve a <code>chrome://extensions</code> en tu navegador y activa el <strong>Modo desarrollador</strong> (esquina superior derecha).</p>
+          </div>
+        </div>
+
+        <div class="extension-step">
+          <div class="extension-step-number">4</div>
+          <div class="extension-step-content">
+            <h3>Carga la extensión</h3>
+            <p>Haz clic en <strong>"Cargar descomprimida"</strong> y selecciona la carpeta que descomprimiste en el paso 2.</p>
+          </div>
+        </div>
+
+        <div class="extension-step">
+          <div class="extension-step-number">5</div>
+          <div class="extension-step-content">
+            <h3>Abre el panel lateral</h3>
+            <p>Haz clic en el icono de Oráculo en la barra de extensiones y selecciona <strong>"Abrir panel lateral"</strong>. Ya puedes usarlo junto a cualquier web.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="extension-modal-footer">
+        <p>
+          <span class="material-symbols-outlined">info</span>
+          Compatible con Chrome, Edge, Brave y navegadores basados en Chromium.
+        </p>
+      </div>
+    </div>
+  </div>
 
   <!-- Footer -->
   <footer class="footer">
@@ -940,6 +1018,25 @@
 
       grid.appendChild(fragmento);
     }
+
+    // ===================================
+    // MODAL EXTENSIÓN CHROME
+    // ===================================
+    const extensionModal = document.getElementById('extensionModal');
+
+    // Cerrar con Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && extensionModal.classList.contains('active')) {
+        extensionModal.classList.remove('active');
+      }
+    });
+
+    // Cerrar al hacer clic fuera del modal
+    extensionModal.addEventListener('click', (e) => {
+      if (e.target === extensionModal) {
+        extensionModal.classList.remove('active');
+      }
+    });
 
     // Animación gradual del grid
     function animarGrid() {
