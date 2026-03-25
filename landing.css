@@ -1495,3 +1495,219 @@ section {
 .cita-card:nth-child(1) { transition-delay: 0ms; }
 .cita-card:nth-child(2) { transition-delay: 100ms; }
 .cita-card:nth-child(3) { transition-delay: 200ms; }
+
+/* ===================================
+   MODAL EXTENSIÓN CHROME
+   =================================== */
+
+.hero-extension {
+  margin-top: var(--space-3);
+}
+
+.feature-card--clickable {
+  cursor: pointer;
+}
+
+.feature-card--clickable:hover {
+  border-color: var(--turquesa-600);
+}
+
+.feature-install-link {
+  display: inline-block;
+  margin-top: var(--space-2);
+  color: var(--turquesa-600);
+  font-weight: 500;
+  font-size: var(--text-sm);
+}
+
+.feature-card--clickable:hover .feature-install-link {
+  text-decoration: underline;
+}
+
+.cta-extension-btn {
+  margin-top: var(--space-4);
+}
+
+/* Overlay */
+.extension-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.extension-modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Modal */
+.extension-modal {
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  max-width: 560px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: var(--space-8);
+  position: relative;
+  transform: translateY(20px) scale(0.95);
+  transition: transform 0.3s ease;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.extension-modal-overlay.active .extension-modal {
+  transform: translateY(0) scale(1);
+}
+
+/* Close button */
+.extension-modal-close {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  background: var(--gris-100);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.extension-modal-close:hover {
+  background: var(--gris-200);
+}
+
+/* Header */
+.extension-modal-header {
+  text-align: center;
+  margin-bottom: var(--space-6);
+}
+
+.extension-modal-icon {
+  font-size: 48px;
+  color: var(--turquesa-600);
+  display: block;
+  margin-bottom: var(--space-2);
+}
+
+.extension-modal-header h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  color: var(--gris-900);
+  margin: 0 0 var(--space-1);
+}
+
+.extension-modal-header p {
+  color: var(--gris-500);
+  font-size: var(--text-base);
+  margin: 0;
+}
+
+/* Steps */
+.extension-modal-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.extension-step {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.extension-step-number {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--turquesa-600);
+  color: var(--color-white);
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.extension-step-content h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--gris-800);
+  margin: 0 0 var(--space-1);
+}
+
+.extension-step-content p {
+  color: var(--gris-600);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.extension-step-content code {
+  background: var(--gris-100);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: var(--text-sm);
+  color: var(--turquesa-700);
+}
+
+.extension-step-content .btn {
+  margin-top: var(--space-3);
+}
+
+/* Footer */
+.extension-modal-footer {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--gris-200);
+}
+
+.extension-modal-footer p {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--gris-500);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+.extension-modal-footer .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--turquesa-600);
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .extension-modal {
+    padding: var(--space-5);
+    max-height: 85vh;
+  }
+
+  .extension-modal-header h2 {
+    font-size: var(--text-xl);
+  }
+
+  .extension-step {
+    gap: var(--space-3);
+  }
+
+  .extension-step-number {
+    width: 28px;
+    height: 28px;
+    font-size: var(--text-sm);
+  }
+}
