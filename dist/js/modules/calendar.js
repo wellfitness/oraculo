@@ -648,6 +648,28 @@ const exportToICS = (data) => {
     );
   });
 
+  // Eventos recurrentes (RRULE semanal)
+  const ICS_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+  recurring.forEach(event => {
+    if (!event.days || event.days.length === 0) return;
+    const byDay = event.days.map(d => ICS_DAYS[d]).join(',');
+    // Usar hoy como fecha de inicio para el DTSTART
+    const today = new Date().toISOString().split('T')[0];
+    const dtStart = formatICSDate(today, event.time || '09:00');
+    const dtEnd = formatICSDate(today, event.time || '09:00', 60);
+
+    icsContent.push(
+      'BEGIN:VEVENT',
+      `UID:${event.id}@oraculo-recurring`,
+      `DTSTAMP:${formatICSDate(today, '00:00')}`,
+      `DTSTART:${dtStart}`,
+      `DTEND:${dtEnd}`,
+      `RRULE:FREQ=WEEKLY;BYDAY=${byDay}`,
+      `SUMMARY:${event.name}`,
+      'END:VEVENT'
+    );
+  });
+
   icsContent.push('END:VCALENDAR');
 
   const blob = new Blob([icsContent.filter(Boolean).join('\r\n')], { type: 'text/calendar' });
