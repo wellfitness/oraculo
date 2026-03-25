@@ -25,9 +25,140 @@ const reRender = (data) => {
 };
 
 /**
+ * Renderiza el launcher compacto para la extensión Chrome
+ */
+const renderExtensionLauncher = (data) => {
+  const mueveteState = getMueveteState();
+  const activeHabit = data.habits.active;
+  const rocaPrincipal = (data.objectives.daily || []).find(t => t.isRocaPrincipal && !t.completed);
+  const dailyTasks = (data.objectives.daily || []).filter(t => !t.completed);
+  const todayEvents = getTodayEvents(data.calendar?.events || [], data.calendar?.recurring || []);
+  const completedToday = activeHabit ? isHabitCompletedToday(activeHabit, data.habits.history) : false;
+
+  const tools = [
+    { view: 'kanban', icon: 'view_kanban', label: 'Tareas', badge: dailyTasks.length || '' },
+    { view: 'projects', icon: 'folder_open', label: 'Proyectos' },
+    { view: 'habits', icon: 'science', label: 'Hábitos' },
+    { view: 'muevete', icon: 'directions_run', label: 'Muévete' },
+    { view: 'calendar', icon: 'calendar_month', label: 'Calendario', badge: todayEvents.length || '' },
+    { view: 'journal', icon: 'auto_stories', label: 'Diario' },
+    { view: 'values', icon: 'explore', label: 'Valores' },
+    { view: 'life-wheel', icon: 'donut_large', label: 'Rueda' },
+    { view: 'achievements', icon: 'emoji_events', label: 'Logros' },
+    { view: 'settings', icon: 'settings', label: 'Ajustes' }
+  ];
+
+  const toolsGrid = tools.map(t => `
+    <a href="#${t.view}" data-view="${t.view}" class="launcher__tool">
+      <span class="material-symbols-outlined launcher__tool-icon">${t.icon}</span>
+      <span class="launcher__tool-label">${t.label}</span>
+      ${t.badge ? `<span class="launcher__tool-badge">${t.badge}</span>` : ''}
+    </a>
+  `).join('');
+
+  // Widgets activos
+  let widgets = '';
+
+  // Roca del día
+  if (rocaPrincipal) {
+    widgets += `
+      <a href="#kanban" data-view="kanban" class="launcher__widget launcher__widget--roca">
+        <span class="material-symbols-outlined">diamond</span>
+        <div>
+          <span class="launcher__widget-title">Roca del día</span>
+          <span class="launcher__widget-value">${escapeHTML(rocaPrincipal.text)}</span>
+        </div>
+      </a>
+    `;
+  }
+
+  // Muévete timer
+  if (mueveteState.status !== 'idle') {
+    const isAlert = mueveteState.status === 'break_alert';
+    const isBreak = mueveteState.status === 'active_break';
+    const time = isAlert ? '¡Muévete!' : formatTime(isBreak ? mueveteState.breakRemaining : mueveteState.workBlockRemaining);
+    const icon = isAlert ? 'warning' : isBreak ? 'self_improvement' : 'directions_run';
+    const cls = isAlert ? 'launcher__widget--alert' : isBreak ? 'launcher__widget--break' : 'launcher__widget--working';
+
+    widgets += `
+      <a href="#muevete" data-view="muevete" class="launcher__widget ${cls}">
+        <span class="material-symbols-outlined">${icon}</span>
+        <div>
+          <span class="launcher__widget-title">${isBreak ? 'Vitamina M' : 'Trabajando'}</span>
+          <span class="launcher__widget-value">${time}</span>
+        </div>
+      </a>
+    `;
+  }
+
+  // Hábito activo
+  if (activeHabit) {
+    const streak = getHabitStreak(activeHabit.id, data.habits.history);
+    widgets += `
+      <a href="#habits" data-view="habits" class="launcher__widget launcher__widget--habit">
+        <span class="material-symbols-outlined">${completedToday ? 'task_alt' : 'science'}</span>
+        <div>
+          <span class="launcher__widget-title">${escapeHTML(activeHabit.name)}</span>
+          <span class="launcher__widget-value">${completedToday ? 'Hecho hoy' : `${streak} días de racha`}</span>
+        </div>
+      </a>
+    `;
+  }
+
+  const reflexion = getReflexionDelDia('dashboard');
+
+  return `
+    <div class="launcher">
+      <div class="launcher__grid">
+        ${toolsGrid}
+      </div>
+
+      ${widgets ? `<div class="launcher__widgets">${widgets}</div>` : ''}
+
+      <div class="launcher__quote">
+        <p>"${reflexion}"</p>
+      </div>
+    </div>
+  `;
+};
+
+/**
+ * Calcula racha de hábito (simplificado)
+ */
+const getHabitStreak = (habitId, history) => {
+  if (!history || !habitId) return 0;
+  const dates = history.filter(h => h.habitId === habitId).map(h => h.date).sort().reverse();
+  if (dates.length === 0) return 0;
+
+  let streak = 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const current = new Date(today);
+
+  for (let i = 0; i < 365; i++) {
+    const dateStr = current.toISOString().split('T')[0];
+    if (dates.includes(dateStr)) {
+      streak++;
+      current.setDate(current.getDate() - 1);
+    } else if (i === 0) {
+      current.setDate(current.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  return streak;
+};
+
+/**
  * Renderiza el dashboard
  */
 export const render = (data) => {
+  // En la extensión Chrome, mostrar launcher compacto
+  const isExtension = !!(window.__ORACULO_EXTENSION__ || (typeof chrome !== 'undefined' && chrome.runtime?.id));
+  if (isExtension) {
+    return renderExtensionLauncher(data);
+  }
+
   const today = new Date();
   const dailyTasks = data.objectives.daily || [];
   const dailyLimit = getDailyLimit(data);
@@ -151,8 +282,25 @@ export const render = (data) => {
 /**
  * Inicializa los eventos del dashboard
  */
+let dashboardMueveteHandler = null;
+
 export const init = (data, updateData) => {
   updateDataCallback = updateData;
+
+  // En extensión: escuchar cambios del timer Muévete para actualizar widget
+  const isExtension = !!(window.__ORACULO_EXTENSION__ || (typeof chrome !== 'undefined' && chrome.runtime?.id));
+  if (isExtension) {
+    if (dashboardMueveteHandler) {
+      window.removeEventListener('muevete-state-changed', dashboardMueveteHandler);
+    }
+    dashboardMueveteHandler = () => {
+      if (location.hash === '#dashboard' || location.hash === '' || location.hash === '#') {
+        const widgetsEl = document.querySelector('.launcher__widgets');
+        if (widgetsEl) reRender(data);
+      }
+    };
+    window.addEventListener('muevete-state-changed', dashboardMueveteHandler);
+  }
 
   // Formulario de nueva tarea
   const form = document.getElementById('add-focus-form');
