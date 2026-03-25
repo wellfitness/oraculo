@@ -92,6 +92,12 @@ html, body {
 .capture-banner {
   position: relative;
   z-index: 50;
+  margin-bottom: var(--space-1, 8px);
+}
+
+/* Launcher: separación del banner */
+.launcher {
+  padding-top: 0;
 }
 
 .capture-banner__btn-text {
