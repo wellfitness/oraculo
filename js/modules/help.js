@@ -170,6 +170,19 @@ export const render = (data) => {
             <p>Cuando el hábito está consolidado, "gradúalo" → se convierte en badge permanente.</p>
           `, 'No existen los "21 días mágicos". Cada hábito tiene su tiempo.')}
 
+          ${renderHelpCard('muevete', 'directions_run', 'Muévete', 'Breaks de Movimiento', `
+            <p>Tu cuerpo necesita moverse cada 2 horas. Muévete te avisa y cuenta tus "Vitaminas M".</p>
+            <h4>Cómo funciona:</h4>
+            <ul>
+              <li><strong>Inicia un bloque de trabajo</strong> (90min / 2h / 2h30)</li>
+              <li>Cuando el timer acaba → <strong>alerta de break</strong> (6-10 min)</li>
+              <li><strong>Sóleo</strong>: recordatorio cada 30 min para activar el sóleo sin levantarte</li>
+              <li><strong>Snooze</strong>: aplaza 5 min si no puedes parar ahora</li>
+            </ul>
+            <h4>En el dashboard:</h4>
+            <p>La tarjeta de Muévete muestra el estado actual del timer. El mini-indicator en el header te avisa sin importar en qué vista estés.</p>
+          `, 'El movimiento no es productividad. Es autocuidado básico.')}
+
           ${renderHelpCard('atelic', 'spa', 'Actividades de Ocio', 'Ocio SIN Objetivo', `
             <p>Actividades que haces por el placer de hacerlas, no por su resultado.</p>
             <h4>12 categorías:</h4>
@@ -373,6 +386,65 @@ export const render = (data) => {
           ${renderTip('group', 'Marca "Sincronía" en eventos con personas que importan.')}
           ${renderTip('self_improvement', '5 minutos de calma pueden cambiar tu día. Úsalos.')}
           ${renderTip('celebration', 'Añade logros espontáneos. No todo lo bueno se planifica.')}
+          ${renderTip('directions_run', 'Muévete cada 2 horas. Tu cuerpo es parte de tu sistema de gestión.')}
+        </div>
+      </section>
+
+      <!-- Extensión Chrome -->
+      <section class="help-section">
+        <h2 class="help-section-title">
+          <span class="material-symbols-outlined">extension</span>
+          Extensión Chrome
+        </h2>
+        <div class="help-card" data-card="extension">
+          <button class="help-card-header" aria-expanded="false" aria-controls="extension-content">
+            <div class="help-card-title">
+              <span class="material-symbols-outlined icon-primary">web</span>
+              <h2>Oráculo como panel lateral en Chrome</h2>
+            </div>
+            <span class="material-symbols-outlined help-card-toggle">expand_more</span>
+          </button>
+          <div class="help-card-content" id="extension-content" hidden>
+            <p>Instala Oráculo como extensión de Chrome para tenerlo siempre visible en un panel lateral mientras navegas.</p>
+
+            <h4>Ventajas:</h4>
+            <ul>
+              <li>Siempre accesible con 1 clic en la barra de Chrome</li>
+              <li>Captura ideas al instante sin cambiar de pestaña</li>
+              <li>El timer de Muévete te avisa aunque estés en otra web</li>
+              <li>Funciona offline — tus datos están en tu navegador</li>
+            </ul>
+
+            <h4>Instalación manual (3 pasos):</h4>
+            <ol>
+              <li>
+                <strong>Descarga la extensión:</strong>
+                <br>
+                <a href="oraculo-extension.zip" download class="btn btn--primary btn--small" id="download-extension-btn" style="margin: 8px 0; display: inline-flex; align-items: center; gap: 6px;">
+                  <span class="material-symbols-outlined" style="font-size:18px">download</span>
+                  Descargar oraculo-extension.zip
+                </a>
+              </li>
+              <li>
+                <strong>Descomprime el ZIP</strong> en una carpeta de tu ordenador (por ejemplo, en el Escritorio).
+              </li>
+              <li>
+                <strong>Carga en Chrome:</strong>
+                <ol style="margin-top: 4px;">
+                  <li>Abre <code>chrome://extensions/</code> en Chrome</li>
+                  <li>Activa <strong>"Modo desarrollador"</strong> (interruptor arriba a la derecha)</li>
+                  <li>Haz clic en <strong>"Cargar extensión sin empaquetar"</strong></li>
+                  <li>Selecciona la carpeta descomprimida</li>
+                  <li>El icono de Oráculo aparecerá en tu barra — haz clic para abrir el panel lateral</li>
+                </ol>
+              </li>
+            </ol>
+
+            <div class="help-card-tip">
+              <span class="material-symbols-outlined">tips_and_updates</span>
+              <p>Los datos de la extensión y la web son independientes. Si quieres moverlos, usa Configuración → Exportar/Importar.</p>
+            </div>
+          </div>
         </div>
       </section>
 

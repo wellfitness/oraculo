@@ -151,6 +151,27 @@ const getDefaultData = () => ({
       proceed: 75,
       review: 50
     }
+  },
+
+  // Muévete - Breaks de movimiento
+  muevete: {
+    timerState: {
+      status: 'idle',
+      startTime: null,
+      breakStartTime: null,
+      blocksCompleted: 0,
+      lastResetDate: null,
+      soleusEnabled: true,
+      workBlockDuration: 7200000,
+      breakDuration: 480000,
+      soleusInterval: 1800000,
+      soundEnabled: true
+    },
+    activityLog: {
+      entries: [],
+      currentStreak: 0,
+      bestStreak: 0
+    }
   }
 });
 
@@ -553,6 +574,15 @@ const migrateData = (oldData) => {
   }
   if (newData.settings.weeklyReviewReminder === undefined) {
     newData.settings.weeklyReviewReminder = true;
+  }
+
+  // Migración Muévete
+  if (oldData.muevete) {
+    newData.muevete = {
+      ...newData.muevete,
+      timerState: { ...newData.muevete.timerState, ...(oldData.muevete.timerState || {}) },
+      activityLog: { ...newData.muevete.activityLog, ...(oldData.muevete.activityLog || {}) }
+    };
   }
 
   saveData(newData);
