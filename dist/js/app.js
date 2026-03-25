@@ -77,6 +77,7 @@ const VIEWS = {
   calendar: 'Calendario',
   journal: 'Diario',
   achievements: 'Logros',
+  today: 'Hoy',
   muevete: 'Muévete',
   settings: 'Configuración',
   help: 'Ayuda'

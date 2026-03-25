@@ -36,6 +36,7 @@ const renderExtensionLauncher = (data) => {
   const completedToday = activeHabit ? isHabitCompletedToday(activeHabit, data.habits.history) : false;
 
   const tools = [
+    { view: 'today', icon: 'today', label: 'Hoy' },
     { view: 'kanban', icon: 'view_kanban', label: 'Tareas', badge: dailyTasks.length || '' },
     { view: 'projects', icon: 'folder_open', label: 'Proyectos' },
     { view: 'habits', icon: 'science', label: 'Hábitos' },
