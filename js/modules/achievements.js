@@ -232,10 +232,14 @@ const bindSpontaneousDeleteListeners = (data, updateData) => {
     btn.addEventListener('click', (e) => {
       const id = e.target.closest('[data-id]')?.dataset.id;
       if (!id) return;
-      deleteSpontaneousAchievement(id, data, updateData);
-      data.spontaneousAchievements = data.spontaneousAchievements.filter(a => a.id !== id);
-      updateSpontaneousList(data, updateData);
-      updateStats(data);
+      // deleteSpontaneousAchievement muestra confirmación y persiste si acepta
+      deleteSpontaneousAchievement(id, data, (section, newData) => {
+        updateData(section, newData);
+        // Actualizar datos en memoria y re-renderizar después de confirmar
+        data.spontaneousAchievements = newData;
+        updateSpontaneousList(data, updateData);
+        updateStats(data);
+      });
     });
   });
 };
