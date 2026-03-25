@@ -77,6 +77,7 @@ const VIEWS = {
   calendar: 'Calendario',
   journal: 'Diario',
   achievements: 'Logros',
+  today: 'Hoy',
   muevete: 'Muévete',
   settings: 'Configuración',
   help: 'Ayuda'
@@ -138,6 +139,9 @@ export const init = () => {
 
   // Configurar captura rápida GTD
   setupGlobalCapture();
+
+  // Inicializar recordatorio de hábito
+  setupHabitReminder();
 
   // Inicializar auto-backup
   initAutoBackup();
@@ -585,6 +589,52 @@ const setupSaveButton = () => {
  * Configura la captura rápida GTD en el header
  * Captura "cosas" sin procesarlas (sin decidir horizonte)
  */
+/**
+ * Recordatorio de hábito a la hora programada
+ * Verifica cada minuto si es la hora del hábito y envía notificación
+ */
+const setupHabitReminder = () => {
+  let lastNotifiedMinute = null;
+
+  const checkHabitTime = () => {
+    const habit = state.data?.habits?.active;
+    if (!habit || !habit.scheduledTime) return;
+
+    // Verificar si ya se completó hoy
+    const today = new Date().toISOString().split('T')[0];
+    const history = state.data.habits?.history || [];
+    const completedToday = history.some(h => h.habitId === habit.id && h.date === today);
+    if (completedToday) return;
+
+    // Comparar hora actual con la programada
+    const now = new Date();
+    const currentMinute = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    if (currentMinute === habit.scheduledTime && lastNotifiedMinute !== currentMinute) {
+      lastNotifiedMinute = currentMinute;
+
+      // Enviar notificación
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification(`Hora de: ${habit.name}`, {
+            body: habit.micro ? `Empieza con: ${habit.micro}` : 'Tu hábito te espera',
+            tag: 'habit-reminder'
+          });
+        } catch (e) {
+          showNotification(`Hora de: ${habit.name}`, 'info');
+        }
+      } else {
+        showNotification(`Hora de: ${habit.name}`, 'info');
+      }
+    }
+  };
+
+  // Verificar cada 30 segundos
+  setInterval(checkHabitTime, 30000);
+  // Verificar inmediatamente
+  checkHabitTime();
+};
+
 const setupGlobalCapture = () => {
   const input = document.getElementById('global-capture-input');
   const btn = document.getElementById('global-capture-btn');
@@ -593,44 +643,116 @@ const setupGlobalCapture = () => {
   if (!input || !btn) return;
 
   /**
-   * Captura una idea y la envía directamente al backlog
+   * Parsea el texto de captura para extraer metadatos inteligentes
+   * Sintaxis: "texto #proyecto >horizonte !"
+   *   #nombre  → asigna al proyecto que coincida
+   *   >semana / >mes / >trimestre → horizonte destino (default: backlog)
+   *   ! al inicio → marca como importante (taskType: 'important')
+   */
+  const parseCapture = (rawText) => {
+    let text = rawText;
+    let projectId = null;
+    let horizon = 'backlog';
+    let isImportant = false;
+
+    // Detectar ! al inicio → importante
+    if (text.startsWith('!')) {
+      isImportant = true;
+      text = text.slice(1).trim();
+    }
+
+    // Detectar #proyecto
+    const hashMatch = text.match(/#(\S+)/);
+    if (hashMatch) {
+      const tag = hashMatch[1].toLowerCase();
+      const projects = state.data.projects || [];
+      const match = projects.find(p =>
+        p.name.toLowerCase().includes(tag) ||
+        p.name.toLowerCase().replace(/\s+/g, '-').includes(tag)
+      );
+      if (match) {
+        projectId = match.id;
+        text = text.replace(/#\S+/, '').trim();
+      }
+    }
+
+    // Detectar >horizonte
+    const horizonMatch = text.match(/>(\S+)/);
+    if (horizonMatch) {
+      const h = horizonMatch[1].toLowerCase();
+      const horizonMap = {
+        'semana': 'weekly', 'sem': 'weekly', 's': 'weekly',
+        'mes': 'monthly', 'm': 'monthly',
+        'trimestre': 'quarterly', 'tri': 'quarterly', 't': 'quarterly',
+        'hoy': 'daily', 'foco': 'daily', 'h': 'daily'
+      };
+      if (horizonMap[h]) {
+        horizon = horizonMap[h];
+        text = text.replace(/>\S+/, '').trim();
+      }
+    }
+
+    return { text, projectId, horizon, isImportant };
+  };
+
+  /**
+   * Captura una idea con parsing inteligente
    */
   const capture = () => {
-    const text = input.value.trim();
-    if (!text) {
+    const rawText = input.value.trim();
+    if (!rawText) {
       input.focus();
       return;
     }
 
-    // Crear tarea mínima (sin procesar)
+    const parsed = parseCapture(rawText);
+
+    if (!parsed.text) {
+      input.focus();
+      return;
+    }
+
+    // Verificar límites del horizonte destino
+    const limits = { daily: 3, weekly: 10, monthly: 6, quarterly: 3 };
+    const limit = limits[parsed.horizon];
+    if (limit) {
+      const current = (state.data.objectives?.[parsed.horizon] || []).filter(t => !t.completed).length;
+      if (current >= limit) {
+        showNotification(`${parsed.horizon === 'daily' ? 'Foco' : parsed.horizon} está lleno (${current}/${limit}). Va a Pendientes.`, 'warning');
+        parsed.horizon = 'backlog';
+      }
+    }
+
+    // Crear tarea
     const newTask = {
       id: generateId(),
-      text,
+      text: parsed.text,
       notes: null,
-      projectId: null,
-      taskType: null,
+      projectId: parsed.projectId,
+      taskType: parsed.isImportant ? 'important' : null,
       completed: false,
       createdAt: new Date().toISOString()
     };
 
-    // Asegurar que existe el backlog
-    if (!state.data.objectives) {
-      state.data.objectives = {};
-    }
-    if (!state.data.objectives.backlog) {
-      state.data.objectives.backlog = [];
-    }
+    // Asegurar que existen los objetivos
+    if (!state.data.objectives) state.data.objectives = {};
+    if (!state.data.objectives[parsed.horizon]) state.data.objectives[parsed.horizon] = [];
 
-    // Añadir al inicio del backlog
-    state.data.objectives.backlog.unshift(newTask);
+    // Añadir al inicio del horizonte
+    state.data.objectives[parsed.horizon].unshift(newTask);
     saveData(state.data);
 
     // Limpiar input
     input.value = '';
     input.focus();
 
-    // Feedback visual
-    showNotification('Capturado en Pendientes', 'success');
+    // Feedback visual con contexto
+    const project = parsed.projectId ? (state.data.projects || []).find(p => p.id === parsed.projectId) : null;
+    const horizonNames = { backlog: 'Pendientes', weekly: 'Semana', monthly: 'Mes', quarterly: 'Trimestre', daily: 'Foco' };
+    let msg = `Capturado en ${horizonNames[parsed.horizon] || 'Pendientes'}`;
+    if (project) msg += ` (${project.name})`;
+    if (parsed.isImportant) msg += ' !';
+    showNotification(msg, 'success');
 
     // Actualizar contador
     updateCaptureCounter();

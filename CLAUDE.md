@@ -25,7 +25,7 @@ Almacenamiento: localStorage + Supabase (híbrido, offline-first)
 Autenticación: Supabase Auth (Magic Link)
 Iconos: Material Symbols Outlined (Google Fonts CDN)
 CDN: supabase-js@2 (cargado en app.html)
-Deploy: FTP a Hostinger
+Deploy: Vercel (hosting estático)
 ```
 
 ---
@@ -110,15 +110,13 @@ js/
 
 ### Deploy
 
-```bash
-# Desde d:/SOFTWARE/oraculo/
-node deploy.mjs
-```
+**Hosting: Vercel** — Dominio: `oraculo.movimientofuncional.app`
 
-Despliega a Hostinger via FTP:
-- Host: `ftp.oraculo.movimientofuncional.app`
-- Usuario: `u259555594.crudomele`
-- Credenciales en `.env`
+- Deploy automático al hacer push a GitHub
+- Sirve la carpeta `dist/` como sitio estático
+- CDN global con edge caching + SSL automático
+
+> **Legacy**: El archivo `deploy.mjs` contiene el script FTP anterior (Hostinger). Ya no se usa.
 
 ### Desarrollo Local
 
@@ -164,8 +162,8 @@ oraculo/
 ├── auth.html               # Página de login (Magic Link)
 ├── auth-callback.html      # Procesa token de Magic Link
 ├── favicon.svg             # Favicon vectorial
-├── deploy.mjs              # Script de deploy FTP a Hostinger
-├── .env                    # Credenciales FTP (no commitear)
+├── deploy.mjs              # Script de deploy FTP (legacy, ya no se usa)
+├── .env                    # Variables de entorno (no commitear)
 ├── css/
 │   └── style.css           # Estilos con design system (~3100 líneas)
 ├── js/
