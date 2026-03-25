@@ -43,6 +43,7 @@ const SOLEUS_OPTIONS = [
 const DAY_NAMES = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
 
 let stateChangeHandler = null;
+let updateDataCallback = null;
 
 // ============================================================
 // TIMER CIRCULAR SVG
@@ -341,6 +342,7 @@ export const render = (data) => {
 // ============================================================
 
 export const init = (data, updateData) => {
+  updateDataCallback = updateData;
   const state = getMueveteState();
 
   // Botones según pantalla
@@ -425,7 +427,7 @@ const reRender = (data) => {
   const container = document.getElementById('app-content');
   if (!container) return;
   container.innerHTML = render(data);
-  init(data);
+  init(data, updateDataCallback);
 };
 
 export default { render, init };

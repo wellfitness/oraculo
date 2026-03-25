@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "description": "Captura ideas, organiza tu día y cultiva hábitos. Sistema de gestión personal basado en Hábitos Atómicos y filosofía Burkeman.",
   "permissions": [
-    "sidePanel"
+    "sidePanel",
+    "notifications"
   ],
   "side_panel": {
     "default_path": "sidepanel.html"
@@ -28,6 +29,6 @@
     "service_worker": "background.js"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:"
+    "extension_pages": "script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self'"
   }
 }
