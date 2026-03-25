@@ -177,19 +177,12 @@ export const init = (data, updateData) => {
 
       // Re-renderizar estadísticas y logros espontáneos
       updateStats(data);
-      updateSpontaneousList(data);
+      updateSpontaneousList(data, updateData);
     });
   });
 
-  // Botones de eliminar logros espontáneos
-  document.querySelectorAll('.spontaneous-item__delete').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const id = e.target.closest('[data-id]').dataset.id;
-      deleteSpontaneousAchievement(id, data, updateData);
-      // Re-renderizar la lista
-      updateSpontaneousList(data);
-    });
-  });
+  // Botones de eliminar logros espontáneos (delega a updateSpontaneousList para evitar duplicación)
+  bindSpontaneousDeleteListeners(data, updateData);
 };
 
 /**
@@ -232,27 +225,31 @@ const updateStats = (data) => {
 };
 
 /**
+ * Vincula listeners de eliminar en logros espontáneos
+ */
+const bindSpontaneousDeleteListeners = (data, updateData) => {
+  document.querySelectorAll('.spontaneous-item__delete').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.target.closest('[data-id]')?.dataset.id;
+      if (!id) return;
+      deleteSpontaneousAchievement(id, data, updateData);
+      data.spontaneousAchievements = data.spontaneousAchievements.filter(a => a.id !== id);
+      updateSpontaneousList(data, updateData);
+      updateStats(data);
+    });
+  });
+};
+
+/**
  * Actualiza la lista de logros espontáneos
  */
-const updateSpontaneousList = (data) => {
+const updateSpontaneousList = (data, updateData) => {
   const spontaneous = getSpontaneousAchievements(data, currentPeriod);
   const section = document.querySelector('.achievements-spontaneous');
 
   if (section) {
     section.outerHTML = renderSpontaneousSection(spontaneous);
-
-    // Re-añadir event listeners para los nuevos botones de eliminar
-    document.querySelectorAll('.spontaneous-item__delete').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = e.target.closest('[data-id]').dataset.id;
-        deleteSpontaneousAchievement(id, data, () => {
-          // Actualizar datos en memoria
-          data.spontaneousAchievements = data.spontaneousAchievements.filter(a => a.id !== id);
-          updateSpontaneousList(data);
-          updateStats(data);
-        });
-      });
-    });
+    bindSpontaneousDeleteListeners(data, updateData);
   }
 };
 
