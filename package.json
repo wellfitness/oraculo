@@ -12,9 +12,17 @@
     "version": "node scripts/bump-version.mjs",
     "version:patch": "node scripts/bump-version.mjs patch",
     "version:minor": "node scripts/bump-version.mjs minor",
-    "version:major": "node scripts/bump-version.mjs major"
+    "version:major": "node scripts/bump-version.mjs major",
+    "sync": "node scripts/sync-dist.mjs",
+    "cap:sync": "node scripts/sync-dist.mjs && pnpm exec cap sync",
+    "cap:open": "pnpm exec cap open android",
+    "cap:run": "pnpm exec cap run android",
+    "build:apk": "node scripts/sync-dist.mjs && pnpm exec cap sync && cd android && gradlew assembleDebug",
+    "build:aab": "node scripts/sync-dist.mjs && pnpm exec cap sync && cd android && gradlew bundleRelease"
   },
   "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.3.0",
     "basic-ftp": "^5.0.5",
     "dotenv": "^16.4.5"
   },
@@ -36,5 +44,13 @@
   "bugs": {
     "url": "https://github.com/wellfitness/oraculo/issues"
   },
-  "homepage": "https://oraculo.movimientofuncional.app"
+  "homepage": "https://oraculo.movimientofuncional.app",
+  "dependencies": {
+    "@capacitor/android": "8.3.0",
+    "@capacitor/app": "8.1.0",
+    "@capacitor/core": "8.3.0",
+    "@capacitor/local-notifications": "8.0.2",
+    "@capacitor/splash-screen": "8.0.1",
+    "@capacitor/status-bar": "8.0.2"
+  }
 }
