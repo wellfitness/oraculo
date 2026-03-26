@@ -390,6 +390,48 @@ export const render = (data) => {
         </div>
       </section>
 
+      ${window.__ORACULO_CAPACITOR__ ? `
+      <!-- App Android -->
+      <section class="help-section">
+        <h2 class="help-section-title">
+          <span class="material-symbols-outlined">phone_android</span>
+          App Android
+        </h2>
+        <div class="help-card" data-card="android">
+          <button class="help-card-header" aria-expanded="false" aria-controls="android-content">
+            <div class="help-card-title">
+              <span class="material-symbols-outlined icon-primary">phone_android</span>
+              <h2>Tu app nativa de Oráculo</h2>
+            </div>
+            <span class="material-symbols-outlined help-card-toggle">expand_more</span>
+          </button>
+          <div class="help-card-content" id="android-content" hidden>
+            <p>Tienes Oráculo como app nativa en tu Android. Funciona sin conexión y tus datos se guardan en el dispositivo.</p>
+
+            <h4>Ventajas:</h4>
+            <ul>
+              <li>Notificaciones nativas para Muévete y hábitos</li>
+              <li>Funciona sin conexión a internet</li>
+              <li>Tus datos se respaldan automáticamente en Google Drive</li>
+              <li>Acceso directo desde tu pantalla de inicio</li>
+            </ul>
+
+            <h4>Tus datos:</h4>
+            <ul>
+              <li>Se guardan localmente en la app</li>
+              <li>Se respaldan automáticamente si tienes Google Backup activo</li>
+              <li>Puedes exportar un backup manual desde Configuración</li>
+              <li>Si desinstalas la app, los datos se restauran al reinstalar (con Google Backup)</li>
+            </ul>
+
+            <div class="help-card-tip">
+              <span class="material-symbols-outlined">tips_and_updates</span>
+              <p>También puedes usar Oráculo en tu ordenador desde <strong>oraculo.movimientofuncional.app</strong>. Los datos son independientes entre dispositivos — usa Exportar/Importar para moverlos.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      ` : `
       <!-- Extensión Chrome -->
       <section class="help-section">
         <h2 class="help-section-title">
@@ -447,6 +489,7 @@ export const render = (data) => {
           </div>
         </div>
       </section>
+      `}
 
       <!-- NUEVO: FAQ Conceptual -->
       ${renderConceptualFaq()}
@@ -459,6 +502,41 @@ export const render = (data) => {
         </h2>
 
         <div class="faq-list">
+          ${window.__ORACULO_CAPACITOR__ ? `
+          ${renderFaqCard('cached', 'La app no funciona bien', `
+            <p>Si algo se comporta de forma extraña:</p>
+            <ol>
+              <li>Cierra la app completamente (desliza desde las apps recientes)</li>
+              <li>Vuelve a abrirla</li>
+              <li>Si persiste: ve a Ajustes de Android → Apps → Oráculo → Borrar caché (NO "Borrar datos")</li>
+            </ol>
+          `, 'Cerrar y reabrir la app resuelve la mayoría de problemas.')}
+
+          ${renderFaqCard('cloud_upload', 'Opciones de backup', `
+            <p>Tus datos se guardan en esta app. Tienes varias formas de protegerlos:</p>
+            <p><strong>Automático:</strong> Google Backup respalda tus datos a Google Drive si lo tienes activo en tu Android (Ajustes → Sistema → Copia de seguridad).</p>
+            <p><strong>Manual:</strong> Configuración → Exportar backup → Se descarga un archivo JSON que puedes guardar donde quieras.</p>
+          `, 'Verifica que Google Backup esté activo en tu Android para respaldo automático.')}
+
+          ${renderFaqCard('sync_problem', 'Usar en móvil y ordenador', `
+            <p>Los datos del móvil y el ordenador son independientes. Para moverlos:</p>
+            <ol>
+              <li><strong>Origen:</strong> Configuración → Exportar backup</li>
+              <li><strong>Envía el archivo</strong> por email, WhatsApp o nube</li>
+              <li><strong>Destino:</strong> Abre Oráculo e importa el archivo</li>
+            </ol>
+          `, 'Puedes usar Oráculo en el ordenador desde oraculo.movimientofuncional.app')}
+
+          ${renderFaqCard('warning', 'Perdí mis datos', `
+            <p><strong>Si desinstalaste la app:</strong></p>
+            <ul>
+              <li>Reinstala desde Google Play</li>
+              <li>Si tenías Google Backup activo, los datos se restauran automáticamente</li>
+              <li>Si no, necesitas un backup manual (archivo JSON)</li>
+            </ul>
+            <p><strong>Si tienes backup:</strong> Configuración → Importar backup</p>
+          `, 'Con Google Backup activo, tus datos se restauran al reinstalar la app.')}
+          ` : `
           ${renderFaqCard('bolt', 'Atajos rápidos', `
             <p>Antes de complicarte, prueba estos atajos:</p>
             <ul>
@@ -511,6 +589,7 @@ export const render = (data) => {
             <p><strong>Si tienes backup:</strong> Configuración → Importar backup</p>
             <p><strong>Si vinculaste carpeta:</strong> Busca archivos <code>oraculo-backup-*.json</code></p>
           `, 'La prevención es la única solución. Exporta regularmente.')}
+          `}
         </div>
       </section>
 

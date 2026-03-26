@@ -147,10 +147,13 @@ export const render = (data) => {
         </h2>
 
         <div class="local-storage-notice">
-          <span class="material-symbols-outlined">smartphone</span>
+          <span class="material-symbols-outlined">${window.__ORACULO_CAPACITOR__ ? 'phone_android' : 'smartphone'}</span>
           <div>
             <strong>Tus datos viven en este dispositivo</strong>
-            <p>Oráculo guarda todo localmente en tu navegador. Usa la app siempre desde el mismo dispositivo (recomendamos tu móvil principal) para mantener tu información sincronizada.</p>
+            <p>${window.__ORACULO_CAPACITOR__
+              ? 'Oráculo guarda todo localmente en esta app. Si tienes Google Backup activo, se respaldan automáticamente. Puedes exportar un backup manual en cualquier momento.'
+              : 'Oráculo guarda todo localmente en tu navegador. Usa la app siempre desde el mismo dispositivo (recomendamos tu móvil principal) para mantener tu información sincronizada.'
+            }</p>
           </div>
         </div>
 
@@ -171,6 +174,7 @@ export const render = (data) => {
             Importar backup
             <input type="file" id="import-data-input" accept=".json" hidden>
           </label>
+          ${window.__ORACULO_CAPACITOR__ ? '' : `
           <button class="btn btn--secondary" id="copy-data-btn" title="Copiar datos al portapapeles para sincronizar con la extensión Chrome o viceversa">
             <span class="material-symbols-outlined">content_copy</span>
             Copiar datos
@@ -179,6 +183,7 @@ export const render = (data) => {
             <span class="material-symbols-outlined">content_paste</span>
             Pegar datos
           </button>
+          `}
         </div>
       </section>
 
@@ -190,7 +195,7 @@ export const render = (data) => {
         </h2>
         <label class="toggle-label">
           <input type="checkbox" id="notifications-toggle" ${data.settings?.notificationsEnabled ? 'checked' : ''}>
-          <span>Activar notificaciones del navegador</span>
+          <span>${window.__ORACULO_CAPACITOR__ ? 'Activar notificaciones (breaks y hábitos)' : 'Activar notificaciones del navegador'}</span>
         </label>
       </section>
 
