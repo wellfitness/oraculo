@@ -3767,7 +3767,8 @@ a.entry-type-btn {
    2. Microinteracciones en Checkboxes
    -------------------------------------------------------------------------- */
 .focus-checkbox,
-.kanban-item__checkbox input[type="checkbox"] {
+.kanban-item__checkbox input[type="checkbox"],
+.toggle-label input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
   width: 22px;
@@ -3782,19 +3783,22 @@ a.entry-type-btn {
 }
 
 .focus-checkbox:hover,
-.kanban-item__checkbox input[type="checkbox"]:hover {
+.kanban-item__checkbox input[type="checkbox"]:hover,
+.toggle-label input[type="checkbox"]:hover {
   border-color: var(--color-primary);
   background: var(--turquesa-100);
 }
 
 .focus-checkbox:checked,
-.kanban-item__checkbox input[type="checkbox"]:checked {
+.kanban-item__checkbox input[type="checkbox"]:checked,
+.toggle-label input[type="checkbox"]:checked {
   background: var(--color-primary);
   border-color: var(--color-primary);
 }
 
 .focus-checkbox::after,
-.kanban-item__checkbox input[type="checkbox"]::after {
+.kanban-item__checkbox input[type="checkbox"]::after,
+.toggle-label input[type="checkbox"]::after {
   content: '';
   position: absolute;
   top: 45%;
@@ -3808,7 +3812,8 @@ a.entry-type-btn {
 }
 
 .focus-checkbox:checked::after,
-.kanban-item__checkbox input[type="checkbox"]:checked::after {
+.kanban-item__checkbox input[type="checkbox"]:checked::after,
+.toggle-label input[type="checkbox"]:checked::after {
   transform: translate(-50%, -50%) rotate(45deg) scale(1);
 }
 
@@ -18776,4 +18781,17 @@ select,
 body.capacitor-native {
   padding-top: env(safe-area-inset-top, 0);
   padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Header siempre sticky en app nativa (override del relative en mobile) */
+body.capacitor-native .app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+/* Captura pegada debajo del header en app nativa */
+body.capacitor-native .capture-banner {
+  position: sticky;
+  z-index: 90;
 }
