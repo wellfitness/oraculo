@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- En app nativa, ir directo a la app (no mostrar landing) -->
+  <script>if(window.Capacitor&&window.Capacitor.isNativePlatform())location.replace('app.html');</script>
   <meta name="description" content="Oráculo - Gestión personal consciente + breaks de movimiento para mujeres +40. Organízate para cuidarte. Disponible como web app y extensión Chrome.">
   <meta name="keywords" content="productividad consciente, gestión personal, mujeres 40, Oliver Burkeman, 4000 semanas, hábitos, organización, breaks movimiento, extensión chrome">
   <meta name="robots" content="index, follow">
