@@ -35,37 +35,39 @@ html, body {
   display: none;
   position: absolute;
   top: 100%;
-  right: 0;
-  left: 0;
+  right: 0 !important;
+  left: 0 !important;
+  width: auto !important;
   max-height: calc(100vh - 60px);
   overflow-y: auto;
   background: rgba(30, 41, 59, 0.97);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  flex-direction: row;
-  flex-wrap: wrap;
-  padding: 8px;
-  gap: 2px;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  padding: 12px;
+  gap: 6px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
   border-radius: 0 0 var(--radius-lg, 12px) var(--radius-lg, 12px);
   z-index: 1000;
 }
 
 .app-nav.is-open {
-  display: flex;
+  display: flex !important;
 }
 
 .app-nav .nav-link {
-  flex: 1 1 calc(50% - 2px);
+  flex: 1 1 calc(50% - 6px) !important;
+  width: auto !important;
   justify-content: flex-start;
-  padding: 8px 10px;
+  padding: 12px 16px;
   border-radius: var(--radius-md, 8px);
-  font-size: 0.8rem;
-  gap: 6px;
+  font-size: 0.95rem;
+  gap: 10px;
 }
 
 .app-nav .nav-link .nav-icon {
-  font-size: 20px;
+  font-size: 22px;
 }
 
 .app-nav .nav-link:hover {
