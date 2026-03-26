@@ -156,6 +156,14 @@
     if (window.Capacitor && window.Capacitor.isNativePlatform()) {
       window.__ORACULO_CAPACITOR__ = true;
       document.body.classList.add('capacitor-native');
+      // Calcular top de la captura banner cuando el DOM esté listo
+      addEventListener('DOMContentLoaded', () => {
+        const header = document.querySelector('.app-header');
+        const banner = document.querySelector('.capture-banner');
+        if (header && banner) {
+          banner.style.top = header.offsetHeight + 'px';
+        }
+      });
     }
   </script>
   <script type="module" src="js/app.js"></script>
