@@ -594,6 +594,12 @@ const setupSaveButton = () => {
  * Verifica cada minuto si es la hora del hábito y envía notificación
  */
 const setupHabitReminder = () => {
+  // En Capacitor: usar notificacion nativa programada (funciona en background)
+  if (window.__ORACULO_CAPACITOR__) {
+    scheduleNativeHabitReminder();
+    return;
+  }
+
   let lastNotifiedMinute = null;
 
   const checkHabitTime = () => {
@@ -633,6 +639,27 @@ const setupHabitReminder = () => {
   setInterval(checkHabitTime, 30000);
   // Verificar inmediatamente
   checkHabitTime();
+};
+
+/**
+ * Programa recordatorio nativo diario para el habito activo (Capacitor)
+ */
+const scheduleNativeHabitReminder = async () => {
+  const habit = state.data?.habits?.active;
+  if (!habit || !habit.scheduledTime) return;
+
+  try {
+    const { scheduleHabitNotification } = await import('./capacitor-bridge.js');
+    const [hour, minute] = habit.scheduledTime.split(':').map(Number);
+    await scheduleHabitNotification({
+      title: `Hora de: ${habit.name}`,
+      body: habit.micro ? `Empieza con: ${habit.micro}` : 'Tu hábito te espera',
+      hour,
+      minute
+    });
+  } catch (e) {
+    console.warn('[Capacitor] Error programando recordatorio habito:', e);
+  }
 };
 
 const setupGlobalCapture = () => {
@@ -1019,10 +1046,23 @@ export const generateId = () => {
 // Bootstrap: cargar storage dinámicamente según contexto e iniciar app
 const bootstrap = async () => {
   const isExtension = !!(window.__ORACULO_EXTENSION__ || (typeof chrome !== 'undefined' && chrome.runtime?.id));
+  const isCapacitor = !!window.__ORACULO_CAPACITOR__;
+
   const mod = isExtension
     ? await import('./storage-local.js')
     : await import('./storage-hybrid.js');
   _storage = mod;
+
+  // Inicializar plugins nativos en Capacitor
+  if (isCapacitor) {
+    try {
+      const { initCapacitorPlugins } = await import('./capacitor-bridge.js');
+      await initCapacitorPlugins();
+    } catch (e) {
+      console.warn('[Capacitor] Error inicializando plugins:', e);
+    }
+  }
+
   init();
 };
 

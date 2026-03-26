@@ -246,6 +246,15 @@ const sendNotification = (type) => {
   const msg = NOTIFICATION_MESSAGES[type];
   if (!msg) return;
 
+  // Notificacion nativa en Capacitor
+  if (window.__ORACULO_CAPACITOR__) {
+    const notifId = type === 'BREAK_ALERT' ? 1001 : type === 'SOLEUS_REMINDER' ? 1002 : 1003;
+    import('../capacitor-bridge.js').then(m => {
+      m.sendNativeNotification({ title: msg.title, body: msg.body, id: notifId, tag: 'muevete-break' });
+    }).catch(() => showNotification(msg.title, 'info'));
+    return;
+  }
+
   if (Notification.permission === 'granted') {
     try {
       new Notification(msg.title, { body: msg.body, tag: type });
@@ -259,6 +268,8 @@ const sendNotification = (type) => {
 };
 
 export const requestNotificationPermission = async () => {
+  // En Capacitor, los permisos se gestionan en initCapacitorPlugins()
+  if (window.__ORACULO_CAPACITOR__) return 'granted';
   if (!('Notification' in window)) return 'denied';
   if (Notification.permission === 'granted') return 'granted';
   return await Notification.requestPermission();
@@ -523,6 +534,13 @@ export const startWorkBlock = () => {
   timerState.soleusRemaining = timerState.soleusInterval;
   timerState.showSoleusReminder = false;
 
+  // Programar notificacion nativa de break (funciona en background)
+  if (window.__ORACULO_CAPACITOR__) {
+    import('../capacitor-bridge.js').then(m => {
+      m.scheduleBreakNotification(timerState.workBlockDuration);
+    }).catch(() => {});
+  }
+
   persist();
   startInterval();
   emitChange();
@@ -534,6 +552,11 @@ export const acknowledgeBreak = () => {
   timerState.status = 'active_break';
   timerState.breakRemaining = timerState.breakDuration;
   timerState.showSoleusReminder = false;
+
+  // Cancelar notificacion de break (usuario ya la vio)
+  if (window.__ORACULO_CAPACITOR__) {
+    import('../capacitor-bridge.js').then(m => m.cancelBreakNotification()).catch(() => {});
+  }
 
   persist();
   requestWakeLock();
@@ -592,6 +615,12 @@ export const resetTimer = () => {
 
   stopInterval();
   releaseWakeLock();
+
+  // Cancelar notificacion programada de break
+  if (window.__ORACULO_CAPACITOR__) {
+    import('../capacitor-bridge.js').then(m => m.cancelBreakNotification()).catch(() => {});
+  }
+
   persist();
   emitChange();
 };

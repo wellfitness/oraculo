@@ -51,3 +51,12 @@ Herramientas*.html
 # Other reference files
 gemini.md
 recursos/
+
+# Capacitor Android build artifacts
+android/app/build/
+android/.gradle/
+android/local.properties
+*.apk
+*.aab
+*.keystore
+*.jks
