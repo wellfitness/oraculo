@@ -21,92 +21,57 @@ Sistema de gestión personal consciente para mujeres +40 que quieren organizarse
 
 ```
 HTML5 + CSS3 + JavaScript (vanilla ES6 modules)
-Almacenamiento: localStorage + Supabase (híbrido, offline-first)
-Autenticación: Supabase Auth (Magic Link)
+Almacenamiento: localStorage (offline-first, sin backend)
 Iconos: Material Symbols Outlined (Google Fonts CDN)
-CDN: supabase-js@2 (cargado en app.html)
-Deploy: Vercel (hosting estático)
+Deploy: Vercel (hosting estático, auto-deploy en git push)
+Extensión Chrome: Manifest V3, side panel
 ```
 
 ---
 
-## Integración Supabase
+## Arquitectura
 
-### Arquitectura Offline-First
+### Plataformas
 
-```
-Usuario → auth.html → Magic Link → auth-callback.html → app.html
-                                                            ↓
-                                               loadData() [storage-hybrid.js]
-                                                            ↓
-                                    ┌───────────────────────┴───────────────────────┐
-                                    ↓                                               ↓
-                            localStorage                                      Supabase
-                            (inmediato)                                    (background)
-                                    ↓                                               ↓
-                            Mostrar UI                              syncWithSupabaseInBackground()
-                                                                                    ↓
-                                                                    resolveConflict() → isEmptyData()
-                                                                                    ↓
-                                                                    Si remote > local o local vacío
-                                                                                    ↓
-                                                                    dispatchEvent('data-synced-from-cloud')
-                                                                                    ↓
-                                                                    app.js re-renderiza vista
-```
+| Plataforma | Punto de entrada | Storage | Detección |
+|-----------|-----------------|---------|-----------|
+| Web app | `app.html` | `storage-hybrid.js` (localStorage) | default |
+| Extensión Chrome | `extension/sidepanel.html` | `storage-local.js` (localStorage) | `window.__ORACULO_EXTENSION__` |
 
-### Archivos de Supabase
+El `app.js` usa **dynamic import** en `bootstrap()` para cargar el módulo de storage correcto según el contexto.
+
+### Almacenamiento
+
+- **Solo localStorage** — sin backend, sin cuentas, sin sincronización cloud
+- `storage-hybrid.js` y `storage-local.js` son idénticos (ambos solo localStorage)
+- La app no requiere registro ni autenticación
+- `auth.html` y `auth-callback.html` redirigen a `app.html` (legacy de Supabase, ya eliminado)
+
+### Extensión Chrome
 
 ```
-js/
-├── config.js                 # SUPABASE_URL, SUPABASE_ANON_KEY, AUTH_REDIRECT_URL, ALLOWED_EMAILS
-├── storage-hybrid.js         # Reemplaza storage.js - combina localStorage + Supabase
-└── supabase/
-    ├── client.js             # getSupabase(), isAuthenticated(), getCurrentUser()
-    ├── auth.js               # Funciones de autenticación + verificación lista blanca
-    ├── sync.js               # loadFromSupabase(), saveToSupabase(), resolveConflict()
-    └── connection.js         # isOnline(), markPendingSync(), initConnectionMonitor()
+extension/
+├── manifest.json             # Manifest V3 (sidePanel + notifications)
+├── sidepanel.html            # Entry point del side panel
+├── background.js             # Service worker (abre side panel al clic)
+├── init-extension.js         # Marca window.__ORACULO_EXTENSION__
+├── icons/                    # Iconos 16, 32, 48, 128 PNG
+├── css/
+│   └── extension-overrides.css  # CSS para side panel (~400px)
+└── store/                    # Assets para Chrome Web Store
 ```
 
-### Flujo de Sincronización
+- **Launcher**: Dashboard compacto con grid de iconos en extensión (en vez del dashboard estándar)
+- **Muévete indicator**: Mini-indicator en el header muestra estado del timer
+- **build-extension.mjs**: Genera `dist-extension/` y ZIP descargable
 
-1. **loadData()** en `storage-hybrid.js` es SÍNCRONA (retorna localStorage inmediatamente)
-2. En background, `syncWithSupabaseInBackground()` verifica autenticación
-3. Si hay sesión, carga datos de Supabase con `loadFromSupabase()`
-4. `resolveConflict()` decide qué datos usar:
-   - Si localStorage está vacío → usar Supabase (primera sync)
-   - Si no, el más reciente gana (Last-Write-Wins)
-5. Si gana Supabase, dispara evento `data-synced-from-cloud`
-6. `app.js` escucha ese evento y re-renderiza la vista
+### Captura Inteligente
 
-### Usuario Autorizado y Seguridad
-
-**ÚNICO USUARIO**: `movimientofuncional.net@gmail.com`
-
-**Capas de seguridad implementadas:**
-
-1. **Lista blanca en frontend** (`config.js`):
-   - `ALLOWED_EMAILS` contiene los emails autorizados
-   - `auth.js` verifica el email ANTES de llamar a Supabase
-   - Emails no autorizados reciben error "Acceso restringido"
-
-2. **Supabase Auth**:
-   - `shouldCreateUser: false` (no permite crear usuarios nuevos)
-   - El usuario fue creado manualmente en Supabase
-   - User ID: `ef2ca78b-7d85-44df-8e92-56ef89fd19c2`
-
-3. **Row Level Security (RLS)**:
-   - Aunque alguien se autenticase, solo vería sus propios datos
-   - Tabla `user_data` filtrada por `user_id`
-
-**Usuarios no autorizados** usan la app con localStorage únicamente (sin sincronización cloud).
-
-### Proyecto Supabase
-
-- **Project ID**: `plbhgkansnyvmnqvpxrh`
-- **URL**: `https://plbhgkansnyvmnqvpxrh.supabase.co`
-- **Tabla**: `user_data` (user_id, data JSONB, version, updated_at)
-- **RLS**: Habilitado (usuarios solo ven sus datos)
+El input de captura global parsea sintaxis especial:
+- `#proyecto` → asigna al proyecto que coincida
+- `>semana` / `>mes` / `>trimestre` / `>hoy` → horizonte destino
+- `!` al inicio → marca como importante
+- Sin sintaxis → va al backlog (comportamiento original)
 
 ### Deploy
 
@@ -159,48 +124,61 @@ cp dist/js/archivo.js js/
 oraculo/
 ├── index.html              # Landing page
 ├── app.html                # App principal (SPA)
-├── auth.html               # Página de login (Magic Link)
-├── auth-callback.html      # Procesa token de Magic Link
+├── auth.html               # Redirect a app.html (legacy)
+├── auth-callback.html      # Redirect a app.html (legacy)
 ├── favicon.svg             # Favicon vectorial
-├── deploy.mjs              # Script de deploy FTP (legacy, ya no se usa)
-├── .env                    # Variables de entorno (no commitear)
+├── build-extension.mjs     # Genera dist-extension/ y ZIP
 ├── css/
-│   └── style.css           # Estilos con design system (~3100 líneas)
+│   └── style.css           # Estilos con design system (~18000 líneas)
 ├── js/
-│   ├── app.js              # Coordinador principal + listener data-synced-from-cloud
-│   ├── config.js           # ⭐ Credenciales Supabase
-│   ├── storage-hybrid.js   # ⭐ localStorage + Supabase (reemplaza storage.js)
-│   ├── storage.js          # Solo localStorage (legacy, no usado)
-│   ├── supabase/           # ⭐ Módulos de Supabase
-│   │   ├── client.js       # getSupabase(), isAuthenticated()
-│   │   ├── auth.js         # Funciones de auth
-│   │   ├── sync.js         # loadFromSupabase(), resolveConflict(), isEmptyData()
-│   │   └── connection.js   # isOnline(), monitor de conexión
+│   ├── app.js              # Coordinador principal (bootstrap dinámico, captura inteligente)
+│   ├── storage-hybrid.js   # Solo localStorage (idéntico a storage-local.js)
+│   ├── storage-local.js    # Solo localStorage (para extensión Chrome)
+│   ├── storage.js          # Solo localStorage (legacy, usado por settings.js)
 │   ├── modules/
-│   │   ├── dashboard.js    # Vista inicial + logros de hoy + Burkeman
+│   │   ├── dashboard.js    # Dashboard web + launcher extensión
+│   │   ├── today.js        # Vista "Hoy" compacta
 │   │   ├── values.js       # Brújula de valores
 │   │   ├── kanban.js       # Tablero por horizontes + pendientes + filtros
 │   │   ├── projects.js     # Gestión de proyectos
 │   │   ├── habits.js       # Laboratorio de hábitos + auditoría + wizard + atélicas
-│   │   ├── calendar.js     # Calendario y eventos + sincronía
+│   │   ├── muevete.js      # Breaks de movimiento (4 pantallas)
+│   │   ├── calendar.js     # Calendario y eventos + sincronía + ICS recurrentes
 │   │   ├── journal.js      # Diario reflexivo + tipos Burkeman
 │   │   ├── achievements.js # Logros, recapitulaciones + done list
-│   │   └── settings.js     # Configuración + cuadernos + Burkeman settings
+│   │   ├── settings.js     # Configuración + cuadernos + sync portapapeles
+│   │   └── help.js         # Ayuda + instrucciones extensión Chrome
 │   ├── components/
+│   │   ├── muevete-timer.js        # Motor global del timer de breaks
 │   │   ├── daily-setup-modal.js    # Modal Volumen Fijo (tiempo + energía)
-│   │   ├── spontaneous-achievement.js  # Done List (logros no planificados)
-│   │   └── calm-timer.js           # Temporizador de calma (5 min)
+│   │   ├── weekly-review-modal.js  # Revisión semanal guiada (6 pasos)
+│   │   ├── spontaneous-achievement.js  # Done List
+│   │   ├── calm-timer.js           # Temporizador de calma (5 min)
+│   │   ├── welcome-modal.js        # Onboarding + USAGE_MODES
+│   │   └── evening-check-in.js     # Check-in nocturno
 │   ├── data/
 │   │   └── burkeman.js     # Reflexiones y pilares filosóficos
 │   └── utils/
-│       ├── dates.js        # Utilidades de fechas
-│       ├── ics.js          # Generador de archivos .ics
-│       └── achievements-calculator.js  # Cálculos de estadísticas
+│       ├── achievements-calculator.js
+│       ├── sanitizer.js
+│       ├── validator.js
+│       ├── speech-handler.js
+│       └── auto-backup.js
+├── sounds/
+│   └── alert.mp3           # Alerta de Muévete
+├── extension/              # Extensión Chrome (source)
+│   ├── manifest.json
+│   ├── sidepanel.html
+│   ├── background.js
+│   ├── init-extension.js
+│   ├── icons/
+│   ├── css/extension-overrides.css
+│   └── store/              # Assets Chrome Web Store
 ├── landing/                # Landing page assets
 │   └── images/
-├── dist/                   # ⭐ Archivos para producción (copiar aquí antes de deploy)
-├── CLAUDE.md               # Este archivo
-└── design-system/          # Sistema de diseño (existente)
+├── dist/                   # Producción web (Vercel sirve esto)
+├── dist-extension/         # Producción extensión (generado por build-extension.mjs)
+└── CLAUDE.md               # Este archivo
 ```
 
 ---
@@ -403,7 +381,47 @@ Características:
 
 **Done List**: Histórico de logros no planificados
 
-### 9. Configuración
+### 9. Muévete (Breaks de Movimiento)
+
+**Timer de trabajo con breaks cada 2 horas.**
+
+Arquitectura de dos capas:
+- `muevete-timer.js`: Motor global (vive independiente de la vista, como calm-timer.js)
+- `muevete.js`: Vista con 4 pantallas
+
+#### Máquina de Estados
+```
+idle → working (2h) → break_alert → active_break (8min) → working → ...
+                     → snooze (5min) → working
+```
+
+#### Características
+- Timer basado en timestamps (`Date.now() - startTime`), sobrevive recargas
+- Sóleo: recordatorio cada 30min para activar el sóleo sin levantarse
+- Wake Lock durante breaks activos
+- Notificaciones: break alert, sóleo, break completado
+- Sonido de alerta (`sounds/alert.mp3`)
+- Activity log con rachas en días laborables (WeekStrip)
+- Mini-indicator en el header (visible desde cualquier vista)
+- Tarjeta en el dashboard + widget en el launcher de extensión
+- Recordatorio de hábito a la hora programada (scheduledTime)
+
+#### Configuración
+- Bloque de trabajo: 90 / 120 / 150 minutos
+- Duración del break: 6 / 8 / 10 minutos
+- Intervalo sóleo: 20 / 30 / 45 minutos
+
+### 10. Vista "Hoy"
+
+Vista compacta sin scroll (accesible via `#today`, en launcher de extensión):
+- Roca del día (completar con 1 clic)
+- Tareas del foco pendientes
+- Widget Muévete (timer o botón iniciar)
+- Widget hábito activo
+- Próximo evento del día
+- Cita Burkeman
+
+### 11. Configuración
 
 **Cuadernos Anuales**:
 - Cuaderno actual con fecha de inicio
@@ -535,7 +553,18 @@ const oraculoData = {
   settings: {
     storageType: 'localStorage',
     notificationsEnabled: false,
-    theme: 'light'
+    theme: 'light',
+    usageMode: 'complete',      // 'complete' | 'habits' | 'journal' | 'complement'
+    lastWeeklyReview: null,
+    weeklyReviewDay: 0,         // 0=Domingo
+    weeklyReviewReminder: true
+  },
+
+  // Onboarding
+  onboarding: {
+    completed: false,
+    completedAt: null,
+    selectedMode: null
   },
 
   // === SISTEMA BURKEMAN (v1.3) ===
@@ -566,6 +595,27 @@ const oraculoData = {
   },
 
   // === FIN SISTEMA BURKEMAN ===
+
+  // Muévete - Breaks de movimiento
+  muevete: {
+    timerState: {
+      status: 'idle',           // 'idle' | 'working' | 'break_alert' | 'active_break'
+      startTime: null,          // timestamp inicio bloque trabajo
+      breakStartTime: null,     // timestamp inicio break
+      blocksCompleted: 0,       // vitaminas M del día
+      lastResetDate: null,      // 'YYYY-MM-DD' para reset diario
+      soleusEnabled: true,
+      workBlockDuration: 7200000,  // 2h por defecto
+      breakDuration: 480000,       // 8min por defecto
+      soleusInterval: 1800000,     // 30min por defecto
+      soundEnabled: true
+    },
+    activityLog: {
+      entries: [],              // [{ date, completed, earlyEnds }]
+      currentStreak: 0,
+      bestStreak: 0
+    }
+  },
 
   // Cuaderno actual
   notebook: {
@@ -616,6 +666,9 @@ Mapeo principal:
 | Descanso | bedtime |
 | Organización | event_note |
 | Ubicación | location_on |
+| Muévete | directions_run |
+| Vista Hoy | today |
+| Extensión | extension |
 
 ---
 
@@ -684,6 +737,10 @@ Ejemplos:
 - Probar auditoría de hábitos (3 pasos)
 - Probar wizard de hábitos (7 pasos, navegación atrás/adelante)
 - Verificar que nuevos campos se guardan correctamente (área, hora, ubicación)
+- Probar extensión Chrome: launcher, navegación, Muévete en side panel
+- Probar captura inteligente (#proyecto >horizonte !)
+- Probar notificaciones de hábito (scheduledTime)
+- Probar sync portapapeles (Copiar/Pegar datos en Configuración)
 
 ---
 
@@ -695,6 +752,10 @@ Ejemplos:
 - [x] Fase 9: Cuadernos Anuales + Módulo de Logros (heatmap, recaps)
 - [x] Fase 10: Sistema Burkeman v1.3 (volumen fijo, done list, actividades atélicas, reflexiones)
 - [x] Fase 11: Hábitos v1.5 (auditoría, wizard 7 pasos, área/hora/ubicación)
+- [x] Fase 12: Extensión Chrome con side panel + launcher
+- [x] Fase 13: Muévete integrado (migrado de React a vanilla JS)
+- [x] Fase 14: Mejoras UX (captura inteligente, vista Hoy, revisión semanal 6 pasos, sync portapapeles, notificaciones hábito)
+- [x] Fase 15: Auditoría completa (3 rondas, ~35 issues corregidos)
 
 ---
 
@@ -710,44 +771,9 @@ Ejemplos:
 
 ---
 
-## Troubleshooting Supabase
+## Troubleshooting
 
-### "Los datos no cargan después del login"
-
-**Causa**: El evento `data-synced-from-cloud` no se procesa.
-
-**Verificar**:
-1. `app.js` debe tener listener para `data-synced-from-cloud`
-2. `storage-hybrid.js` debe disparar el evento cuando remote gana
-
-### "Los datos de Supabase se sobrescribieron con vacíos"
-
-**Causa**: localStorage tenía datos por defecto (vacíos) con timestamp reciente.
-
-**Solución implementada**: La función `isEmptyData()` en `sync.js` detecta datos vacíos y prefiere Supabase.
-
-**Para restaurar datos**: Usar el backup JSON y ejecutar UPDATE en Supabase.
-
-### "Magic Link no se envía"
-
-**Causas posibles**:
-1. Usuario no existe en Supabase → Crear manualmente con SQL
-2. Campos NULL en auth.users → Usar COALESCE para poner ''
-3. Email en spam
-
-### "Error: Database error finding user"
-
-**Causa**: Usuario creado manualmente tiene campos NULL que deberían ser ''.
-
-**Fix**:
-```sql
-UPDATE auth.users SET
-  email_change = COALESCE(email_change, ''),
-  email_change_token_new = COALESCE(email_change_token_new, '')
-WHERE email = 'movimientofuncional.net@gmail.com';
-```
-
-### Limpiar localStorage (Firefox persistente)
+### Limpiar localStorage
 
 ```javascript
 localStorage.clear();
@@ -755,3 +781,13 @@ caches.keys().then(k => k.forEach(c => caches.delete(c)));
 navigator.serviceWorker.getRegistrations().then(r => r.forEach(sw => sw.unregister()));
 location.reload();
 ```
+
+### La extensión Chrome no carga
+
+1. Verificar que `dist-extension/` está actualizado: `node build-extension.mjs`
+2. En `chrome://extensions/`, recargar la extensión (botón flecha circular)
+3. Verificar consola del side panel (clic derecho en el panel → Inspect)
+
+### Los datos de la web y la extensión no coinciden
+
+Los datos son **independientes** entre web y extensión (localStorage separado). Para sincronizar: Configuración → Copiar datos (en origen) → Pegar datos (en destino).
