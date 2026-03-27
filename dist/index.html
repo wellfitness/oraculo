@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- En app nativa, ir directo a la app (no mostrar landing) -->
   <script>if(window.Capacitor&&window.Capacitor.isNativePlatform())location.replace('app.html');</script>
-  <meta name="description" content="Oráculo - Gestión personal consciente + breaks de movimiento para mujeres +40. Organízate para cuidarte. Disponible como web app y extensión Chrome.">
+  <meta name="description" content="Oráculo - Gestión personal consciente + breaks de movimiento para mujeres +40. Organízate para cuidarte. Disponible como web app, extensión Chrome y Android.">
   <meta name="keywords" content="productividad consciente, gestión personal, mujeres 40, Oliver Burkeman, 4000 semanas, hábitos, organización, breaks movimiento, extensión chrome">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://oraculo.movimientofuncional.app/">
 
   <!-- Open Graph -->
   <meta property="og:title" content="Oráculo - Gestión Personal Consciente">
-  <meta property="og:description" content="Gestión personal consciente + breaks de movimiento para mujeres +40. Web app y extensión Chrome.">
+  <meta property="og:description" content="Gestión personal consciente + breaks de movimiento para mujeres +40. Web app, extensión Chrome y Android.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://oraculo.movimientofuncional.app/">
   <meta property="og:image" content="https://oraculo.movimientofuncional.app/portada.webp">
@@ -22,7 +22,7 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Oráculo - Gestión Personal Consciente">
-  <meta name="twitter:description" content="Gestión personal consciente + breaks de movimiento para mujeres +40. Web app y extensión Chrome.">
+  <meta name="twitter:description" content="Gestión personal consciente + breaks de movimiento para mujeres +40. Web app, extensión Chrome y Android.">
   <meta name="twitter:image" content="https://oraculo.movimientofuncional.app/portada.webp">
 
   <title>Oráculo - Gestión Personal Consciente</title>
@@ -50,7 +50,7 @@
     "@context": "https://schema.org",
     "@type": "WebApplication",
     "name": "Oráculo",
-    "description": "Gestión personal consciente + breaks de movimiento para mujeres +40. Web app y extensión Chrome.",
+    "description": "Gestión personal consciente + breaks de movimiento para mujeres +40. Web app, extensión Chrome y Android.",
     "url": "https://oraculo.movimientofuncional.app/",
     "applicationCategory": "ProductivityApplication",
     "operatingSystem": "Any",
@@ -120,12 +120,16 @@
           <div class="hero-extension">
             <button class="btn btn-secondary btn-large" onclick="document.getElementById('extensionModal').classList.add('active')">
               <span class="material-symbols-outlined">extension</span>
-              Descargar extensión Chrome
+              Extensión Chrome
             </button>
+            <a href="https://play.google.com/store/apps/details?id=app.movimientofuncional.oraculo" target="_blank" rel="noopener" class="btn btn-secondary btn-large">
+              <span class="material-symbols-outlined">android</span>
+              Google Play
+            </a>
           </div>
           <p class="hero-note">
             <span class="material-symbols-outlined">check_circle</span>
-            Gratis, sin registro, 100% privado. Web app + extensión Chrome.
+            Gratis, sin registro, 100% privado. Web app, extensión Chrome y Android.
           </p>
         </div>
         <div class="hero-image">
@@ -714,12 +718,18 @@
             Abrir Oráculo
           </a>
 
-          <button class="btn btn-secondary btn-large cta-extension-btn" onclick="document.getElementById('extensionModal').classList.add('active')">
-            <span class="material-symbols-outlined">extension</span>
-            Extensión Chrome
-          </button>
+          <div class="cta-buttons">
+            <button class="btn btn-secondary btn-large cta-extension-btn" onclick="document.getElementById('extensionModal').classList.add('active')">
+              <span class="material-symbols-outlined">extension</span>
+              Extensión Chrome
+            </button>
+            <a href="https://play.google.com/store/apps/details?id=app.movimientofuncional.oraculo" target="_blank" rel="noopener" class="btn btn-secondary btn-large">
+              <span class="material-symbols-outlined">android</span>
+              Google Play
+            </a>
+          </div>
           <p class="cta-note">
-            Funciona en cualquier navegador moderno. Chrome, Firefox, Safari, Edge.
+            Funciona en cualquier navegador moderno y en Android. Chrome, Firefox, Safari, Edge.
           </p>
         </div>
       </div>

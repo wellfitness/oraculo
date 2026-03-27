@@ -1501,6 +1501,9 @@ section {
    =================================== */
 
 .hero-extension {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
   margin-top: var(--space-3);
   margin-bottom: var(--space-4);
 }
@@ -1525,8 +1528,16 @@ section {
   text-decoration: underline;
 }
 
-.cta-extension-btn {
+.cta-buttons {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+  flex-wrap: wrap;
   margin-top: var(--space-4);
+}
+
+.cta-extension-btn {
+  margin-top: 0;
 }
 
 /* Overlay */
