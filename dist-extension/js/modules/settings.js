@@ -147,10 +147,13 @@ export const render = (data) => {
         </h2>
 
         <div class="local-storage-notice">
-          <span class="material-symbols-outlined">smartphone</span>
+          <span class="material-symbols-outlined">${window.__ORACULO_CAPACITOR__ ? 'phone_android' : 'smartphone'}</span>
           <div>
             <strong>Tus datos viven en este dispositivo</strong>
-            <p>Oráculo guarda todo localmente en tu navegador. Usa la app siempre desde el mismo dispositivo (recomendamos tu móvil principal) para mantener tu información sincronizada.</p>
+            <p>${window.__ORACULO_CAPACITOR__
+              ? 'Oráculo guarda todo localmente en esta app. Si tienes Google Backup activo, se respaldan automáticamente. Puedes exportar un backup manual en cualquier momento.'
+              : 'Oráculo guarda todo localmente en tu navegador. Usa la app siempre desde el mismo dispositivo (recomendamos tu móvil principal) para mantener tu información sincronizada.'
+            }</p>
           </div>
         </div>
 
@@ -171,6 +174,7 @@ export const render = (data) => {
             Importar backup
             <input type="file" id="import-data-input" accept=".json" hidden>
           </label>
+          ${window.__ORACULO_CAPACITOR__ ? '' : `
           <button class="btn btn--secondary" id="copy-data-btn" title="Copiar datos al portapapeles para sincronizar con la extensión Chrome o viceversa">
             <span class="material-symbols-outlined">content_copy</span>
             Copiar datos
@@ -179,6 +183,7 @@ export const render = (data) => {
             <span class="material-symbols-outlined">content_paste</span>
             Pegar datos
           </button>
+          `}
         </div>
       </section>
 
@@ -190,7 +195,7 @@ export const render = (data) => {
         </h2>
         <label class="toggle-label">
           <input type="checkbox" id="notifications-toggle" ${data.settings?.notificationsEnabled ? 'checked' : ''}>
-          <span>Activar notificaciones del navegador</span>
+          <span>${window.__ORACULO_CAPACITOR__ ? 'Activar notificaciones (breaks y hábitos)' : 'Activar notificaciones del navegador'}</span>
         </label>
       </section>
 
@@ -347,7 +352,10 @@ export const init = (data, updateData) => {
   console.log('[Settings] import-data-input encontrado:', !!importDataInput);
   console.log('[Settings] import-sync-input encontrado:', !!importSyncInput);
 
-  // === Sincronización entre dispositivos ===
+  // === Google Drive Sync ===
+  initGDriveSyncUI();
+
+  // === Sincronización manual ===
 
   // Exportar (botón de sincronización)
   document.getElementById('export-sync-btn')?.addEventListener('click', () => {
@@ -765,11 +773,55 @@ const renderSyncSection = () => {
   return `
     <section class="settings-section">
       <h2>
+        <span class="material-symbols-outlined">cloud_sync</span>
+        Google Drive Sync
+      </h2>
+
+      <div id="gdrive-sync-container">
+        <div id="gdrive-disconnected">
+          <p class="section-description">
+            Sincroniza tus datos automáticamente entre todos tus dispositivos.
+            Tus datos se guardan en <strong>tu Google Drive</strong>, en una carpeta privada que solo Oráculo puede ver.
+          </p>
+          <button class="btn btn--primary" id="gdrive-connect-btn">
+            <span class="material-symbols-outlined">link</span>
+            Conectar Google Drive
+          </button>
+          <p class="sync-privacy-note">
+            <span class="material-symbols-outlined">shield</span>
+            Solo accedemos a una carpeta oculta exclusiva de Oráculo. No leemos ningún otro archivo de tu Drive.
+          </p>
+        </div>
+
+        <div id="gdrive-connected" style="display:none;">
+          <div class="gdrive-status">
+            <span class="material-symbols-outlined gdrive-status-icon">cloud_done</span>
+            <div>
+              <p class="gdrive-email" id="gdrive-email"></p>
+              <p class="gdrive-last-sync" id="gdrive-last-sync"></p>
+            </div>
+          </div>
+          <div class="gdrive-actions">
+            <button class="btn btn--primary" id="gdrive-sync-now-btn">
+              <span class="material-symbols-outlined">sync</span>
+              Sincronizar ahora
+            </button>
+            <button class="btn btn--secondary btn--danger-text" id="gdrive-disconnect-btn">
+              <span class="material-symbols-outlined">link_off</span>
+              Desconectar
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-section">
+      <h2>
         <span class="material-symbols-outlined">sync</span>
-        Sincronizar entre Dispositivos
+        Sincronización Manual
       </h2>
       <p class="section-description">
-        Lleva tus datos a otro ordenador, tablet o móvil.
+        Exporta e importa datos manualmente si prefieres no usar Google Drive.
       </p>
 
       <div class="sync-instructions">
@@ -788,16 +840,8 @@ const renderSyncSection = () => {
         <div class="sync-step">
           <span class="step-number">2</span>
           <div class="step-content">
-            <strong>Súbelo a tu nube</strong>
-            <p>Google Drive, Dropbox, OneDrive, o envíatelo por email.</p>
-          </div>
-        </div>
-
-        <div class="sync-step">
-          <span class="step-number">3</span>
-          <div class="step-content">
             <strong>Importa en el otro dispositivo</strong>
-            <p>Abre Oráculo e importa el archivo.</p>
+            <p>Abre Oráculo en tu otro dispositivo e importa el archivo.</p>
             <label class="btn btn--secondary">
               <span class="material-symbols-outlined">upload</span>
               Importar backup
@@ -805,11 +849,6 @@ const renderSyncSection = () => {
             </label>
           </div>
         </div>
-      </div>
-
-      <div class="sync-tip">
-        <span class="material-symbols-outlined">lightbulb</span>
-        <p><strong>Consejo:</strong> Si vinculas una carpeta de Google Drive o Dropbox en tu ordenador (sección de abajo), los backups se sincronizarán automáticamente con la nube.</p>
       </div>
     </section>
   `;
@@ -987,3 +1026,105 @@ const renderUsageModeSection = (data) => {
     </section>
   `;
 };
+
+// ═══════════════════════════════════════════════════════════════
+// Google Drive Sync UI
+// ═══════════════════════════════════════════════════════════════
+
+async function initGDriveSyncUI() {
+  let gdriveSync;
+  try {
+    gdriveSync = await import('../gdrive/sync.js');
+  } catch (e) {
+    console.warn('[Settings] GDrive sync no disponible:', e.message);
+    return;
+  }
+
+  const disconnectedEl = document.getElementById('gdrive-disconnected');
+  const connectedEl = document.getElementById('gdrive-connected');
+  const emailEl = document.getElementById('gdrive-email');
+  const lastSyncEl = document.getElementById('gdrive-last-sync');
+
+  if (!disconnectedEl || !connectedEl) return;
+
+  // Mostrar estado actual
+  function updateSyncUI() {
+    const info = gdriveSync.getSyncInfo();
+    if (gdriveSync.isConnected()) {
+      disconnectedEl.style.display = 'none';
+      connectedEl.style.display = 'block';
+      emailEl.textContent = info.email || 'Conectada';
+      if (info.lastSyncAt) {
+        const ago = formatTimeAgo(info.lastSyncAt);
+        lastSyncEl.textContent = `Última sincronización: ${ago}`;
+      } else {
+        lastSyncEl.textContent = 'Pendiente de primera sincronización';
+      }
+    } else {
+      disconnectedEl.style.display = 'block';
+      connectedEl.style.display = 'none';
+    }
+  }
+
+  updateSyncUI();
+
+  // Conectar
+  document.getElementById('gdrive-connect-btn')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined">hourglass_empty</span> Conectando...';
+
+    try {
+      await gdriveSync.connect();
+      showNotification('Google Drive conectado. Tus datos se sincronizarán automáticamente.', 'success');
+      updateSyncUI();
+    } catch (err) {
+      console.error('[GDrive] Error conectando:', err);
+      showNotification('Error al conectar: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-symbols-outlined">link</span> Conectar Google Drive';
+    }
+  });
+
+  // Sincronizar ahora
+  document.getElementById('gdrive-sync-now-btn')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined">sync</span> Sincronizando...';
+
+    try {
+      await gdriveSync.syncNow();
+      showNotification('Datos sincronizados', 'success');
+      updateSyncUI();
+    } catch (err) {
+      showNotification('Error al sincronizar: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-symbols-outlined">sync</span> Sincronizar ahora';
+    }
+  });
+
+  // Desconectar
+  document.getElementById('gdrive-disconnect-btn')?.addEventListener('click', async () => {
+    if (!confirm('¿Desconectar Google Drive? Tus datos locales se mantendrán.')) return;
+
+    await gdriveSync.disconnect();
+    showNotification('Google Drive desconectado', 'success');
+    updateSyncUI();
+  });
+
+  // Escuchar cambios de estado del sync
+  window.addEventListener('gdrive-sync-status', () => updateSyncUI());
+}
+
+function formatTimeAgo(isoString) {
+  const diff = Date.now() - new Date(isoString).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'hace un momento';
+  if (mins < 60) return `hace ${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `hace ${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `hace ${days} día${days > 1 ? 's' : ''}`;
+}
