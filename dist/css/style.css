@@ -382,6 +382,12 @@ a:hover {
 /* Iconos del header sobre fondo oscuro */
 .app-header .btn--icon {
   color: var(--gris-300);
+  text-decoration: none;
+}
+
+.app-header a:hover,
+.app-header .btn--icon:hover {
+  text-decoration: none;
 }
 
 .app-header .btn--icon:hover {
