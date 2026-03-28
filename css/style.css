@@ -3613,6 +3613,11 @@ a.entry-type-btn {
     padding: var(--space-1) var(--space-2); /* 8px vert, 16px horiz */
   }
 
+  /* Muévete indicator: ocultar en móvil (accesible desde menú) */
+  .muevete-indicator {
+    display: none;
+  }
+
   /* Dashboard - reducir gaps y padding */
   .dashboard {
     gap: var(--space-2); /* 16px entre secciones */
