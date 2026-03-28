@@ -172,28 +172,22 @@
     // Skip Service Worker entirely in Capacitor native app
     if (window.__ORACULO_CAPACITOR__) { /* no SW in native */ } else {
 
-    const SW_VERSION = '3.0';
     const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
-    // Limpiar parámetro de versión SW y mostrar toast de actualización
-    (function() {
-      const url = new URL(location.href);
-      if (url.searchParams.has('_swv')) {
-        url.searchParams.delete('_swv');
-        history.replaceState(null, '', url.toString());
-        // Mostrar toast de actualización
-        const toast = document.createElement('div');
-        toast.className = 'notification notification--success';
-        toast.innerHTML = '<span class="material-symbols-outlined">update</span> App actualizada';
-        toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#06b6d4;color:white;padding:12px 24px;border-radius:8px;z-index:9999;display:flex;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);';
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-      }
-    })();
-
     if ('serviceWorker' in navigator) {
+      // Limpiar registros viejos con ?v= query params
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(reg => {
+          if (reg.active?.scriptURL?.includes('?v=')) {
+            console.log('[SW] Limpiando registro viejo:', reg.active.scriptURL);
+            reg.unregister();
+          }
+        });
+      });
+
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js?v=' + SW_VERSION)
+        // URL fija sin query params - el navegador detecta cambios por contenido
+        navigator.serviceWorker.register('/service-worker.js')
           .then((registration) => {
             console.log('SW registrado:', registration.scope);
 
@@ -206,14 +200,9 @@
 
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  if (isLocalhost) {
-                    // En desarrollo: auto-actualizar sin preguntar
-                    console.log('[DEV] Nueva versión detectada, actualizando...');
-                    newWorker.postMessage({ type: 'SKIP_WAITING' });
-                  } else {
-                    // En producción: mostrar toast
-                    showUpdateNotification(registration);
-                  }
+                  // Auto-actualizar siempre (skipWaiting + recarga)
+                  console.log('[SW] Nueva versión detectada, actualizando...');
+                  newWorker.postMessage({ type: 'SKIP_WAITING' });
                 }
               });
             });
