@@ -3498,8 +3498,13 @@ a.entry-type-btn {
     justify-content: center;
   }
 
+  /* Ocultar Muévete en móvil/tablet (accesible desde menú) */
+  .muevete-indicator {
+    display: none;
+  }
+
   .app-header {
-    position: relative;
+    position: sticky;
   }
 
   .app-nav {
@@ -3547,8 +3552,8 @@ a.entry-type-btn {
    -------------------------------------------------------------------------- */
 @media (max-width: 768px) {
   .app-header {
-    flex-wrap: wrap;
-    gap: var(--space-2);
+    flex-wrap: nowrap;
+    gap: var(--space-1);
   }
 
   .app-nav .nav-link {
@@ -17883,6 +17888,13 @@ select,
 .muevete-indicator {
   display: flex;
   align-items: center;
+}
+
+/* Ocultar en móvil/tablet - debe ir DESPUÉS del display:flex */
+@media (max-width: 900px) {
+  .muevete-indicator {
+    display: none;
+  }
 }
 
 .muevete-indicator__link {
