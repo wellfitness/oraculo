@@ -4,7 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- En app nativa, ir directo a la app (no mostrar landing) -->
-  <script>if(window.Capacitor&&window.Capacitor.isNativePlatform())location.replace('app.html');</script>
+  <script>
+    if (
+      (window.Capacitor && window.Capacitor.isNativePlatform()) ||
+      navigator.userAgent.includes('OráculoApp')
+    ) {
+      location.replace('app.html');
+    }
+  </script>
   <meta name="description" content="Oráculo - Gestión personal consciente + breaks de movimiento para mujeres +40. Organízate para cuidarte. Disponible como web app, extensión Chrome y Android.">
   <meta name="keywords" content="productividad consciente, gestión personal, mujeres 40, Oliver Burkeman, 4000 semanas, hábitos, organización, breaks movimiento, extensión chrome">
   <meta name="robots" content="index, follow">
@@ -122,9 +129,9 @@
               <span class="material-symbols-outlined">extension</span>
               Extensión Chrome
             </button>
-            <a href="https://play.google.com/apps/testing/app.movimientofuncional.oraculo" target="_blank" rel="noopener" class="btn btn-secondary btn-large">
+            <a href="mailto:info@movimientofuncional.com?subject=Quiero%20probar%20Or%C3%A1culo%20en%20Android&body=Hola%2C%20me%20gustar%C3%ADa%20probar%20Or%C3%A1culo%20en%20mi%20m%C3%B3vil.%0A%0AMi%20correo%20de%20Gmail%20(el%20que%20uso%20en%20Google%20Play)%3A%20%0A" class="btn btn-secondary btn-large">
               <span class="material-symbols-outlined">android</span>
-              Google Play
+              Android (Beta)
             </a>
           </div>
           <p class="hero-note">
@@ -723,9 +730,9 @@
               <span class="material-symbols-outlined">extension</span>
               Extensión Chrome
             </button>
-            <a href="https://play.google.com/apps/testing/app.movimientofuncional.oraculo" target="_blank" rel="noopener" class="btn btn-secondary btn-large">
+            <a href="mailto:info@movimientofuncional.com?subject=Quiero%20probar%20Or%C3%A1culo%20en%20Android&body=Hola%2C%20me%20gustar%C3%ADa%20probar%20Or%C3%A1culo%20en%20mi%20m%C3%B3vil.%0A%0AMi%20correo%20de%20Gmail%20(el%20que%20uso%20en%20Google%20Play)%3A%20%0A" class="btn btn-secondary btn-large">
               <span class="material-symbols-outlined">android</span>
-              Google Play
+              Android (Beta)
             </a>
           </div>
           <p class="cta-note">

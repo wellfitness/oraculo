@@ -3422,7 +3422,7 @@ a.entry-type-btn {
 /* Tablet */
 @media (max-width: 900px) {
   .capture-banner {
-    top: 56px;
+    top: 0;
     padding: var(--space-2);
   }
 
@@ -18799,5 +18799,6 @@ body.capacitor-native .app-header {
 /* Captura pegada debajo del header en app nativa */
 body.capacitor-native .capture-banner {
   position: sticky;
+  top: 0;
   z-index: 90;
 }
