@@ -5,7 +5,11 @@ const config: CapacitorConfig = {
   appName: 'Oráculo',
   webDir: 'dist',
   server: {
-    allowNavigation: ['fonts.googleapis.com', 'fonts.gstatic.com']
+    allowNavigation: ['fonts.googleapis.com', 'fonts.gstatic.com', 'accounts.google.com'],
+    androidScheme: 'https'
+  },
+  android: {
+    appendUserAgent: 'OráculoApp'
   },
   plugins: {
     SplashScreen: {
