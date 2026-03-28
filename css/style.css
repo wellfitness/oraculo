@@ -3634,6 +3634,13 @@ a.entry-type-btn {
     display: none;
   }
 
+  /* Modales largos: alinear arriba en vez de centrado vertical */
+  .modal--welcome,
+  .modal--large {
+    margin-top: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+
   /* Dashboard - reducir gaps y padding */
   .dashboard {
     gap: var(--space-2); /* 16px entre secciones */
