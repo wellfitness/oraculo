@@ -627,7 +627,9 @@ const getWheelSuggestions = (wheelAreas, evaluations, existingValues) => {
         desired: score.desired || 10,
         gap,
         hasLinkedValue,
-        reflection: score.reflection || ''
+        reflection: typeof score.reflection === 'string'
+          ? score.reflection
+          : (score.reflection?.why || score.reflection?.improve || '')
       };
     })
     .filter(s => s !== null && s.gap >= 2 && !s.hasLinkedValue) // Brecha >= 2 y sin valor vinculado

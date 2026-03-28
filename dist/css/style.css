@@ -3612,6 +3612,16 @@ a.entry-type-btn {
   /* Contenedor principal - padding lateral respirable */
   .app-main {
     padding: var(--space-2) 12px; /* 16px arriba/abajo, 12px lados */
+    overflow-x: hidden;
+  }
+
+  /* Evitar desbordamiento de tarjetas y columnas */
+  .kanban-column,
+  .card,
+  .module-card,
+  section {
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   /* Header - reducir padding lateral */
@@ -14418,6 +14428,8 @@ select,
 .wheel-chart-container {
   max-width: 500px;
   width: 100%;
+  overflow: visible;
+  padding: 0 var(--space-3);
 }
 
 /* Leyenda */
@@ -14902,6 +14914,7 @@ select,
 .wheel-chart {
   width: 100%;
   height: auto;
+  overflow: visible;
 }
 
 .wheel-grid-circle {
