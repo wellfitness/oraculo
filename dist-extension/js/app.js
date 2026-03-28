@@ -594,6 +594,12 @@ const setupSaveButton = () => {
  * Verifica cada minuto si es la hora del hábito y envía notificación
  */
 const setupHabitReminder = () => {
+  // En Capacitor: usar notificacion nativa programada (funciona en background)
+  if (window.__ORACULO_CAPACITOR__) {
+    scheduleNativeHabitReminder();
+    return;
+  }
+
   let lastNotifiedMinute = null;
 
   const checkHabitTime = () => {
@@ -633,6 +639,27 @@ const setupHabitReminder = () => {
   setInterval(checkHabitTime, 30000);
   // Verificar inmediatamente
   checkHabitTime();
+};
+
+/**
+ * Programa recordatorio nativo diario para el habito activo (Capacitor)
+ */
+const scheduleNativeHabitReminder = async () => {
+  const habit = state.data?.habits?.active;
+  if (!habit || !habit.scheduledTime) return;
+
+  try {
+    const { scheduleHabitNotification } = await import('./capacitor-bridge.js');
+    const [hour, minute] = habit.scheduledTime.split(':').map(Number);
+    await scheduleHabitNotification({
+      title: `Hora de: ${habit.name}`,
+      body: habit.micro ? `Empieza con: ${habit.micro}` : 'Tu hábito te espera',
+      hour,
+      minute
+    });
+  } catch (e) {
+    console.warn('[Capacitor] Error programando recordatorio habito:', e);
+  }
 };
 
 const setupGlobalCapture = () => {
@@ -1019,12 +1046,84 @@ export const generateId = () => {
 // Bootstrap: cargar storage dinámicamente según contexto e iniciar app
 const bootstrap = async () => {
   const isExtension = !!(window.__ORACULO_EXTENSION__ || (typeof chrome !== 'undefined' && chrome.runtime?.id));
+  const isCapacitor = !!window.__ORACULO_CAPACITOR__;
+
   const mod = isExtension
     ? await import('./storage-local.js')
     : await import('./storage-hybrid.js');
   _storage = mod;
+
+  // Inicializar plugins nativos en Capacitor
+  if (isCapacitor) {
+    try {
+      const { initCapacitorPlugins } = await import('./capacitor-bridge.js');
+      await initCapacitorPlugins();
+    } catch (e) {
+      console.warn('[Capacitor] Error inicializando plugins:', e);
+    }
+  }
+
   init();
+
+  // Inicializar Google Drive Sync (no bloquea el arranque)
+  try {
+    const gdriveSync = await import('./gdrive/sync.js');
+    const platform = isExtension ? 'extension' : isCapacitor ? 'capacitor' : 'web';
+    gdriveSync.init(platform);
+    initSyncButton(gdriveSync);
+  } catch (e) {
+    console.warn('[GDrive] Sync no disponible:', e.message);
+  }
 };
+
+function initSyncButton(gdriveSync) {
+  const btn = document.getElementById('global-sync-btn');
+  const icon = document.getElementById('global-sync-icon');
+  if (!btn || !icon) return;
+
+  function updateIcon() {
+    const connected = gdriveSync.isConnected();
+    btn.style.display = 'flex';
+    icon.textContent = connected ? 'cloud_done' : 'cloud_off';
+    btn.title = connected ? 'Sincronizar con Google Drive' : 'Conectar Google Drive';
+    btn.classList.toggle('sync-connected', connected);
+  }
+
+  updateIcon();
+
+  btn.addEventListener('click', async () => {
+    if (gdriveSync.isConnected()) {
+      icon.textContent = 'sync';
+      btn.disabled = true;
+      try {
+        await gdriveSync.syncNow();
+        showNotification('Datos sincronizados', 'success');
+      } catch (err) {
+        showNotification('Error al sincronizar', 'error');
+      } finally {
+        btn.disabled = false;
+        updateIcon();
+      }
+    } else {
+      // Conectar directamente
+      icon.textContent = 'sync';
+      btn.disabled = true;
+      try {
+        await gdriveSync.connect();
+        showNotification('Google Drive conectado', 'success');
+      } catch (err) {
+        if (err.message !== 'popup_closed_by_user') {
+          showNotification('Error al conectar: ' + err.message, 'error');
+        }
+      } finally {
+        btn.disabled = false;
+        updateIcon();
+      }
+    }
+  });
+
+  window.addEventListener('gdrive-sync-status', updateIcon);
+}
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', bootstrap);
