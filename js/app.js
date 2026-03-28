@@ -1064,7 +1064,66 @@ const bootstrap = async () => {
   }
 
   init();
+
+  // Inicializar Google Drive Sync (no bloquea el arranque)
+  try {
+    const gdriveSync = await import('./gdrive/sync.js');
+    const platform = isExtension ? 'extension' : isCapacitor ? 'capacitor' : 'web';
+    gdriveSync.init(platform);
+    initSyncButton(gdriveSync);
+  } catch (e) {
+    console.warn('[GDrive] Sync no disponible:', e.message);
+  }
 };
+
+function initSyncButton(gdriveSync) {
+  const btn = document.getElementById('global-sync-btn');
+  const icon = document.getElementById('global-sync-icon');
+  if (!btn || !icon) return;
+
+  function updateIcon() {
+    const connected = gdriveSync.isConnected();
+    btn.style.display = 'flex';
+    icon.textContent = connected ? 'cloud_done' : 'cloud_off';
+    btn.title = connected ? 'Sincronizar con Google Drive' : 'Conectar Google Drive';
+    btn.classList.toggle('sync-connected', connected);
+  }
+
+  updateIcon();
+
+  btn.addEventListener('click', async () => {
+    if (gdriveSync.isConnected()) {
+      icon.textContent = 'sync';
+      btn.disabled = true;
+      try {
+        await gdriveSync.syncNow();
+        showNotification('Datos sincronizados', 'success');
+      } catch (err) {
+        showNotification('Error al sincronizar', 'error');
+      } finally {
+        btn.disabled = false;
+        updateIcon();
+      }
+    } else {
+      // Conectar directamente
+      icon.textContent = 'sync';
+      btn.disabled = true;
+      try {
+        await gdriveSync.connect();
+        showNotification('Google Drive conectado', 'success');
+      } catch (err) {
+        if (err.message !== 'popup_closed_by_user') {
+          showNotification('Error al conectar: ' + err.message, 'error');
+        }
+      } finally {
+        btn.disabled = false;
+        updateIcon();
+      }
+    }
+  });
+
+  window.addEventListener('gdrive-sync-status', updateIcon);
+}
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', bootstrap);

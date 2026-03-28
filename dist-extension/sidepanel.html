@@ -14,7 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="css/extension-overrides.css">
 </head>
 <body>
@@ -81,6 +81,9 @@
         <button type="button" id="global-voice-btn" class="btn btn--icon btn--voice" title="Dictar por voz">
           <span class="material-symbols-outlined">mic</span>
         </button>
+        <button type="button" id="global-sync-btn" class="btn btn--icon" title="Google Drive Sync" style="display:none;">
+          <span class="material-symbols-outlined" id="global-sync-icon">cloud_off</span>
+        </button>
         <button type="button" id="global-save-btn" class="btn btn--icon" title="Guardar backup">
           <span class="material-symbols-outlined">save</span>
         </button>
@@ -135,6 +138,6 @@
 
   <!-- Marcar contexto de extensión ANTES de cargar app.js -->
   <script src="init-extension.js"></script>
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="../js/app.js"></script>
 </body>
 </html>
