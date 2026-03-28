@@ -3,8 +3,8 @@
  * Estrategia: Network-first para HTML/JS/CSS, Cache-first para imágenes
  */
 
-const CACHE_NAME = 'oraculo-v2.7';
-const STATIC_CACHE = 'oraculo-static-v2.6';
+const CACHE_NAME = 'oraculo-v3.0';
+const STATIC_CACHE = 'oraculo-static-v3.0';
 
 // Archivos a cachear en la instalación
 const STATIC_ASSETS = [
@@ -32,6 +32,11 @@ const STATIC_ASSETS = [
   '/js/components/daily-setup-modal.js',
   '/js/components/spontaneous-achievement.js',
   '/js/components/calm-timer.js',
+  // GDrive Sync
+  '/js/gdrive/config.js',
+  '/js/gdrive/drive-api.js',
+  '/js/gdrive/sync.js',
+  '/js/gdrive/auth-web.js',
   // Data y utils
   '/js/data/burkeman.js',
   '/js/utils/achievements-calculator.js',
