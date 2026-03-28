@@ -214,6 +214,10 @@ export const saveData = (data) => {
   try {
     data.updatedAt = new Date().toISOString();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+    // Notificar al sync layer (Google Drive) que hubo cambio
+    window.dispatchEvent(new CustomEvent('data-saved'));
+
     return true;
   } catch (error) {
     console.error('Error guardando datos:', error);

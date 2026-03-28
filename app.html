@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Oráculo - Gestión Personal Consciente</title>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; script-src 'self' 'unsafe-inline';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; script-src 'self' 'unsafe-inline' https://accounts.google.com; connect-src 'self' https://www.googleapis.com https://accounts.google.com;">
   <meta name="description" content="Sistema de gestión personal que te ayuda a priorizar lo importante. Basado en Hábitos Atómicos y filosofía Burkeman.">
 
   <!-- Fonts -->
@@ -30,6 +30,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Oráculo">
 
+  <!-- Google Identity Services (para sync con Google Drive) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
   <a href="#app-content" class="skip-link">Saltar al contenido principal</a>
@@ -92,6 +94,10 @@
         <!-- Botón de dictado por voz -->
         <button type="button" id="global-voice-btn" class="btn btn--icon btn--voice" title="Dictar por voz">
           <span class="material-symbols-outlined">mic</span>
+        </button>
+        <!-- Botón de sync Google Drive -->
+        <button type="button" id="global-sync-btn" class="btn btn--icon" title="Google Drive Sync" style="display:none;">
+          <span class="material-symbols-outlined" id="global-sync-icon">cloud_off</span>
         </button>
         <!-- Botón de guardar backup -->
         <button type="button" id="global-save-btn" class="btn btn--icon" title="Guardar backup">

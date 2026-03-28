@@ -5,8 +5,18 @@
   "description": "Captura ideas, organiza tu día y cultiva hábitos. Sistema de gestión personal basado en Hábitos Atómicos y filosofía Burkeman.",
   "permissions": [
     "sidePanel",
-    "notifications"
+    "notifications",
+    "identity"
   ],
+  "host_permissions": [
+    "https://www.googleapis.com/*"
+  ],
+  "oauth2": {
+    "client_id": "113523103085-t0sj57s11kqo5r28r9e7s7b8llv1rttp.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/drive.appdata"
+    ]
+  },
   "side_panel": {
     "default_path": "sidepanel.html"
   },
@@ -29,6 +39,6 @@
     "service_worker": "background.js"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self'"
+    "extension_pages": "script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self'; connect-src 'self' https://www.googleapis.com https://accounts.google.com"
   }
 }
