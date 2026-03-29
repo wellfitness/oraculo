@@ -4,7 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- En app nativa, ir directo a la app (no mostrar landing) -->
-  <script>if(window.Capacitor&&window.Capacitor.isNativePlatform())location.replace('app.html');</script>
+  <script>
+    if (
+      (window.Capacitor && window.Capacitor.isNativePlatform()) ||
+      navigator.userAgent.includes('OráculoApp')
+    ) {
+      location.replace('app.html');
+    }
+  </script>
   <meta name="description" content="Oráculo - Gestión personal consciente + breaks de movimiento para mujeres +40. Organízate para cuidarte. Disponible como web app, extensión Chrome y Android.">
   <meta name="keywords" content="productividad consciente, gestión personal, mujeres 40, Oliver Burkeman, 4000 semanas, hábitos, organización, breaks movimiento, extensión chrome">
   <meta name="robots" content="index, follow">
@@ -91,6 +98,10 @@
         <a href="#semanas">4000 Semanas</a>
         <a href="#caracteristicas">Características</a>
         <a href="#modulos">Módulos</a>
+        <a href="https://t.me/+MMVo--mI9Ms4ZGM0" target="_blank" rel="noopener" title="Grupo de Telegram">
+          <span class="material-symbols-outlined" style="font-size: 20px; vertical-align: middle;">forum</span>
+          Comunidad
+        </a>
         <a href="app.html" class="btn btn-primary">Abrir App</a>
       </nav>
       <button class="nav-toggle" aria-label="Abrir menú">
@@ -705,32 +716,42 @@
       </div>
     </section>
 
-    <!-- CTA Final Section -->
-    <section class="cta-final">
+    <!-- CTA Final + Comunidad -->
+    <section class="cta-final" id="comunidad">
       <div class="container">
-        <div class="cta-content">
-          <h2>Empieza hoy. <span class="highlight">Sin presión.</span></h2>
-          <p class="cta-subtitle">Sin registro. Sin cuenta. Sin suscripción.</p>
-          <p class="cta-tagline">Tus datos son tuyos, en tu navegador.<br>Gratis. Siempre.</p>
+        <div class="cta-grid">
+          <div class="cta-content">
+            <h2>Empieza hoy. <span class="highlight">Sin presión.</span></h2>
+            <p class="cta-subtitle">Sin registro. Sin cuenta. Sin suscripción.</p>
+            <p class="cta-tagline">Tus datos son tuyos, en tu navegador.<br>Gratis. Siempre.</p>
 
-          <a href="app.html" class="btn btn-primary btn-xlarge">
-            <span class="material-symbols-outlined">auto_awesome</span>
-            Abrir Oráculo
-          </a>
-
-          <div class="cta-buttons">
-            <button class="btn btn-secondary btn-large cta-extension-btn" onclick="document.getElementById('extensionModal').classList.add('active')">
-              <span class="material-symbols-outlined">extension</span>
-              Extensión Chrome
-            </button>
-            <a href="mailto:info@movimientofuncional.com?subject=Quiero%20probar%20Or%C3%A1culo%20en%20Android&body=Hola%2C%20me%20gustar%C3%ADa%20probar%20Or%C3%A1culo%20en%20mi%20m%C3%B3vil.%0A%0AMi%20correo%20de%20Gmail%20(el%20que%20uso%20en%20Google%20Play)%3A%20%0A" class="btn btn-secondary btn-large">
-              <span class="material-symbols-outlined">android</span>
-              Android (Beta)
+            <a href="app.html" class="btn btn-primary btn-xlarge">
+              <span class="material-symbols-outlined">auto_awesome</span>
+              Abrir Oráculo
             </a>
+
+            <div class="cta-buttons">
+              <button class="btn btn-secondary btn-large cta-extension-btn" onclick="document.getElementById('extensionModal').classList.add('active')">
+                <span class="material-symbols-outlined">extension</span>
+                Extensión Chrome
+              </button>
+              <a href="mailto:info@movimientofuncional.com?subject=Quiero%20probar%20Or%C3%A1culo%20en%20Android&body=Hola%2C%20me%20gustar%C3%ADa%20probar%20Or%C3%A1culo%20en%20mi%20m%C3%B3vil.%0A%0AMi%20correo%20de%20Gmail%20(el%20que%20uso%20en%20Google%20Play)%3A%20%0A" class="btn btn-secondary btn-large">
+                <span class="material-symbols-outlined">android</span>
+                Android (Beta)
+              </a>
+            </div>
           </div>
-          <p class="cta-note">
-            Funciona en cualquier navegador moderno y en Android. Chrome, Firefox, Safari, Edge.
-          </p>
+
+          <div class="cta-community">
+            <span class="material-symbols-outlined community-icon">group</span>
+            <h3>Tu espacio para compartir</h3>
+            <p>Experiencias, trucos, agobios y logros con otras mujeres que se organizan para cuidarse. Sin presión, sin juicio.</p>
+            <a href="https://t.me/+MMVo--mI9Ms4ZGM0" target="_blank" rel="noopener" class="btn btn-primary btn-large">
+              <span class="material-symbols-outlined">send</span>
+              Comunidad en Telegram
+            </a>
+            <p class="community-note">Feedback, ideas, dudas... todo es bienvenido.</p>
+          </div>
         </div>
       </div>
     </section>
