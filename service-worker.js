@@ -3,8 +3,8 @@
  * Estrategia: Network-first para HTML/JS/CSS, Cache-first para imágenes
  */
 
-const CACHE_NAME = 'oraculo-v2.7';
-const STATIC_CACHE = 'oraculo-static-v2.6';
+const CACHE_NAME = 'oraculo-v1.6.0';
+const STATIC_CACHE = 'oraculo-static-v1.6.0';
 
 // Archivos a cachear en la instalación
 const STATIC_ASSETS = [
