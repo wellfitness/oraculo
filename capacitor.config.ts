@@ -23,6 +23,11 @@ const config: CapacitorConfig = {
       smallIcon: 'ic_stat_oraculo',
       iconColor: '#06b6d4',
       sound: 'alert.mp3'
+    },
+    GoogleAuth: {
+      scopes: ['https://www.googleapis.com/auth/drive.appdata'],
+      serverClientId: '113523103085-jdtnfi537aa6contu7h5142h2mbchnqa.apps.googleusercontent.com',
+      forceCodeForRefreshToken: true
     }
   }
 };
