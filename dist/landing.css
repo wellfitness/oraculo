@@ -1025,10 +1025,61 @@ section {
 }
 
 /* --- CTA Final Section --- */
+/* ===================================
+   CTA Final + Comunidad
+   =================================== */
+
 .cta-final {
   background: linear-gradient(135deg, var(--turquesa-600) 0%, var(--turquesa-700) 100%);
   color: var(--color-white);
+}
+
+.cta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-12);
+  align-items: center;
+}
+
+.cta-content {
   text-align: center;
+}
+
+.cta-community {
+  text-align: center;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: var(--radius-xl, 16px);
+  padding: var(--space-8);
+}
+
+.cta-community h3 {
+  color: var(--color-white);
+  margin-bottom: var(--space-3);
+}
+
+.cta-community p {
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.6;
+  margin-bottom: var(--space-4);
+}
+
+.community-icon {
+  font-size: 48px;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: var(--space-3);
+}
+
+.community-note {
+  font-size: var(--font-size-sm);
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .cta-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
 }
 
 .cta-content h2 {

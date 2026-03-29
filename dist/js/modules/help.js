@@ -595,6 +595,21 @@ export const render = (data) => {
 
 
 
+      <!-- Comunidad -->
+      <section class="help-section">
+        <div class="help-footer-message">
+          <span class="material-symbols-outlined">forum</span>
+          <div>
+            <p><strong>Comunidad de Oráculo</strong></p>
+            <p>Comparte tu experiencia, da feedback y conecta con otras usuarias.</p>
+            <a href="https://t.me/+MMVo--mI9Ms4ZGM0" target="_blank" rel="noopener" class="btn btn--primary" style="margin-top: 8px;">
+              <span class="material-symbols-outlined">send</span>
+              Unirme al grupo de Telegram
+            </a>
+          </div>
+        </div>
+      </section>
+
       <!-- Cierre -->
       <section class="help-section help-section--footer">
         <div class="help-footer-message">
