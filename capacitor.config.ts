@@ -27,7 +27,7 @@ const config: CapacitorConfig = {
     GoogleAuth: {
       scopes: ['https://www.googleapis.com/auth/drive.appdata'],
       serverClientId: '113523103085-jdtnfi537aa6contu7h5142h2mbchnqa.apps.googleusercontent.com',
-      forceCodeForRefreshToken: true
+      forceCodeForRefreshToken: false
     }
   }
 };

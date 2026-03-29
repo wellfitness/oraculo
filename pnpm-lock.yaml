@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@codetrix-studio/capacitor-google-auth':
+    hash: d45b6fa4efa441c2af449e6a54f7c73ded4737e0f538e7ba7f2ff9e3aa75c1ee
+    path: patches/@codetrix-studio__capacitor-google-auth.patch
+
 importers:
 
   .:
@@ -28,7 +33,7 @@ importers:
         version: 8.0.2(@capacitor/core@8.3.0)
       '@codetrix-studio/capacitor-google-auth':
         specifier: 3.4.0-rc.4
-        version: 3.4.0-rc.4(@capacitor/core@8.3.0)
+        version: 3.4.0-rc.4(patch_hash=d45b6fa4efa441c2af449e6a54f7c73ded4737e0f538e7ba7f2ff9e3aa75c1ee)(@capacitor/core@8.3.0)
     devDependencies:
       '@capacitor/assets':
         specifier: 3.0.5
@@ -1841,7 +1846,7 @@ snapshots:
     dependencies:
       '@capacitor/core': 8.3.0
 
-  '@codetrix-studio/capacitor-google-auth@3.4.0-rc.4(@capacitor/core@8.3.0)':
+  '@codetrix-studio/capacitor-google-auth@3.4.0-rc.4(patch_hash=d45b6fa4efa441c2af449e6a54f7c73ded4737e0f538e7ba7f2ff9e3aa75c1ee)(@capacitor/core@8.3.0)':
     dependencies:
       '@capacitor/core': 8.3.0
 

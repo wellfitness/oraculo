@@ -1,0 +1,50 @@
+diff --git a/android/build.gradle b/android/build.gradle
+index 4bb66ea7934622a84404a28c9313006eb0b619a6..7b996fe2cb2137ae95d8182fb10fc869b5768709 100644
+--- a/android/build.gradle
++++ b/android/build.gradle
+@@ -5,17 +5,6 @@ ext {
+     androidxEspressoCoreVersion = project.hasProperty('androidxEspressoCoreVersion') ? rootProject.ext.androidxEspressoCoreVersion : '3.5.1'
+ }
+ 
+-buildscript {
+-    repositories {
+-        jcenter()
+-        google()
+-    }
+-    dependencies {
+-        classpath 'com.android.tools.build:gradle:8.2.1'
+-        classpath 'com.google.gms:google-services:4.4.0'
+-    }
+-}
+-
+ apply plugin: 'com.android.library'
+ 
+ android {
+@@ -31,10 +20,10 @@ android {
+     buildTypes {
+         release {
+             minifyEnabled false
+-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
++            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+         }
+     }
+-    lintOptions {
++    lint {
+         abortOnError false
+     }
+     compileOptions {
+@@ -45,7 +34,6 @@ android {
+ 
+ repositories {
+     google()
+-    jcenter()
+     mavenCentral()
+ }
+ 
+@@ -57,5 +45,5 @@ dependencies {
+     testImplementation "junit:junit:$junitVersion"
+     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+-    implementation 'com.google.android.gms:play-services-auth:18.+'
++    implementation 'com.google.android.gms:play-services-auth:21.3.0'
+ }
