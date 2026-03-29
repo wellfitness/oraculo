@@ -55,8 +55,11 @@ const SECTION_REGISTRY = {
     }
   },
 
+  // habits.audit.lastAuditAt se preserva como sub-campo atomico
+  // Se procesa ANTES de habits.audit.activities para que el merge de activities lo refine
+  'habits.audit.lastAuditAt':        { type: 'atomic', path: 'habits.audit.lastAuditAt' },
+
   // Objetos atomicos → LWW por seccion
-  'habits.audit':                    { type: 'atomic', path: 'habits.audit' },
   'settings':                        { type: 'atomic', path: 'settings' },
   'onboarding':                      { type: 'atomic', path: 'onboarding' },
   'notebook':                        { type: 'atomic', path: 'notebook' },
@@ -215,26 +218,24 @@ function mergeArrays(localArr, remoteArr, sectionKey, localData, remoteData, get
   const localMap = new Map();
   const remoteMap = new Map();
 
-  // Hash determinista para items sin clave (evita duplicacion en merges sucesivos)
-  const hashItem = (item, index) => `_orphan_${index}_${JSON.stringify(item).length}`;
+  // Hash determinista basado en contenido (evita duplicacion en merges sucesivos)
+  const hashItem = (item) => `_orphan_${JSON.stringify(item)}`;
 
-  for (let i = 0; i < (localArr || []).length; i++) {
-    const item = localArr[i];
+  for (const item of (localArr || [])) {
     const key = keyFn(item);
     if (key) {
       localMap.set(key, item);
     } else {
       console.warn(`[GDrive Merge] Item sin clave en ${sectionKey}, se conservara`);
-      localMap.set(hashItem(item, i), item);
+      localMap.set(hashItem(item), item);
     }
   }
-  for (let i = 0; i < (remoteArr || []).length; i++) {
-    const item = remoteArr[i];
+  for (const item of (remoteArr || [])) {
     const key = keyFn(item);
     if (key) {
       remoteMap.set(key, item);
     } else {
-      remoteMap.set(hashItem(item, i), item);
+      remoteMap.set(hashItem(item), item);
     }
   }
 
@@ -292,8 +293,8 @@ function mergeArrays(localArr, remoteArr, sectionKey, localData, remoteData, get
       const remoteTs = getItemTimestamp(remoteItem);
 
       if (localTs === remoteTs) {
-        // Sin cambios → mantener remote (es la base clonada)
-        result.push(remoteItem);
+        // Sin cambios → mantener remote (clonado)
+        result.push(JSON.parse(JSON.stringify(remoteItem)));
       } else if (localTs > remoteTs) {
         // Local mas reciente
         result.push(JSON.parse(JSON.stringify(localItem)));
@@ -309,8 +310,8 @@ function mergeArrays(localArr, remoteArr, sectionKey, localData, remoteData, get
           });
         }
       } else {
-        // Remote mas reciente
-        result.push(remoteItem);
+        // Remote mas reciente (clonado)
+        result.push(JSON.parse(JSON.stringify(remoteItem)));
         if (wasModified(localItem) && wasModified(remoteItem)) {
           conflicts.push({
             section: sectionKey,
