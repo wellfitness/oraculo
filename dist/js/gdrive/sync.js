@@ -302,114 +302,78 @@ async function push(accessToken) {
 
   if (fileId) {
     // CAPA 1: Verificar version antes de escribir
+    let meta;
     try {
-      const meta = await getFileMetadata(accessToken, fileId);
-
-      if (syncState.fileVersion && meta.version !== syncState.fileVersion) {
-        // Otro dispositivo escribio desde nuestro ultimo sync
-        console.log(
-          `[GDrive Sync] Version mismatch (local: ${syncState.fileVersion}, ` +
-          `remote: ${meta.version}). Iniciando merge...`
-        );
-        await pullAndMerge(accessToken, fileId);
-        return;
-      }
-
-      // Version OK → actualizar
-      const result = await updateFile(accessToken, fileId, localData);
-      setSyncState({
-        fileId: result.id,
-        fileVersion: result.version,
-        lastSyncAt: new Date().toISOString(),
-      });
+      meta = await getFileMetadata(accessToken, fileId);
     } catch (err) {
-      // Si getFileMetadata falla (404?), el archivo pudo ser borrado
+      // getFileMetadata fallo (404 = archivo borrado, 401 = token)
       console.warn('[GDrive Sync] No se pudo verificar version:', err.message);
-      // Intentar buscar el archivo de nuevo
       const existing = await findFile(accessToken);
       if (existing) {
-        // Archivo reencontrado: verificar version antes de escribir
         setSyncState({ fileId: existing.id, fileVersion: existing.version });
-
         if (syncState.fileVersion && existing.version !== syncState.fileVersion) {
-          // Version diferente → merge
           await pullAndMerge(accessToken, existing.id);
           return;
         }
-
         const result = await updateFile(accessToken, existing.id, localData);
-        setSyncState({
-          fileId: result.id,
-          fileVersion: result.version,
-          lastSyncAt: new Date().toISOString(),
-        });
+        setSyncState({ fileId: result.id, fileVersion: result.version, lastSyncAt: new Date().toISOString() });
       } else {
-        // Archivo no existe → crear nuevo
         const result = await createFile(accessToken, localData);
-        setSyncState({
-          fileId: result.id,
-          fileVersion: result.version,
-          lastSyncAt: new Date().toISOString(),
-        });
+        setSyncState({ fileId: result.id, fileVersion: result.version, lastSyncAt: new Date().toISOString() });
         console.log('[GDrive Sync] Push completado (archivo nuevo)');
-        return;
       }
+      return;
     }
+
+    // Metadata obtenida OK → verificar version
+    if (syncState.fileVersion && meta.version !== syncState.fileVersion) {
+      console.log(
+        `[GDrive Sync] Version mismatch (local: ${syncState.fileVersion}, ` +
+        `remote: ${meta.version}). Iniciando merge...`
+      );
+      await pullAndMerge(accessToken, fileId);
+      return;
+    }
+
+    // Version OK → actualizar (try separado para distinguir de error de metadata)
+    const result = await updateFile(accessToken, fileId, localData);
+    setSyncState({ fileId: result.id, fileVersion: result.version, lastSyncAt: new Date().toISOString() });
   } else {
     // No tenemos fileId → buscar o crear
     const existing = await findFile(accessToken);
     if (existing) {
+      // Guardar fileId inmediatamente (aunque updateFile falle, no repetimos findFile)
+      setSyncState({ fileId: existing.id, fileVersion: existing.version });
+
       // Leer remote para anti-regresion y posible merge
       const remoteData = await readFile(accessToken, existing.id);
 
       if (remoteData && !isEmptyData(remoteData) && isEmptyData(localData)) {
-        // Anti-regresion: local vacio, no sobrescribir remote rico
         console.log('[GDrive Sync] Anti-regresion: local vacio, aplicando remote');
         applyRemoteData(remoteData);
-        setSyncState({
-          fileId: existing.id,
-          fileVersion: existing.version,
-          lastSyncAt: new Date().toISOString(),
-        });
+        setSyncState({ lastSyncAt: new Date().toISOString() });
         return;
       }
 
       if (remoteData && remoteData.updatedAt) {
-        // Remote tiene datos → merge en vez de sobrescribir
-        const remoteTime = new Date(remoteData.updatedAt).getTime();
-        const localTime = new Date(localData.updatedAt).getTime();
+        // Remote tiene datos → merge para no perder nada
+        const { merged, conflicts } = mergeData(localData, remoteData);
+        if (conflicts.length > 0) saveConflicts(conflicts);
 
-        if (remoteTime > localTime || (remoteTime > 0 && localTime > 0)) {
-          // Posible divergencia → merge para estar seguros
-          const { merged, conflicts } = mergeData(localData, remoteData);
-          if (conflicts.length > 0) saveConflicts(conflicts);
-
-          applyRemoteData(merged);
-          const result = await updateFile(accessToken, existing.id, merged);
-          setSyncState({
-            fileId: result.id,
-            fileVersion: result.version,
-            lastSyncAt: new Date().toISOString(),
-          });
-          console.log('[GDrive Sync] Push completado (con merge)');
-          return;
-        }
+        // Subir merged PRIMERO, luego aplicar localmente
+        const result = await updateFile(accessToken, existing.id, merged);
+        setSyncState({ fileId: result.id, fileVersion: result.version, lastSyncAt: new Date().toISOString() });
+        applyRemoteData(merged);
+        console.log('[GDrive Sync] Push completado (con merge)');
+        return;
       }
 
       // Remote vacio o sin updatedAt → push directo
       const result = await updateFile(accessToken, existing.id, localData);
-      setSyncState({
-        fileId: result.id,
-        fileVersion: result.version,
-        lastSyncAt: new Date().toISOString(),
-      });
+      setSyncState({ fileId: result.id, fileVersion: result.version, lastSyncAt: new Date().toISOString() });
     } else {
       const result = await createFile(accessToken, localData);
-      setSyncState({
-        fileId: result.id,
-        fileVersion: result.version,
-        lastSyncAt: new Date().toISOString(),
-      });
+      setSyncState({ fileId: result.id, fileVersion: result.version, lastSyncAt: new Date().toISOString() });
     }
   }
 
@@ -501,7 +465,8 @@ async function pullAndMerge(accessToken, fileId) {
       });
     } catch (innerErr) {
       console.error('[GDrive Sync] Fallback tambien fallo:', innerErr.message);
-      setSyncState({ lastSyncAt: new Date().toISOString() });
+      // Limpiar fileId por si el archivo fue borrado/recreado
+      setSyncState({ fileId: null, fileVersion: null, lastSyncAt: new Date().toISOString() });
     }
   }
 }

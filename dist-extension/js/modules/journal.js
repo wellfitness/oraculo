@@ -3,7 +3,7 @@
  * Journaling con prompts guiados - Páginas completas (sin modales)
  */
 
-import { generateId, showNotification, formatDate } from '../app.js';
+import { generateId, showNotification, formatDate, openEveningCheckIn, recordDeletion } from '../app.js';
 import { escapeHTML } from '../utils/sanitizer.js';
 import {
   getReflexionDelDia,
@@ -27,7 +27,7 @@ const ENTRY_TYPES = {
   weekly: { name: 'Revisión semanal', icon: 'date_range', iconClass: 'icon-primary' },
   quarterly: { name: 'Revisión trimestral', icon: 'flag', iconClass: 'icon-secondary' },
   discomfort: { name: 'Registro de incomodidad', icon: 'psychology', iconClass: 'icon-secondary' },
-  meditation: { name: 'Meditación', icon: 'self_improvement', iconClass: 'icon-primary' },
+  // meditation eliminado — reemplazado por bienestar en evening check-in
   // Herramientas Mark Manson
   gratitude: { name: 'Gratitud', icon: 'favorite', iconClass: 'icon-danger' },
   'letting-go': { name: 'Lista Soltar', icon: 'delete_sweep', iconClass: 'icon-muted' },
@@ -60,12 +60,7 @@ const PROMPTS = {
     '¿Estoy cuidando de mi salud física y mental?'
   ],
   discomfort: getPromptsIncomodidad(),
-  meditation: [
-    '¿Qué surgió durante la práctica?',
-    '¿Qué pensamientos o sensaciones notaste?',
-    '¿Hubo algún momento de resistencia?',
-    '¿Cómo te sientes ahora comparado con antes?'
-  ],
+  // meditation eliminado — bienestar integrado en evening check-in
   // Herramientas Mark Manson
   gratitude: getHerramienta('gratitude')?.prompts || [],
   'letting-go': getHerramienta('letting-go')?.prompts || [],
@@ -106,6 +101,12 @@ export const render = (data) => {
   const route = parseJournalRoute();
 
   if (route.mode === 'new') {
+    // Evening check-in usa su propio modal estructurado
+    if (route.type === 'evening-check-in') {
+      window.location.hash = '#journal';
+      setTimeout(() => openEveningCheckIn(), 100);
+      return renderList(data);
+    }
     return renderEditor(data, null, route.type);
   }
   if (route.mode === 'edit') {
@@ -367,6 +368,7 @@ const setupEditor = (data) => {
       confirmText: 'Sí, eliminar',
       cancelText: 'No, mantener'
     }, () => {
+      recordDeletion(data, 'journal', id);
       data.journal = data.journal.filter(e => e.id !== id);
       updateDataCallback('journal', data.journal);
       showNotification('Entrada eliminada', 'info');

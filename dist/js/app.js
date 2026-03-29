@@ -1050,11 +1050,14 @@ export const generateId = () => {
  */
 export const recordDeletion = (data, section, itemId) => {
   if (!data._deletions) data._deletions = [];
-  data._deletions.push({
-    section,
-    itemId,
-    deletedAt: new Date().toISOString()
-  });
+  const exists = data._deletions.some(d => d.section === section && d.itemId === itemId);
+  if (!exists) {
+    data._deletions.push({
+      section,
+      itemId,
+      deletedAt: new Date().toISOString()
+    });
+  }
 };
 
 // Bootstrap: cargar storage dinámicamente según contexto e iniciar app

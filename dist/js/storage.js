@@ -213,6 +213,15 @@ export const loadData = () => {
 export const saveData = (data) => {
   try {
     data.updatedAt = new Date().toISOString();
+
+    // Prune tombstones viejos (>30 dias) para evitar crecimiento indefinido
+    if (data._deletions?.length > 0) {
+      const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      data._deletions = data._deletions.filter(
+        d => new Date(d.deletedAt).getTime() > cutoff
+      );
+    }
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 
     // Notificar al sync layer (Google Drive) que hubo cambio
@@ -242,14 +251,19 @@ export const stampSection = (data, section) => {
 /**
  * Registra un tombstone de eliminacion para sync cross-device.
  * Llamar ANTES de hacer filter/splice para borrar un item.
+ * Deduplicado: no registra si ya existe un tombstone para ese item.
  */
 export const recordDeletion = (data, section, itemId) => {
   if (!data._deletions) data._deletions = [];
-  data._deletions.push({
-    section,
-    itemId,
-    deletedAt: new Date().toISOString()
-  });
+  // Evitar tombstones duplicados (ej: doble-clic)
+  const exists = data._deletions.some(d => d.section === section && d.itemId === itemId);
+  if (!exists) {
+    data._deletions.push({
+      section,
+      itemId,
+      deletedAt: new Date().toISOString()
+    });
+  }
 };
 
 /**

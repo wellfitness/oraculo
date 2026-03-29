@@ -171,7 +171,20 @@ const loadFromLocalStorage = () => {
 const saveToLocalStorage = (data) => {
   try {
     data.updatedAt = new Date().toISOString();
+
+    // Prune tombstones viejos (>30 dias) para evitar crecimiento indefinido
+    if (data._deletions?.length > 0) {
+      const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      data._deletions = data._deletions.filter(
+        d => new Date(d.deletedAt).getTime() > cutoff
+      );
+    }
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+    // Notificar al sync layer (Google Drive) que hubo cambio
+    window.dispatchEvent(new CustomEvent('data-saved'));
+
     return true;
   } catch (error) {
     console.error('[Storage] Error guardando en localStorage:', error);
@@ -203,6 +216,31 @@ export const saveData = (data) => {
   return saveToLocalStorage(data);
 };
 
+/**
+ * Marca una seccion como modificada en _sectionMeta.
+ * Llamar antes de saveData() en modulos que mutan datos directamente.
+ */
+export const stampSection = (data, section) => {
+  if (!data._sectionMeta) data._sectionMeta = {};
+  data._sectionMeta[section] = { updatedAt: new Date().toISOString() };
+};
+
+/**
+ * Registra un tombstone de eliminacion para sync cross-device.
+ * Llamar ANTES de hacer filter/splice para borrar un item.
+ */
+export const recordDeletion = (data, section, itemId) => {
+  if (!data._deletions) data._deletions = [];
+  const exists = data._deletions.some(d => d.section === section && d.itemId === itemId);
+  if (!exists) {
+    data._deletions.push({
+      section,
+      itemId,
+      deletedAt: new Date().toISOString()
+    });
+  }
+};
+
 export const updateSection = (section, newData) => {
   const data = loadData();
 
@@ -216,6 +254,9 @@ export const updateSection = (section, newData) => {
   } else {
     data[section] = newData;
   }
+
+  // Registrar que seccion fue modificada (para merge inteligente)
+  stampSection(data, section);
 
   return saveData(data);
 };
