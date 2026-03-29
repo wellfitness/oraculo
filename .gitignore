@@ -60,3 +60,7 @@ android/local.properties
 *.aab
 *.keystore
 *.jks
+
+# Google OAuth secrets (nunca commitear)
+client_secret_*.json
+google-services.json
