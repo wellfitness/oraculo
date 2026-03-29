@@ -65,7 +65,8 @@ const SECTION_REGISTRY = {
   'notebook':                        { type: 'atomic', path: 'notebook' },
   'dailySetup':                      { type: 'atomic', path: 'dailySetup' },
   'burkemanSettings':                { type: 'atomic', path: 'burkemanSettings' },
-  'muevete':                         { type: 'atomic', path: 'muevete' },
+  'muevete.timerState':               { type: 'atomic', path: 'muevete.timerState' },
+  'muevete.activityLog':              { type: 'atomic', path: 'muevete.activityLog' },
   'lifeWheel.areas':                 { type: 'atomic', path: 'lifeWheel.areas' },
   'lifeWheel.settings':              { type: 'atomic', path: 'lifeWheel.settings' },
   'objectiveEvaluation.criteria':    { type: 'atomic', path: 'objectiveEvaluation.criteria' },
@@ -136,15 +137,36 @@ function wasModified(item) {
 
 /**
  * Obtiene el timestamp de una seccion desde _sectionMeta.
- * Si no hay metadata, devuelve 0 (desconocido), NO el updatedAt raiz.
- * Esto evita que un lado gane TODAS las secciones atomicas por un solo cambio.
+ * Busca match exacto primero, luego ancestros en la cadena de dot-path.
+ *
+ * Ejemplo: para 'habits.active', busca en orden:
+ *   1. _sectionMeta['habits.active'] (match exacto)
+ *   2. _sectionMeta['habits'] (ancestro)
+ *
+ * Esto resuelve el mismatch entre lo que los modulos estampan
+ * (ej: 'habits', 'objectives', 'calendar') y lo que el registry
+ * busca (ej: 'habits.active', 'objectives.daily', 'calendar.events').
+ *
+ * Si no hay metadata en ningun nivel, devuelve 0.
  */
 function getSectionTimestamp(data, sectionKey) {
-  const meta = data._sectionMeta?.[sectionKey];
-  if (meta?.updatedAt) {
-    return new Date(meta.updatedAt).getTime() || 0;
+  const meta = data._sectionMeta;
+  if (!meta) return 0;
+
+  // 1. Match exacto
+  if (meta[sectionKey]?.updatedAt) {
+    return new Date(meta[sectionKey].updatedAt).getTime() || 0;
   }
-  // Sin metadata = no sabemos cuando fue modificada esta seccion
+
+  // 2. Buscar ancestros (habits.active → habits)
+  const parts = sectionKey.split('.');
+  for (let i = parts.length - 1; i > 0; i--) {
+    const ancestor = parts.slice(0, i).join('.');
+    if (meta[ancestor]?.updatedAt) {
+      return new Date(meta[ancestor].updatedAt).getTime() || 0;
+    }
+  }
+
   return 0;
 }
 

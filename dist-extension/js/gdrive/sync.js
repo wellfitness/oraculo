@@ -276,6 +276,7 @@ async function pull(accessToken) {
       });
     } catch (err) {
       console.warn('[GDrive Sync] Error subiendo merged, se reintentara:', err.message);
+      notifySyncStatus('error');
       setSyncState({ lastSyncAt: new Date().toISOString() });
     }
   } else if (localTime > remoteTime) {
