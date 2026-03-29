@@ -211,21 +211,6 @@ export const render = (data) => {
         ${renderEveningCheckInCard(data)}
       </section>
 
-      <section class="dashboard__section dashboard__habit">
-        <h2 class="section-title">Hábito Activo</h2>
-
-        ${activeHabit ? renderActiveHabit(activeHabit, data.habits.history) : `
-          <div class="empty-state">
-            <p>No tienes ningún hábito activo.</p>
-            <a href="#habits" data-view="habits" class="btn btn--secondary">
-              Crear mi primer hábito
-            </a>
-          </div>
-        `}
-      </section>
-
-      ${renderNextActions(data)}
-
       <section class="dashboard__section dashboard__events">
         <h2 class="section-title">Próximos Eventos</h2>
 
@@ -259,6 +244,21 @@ export const render = (data) => {
           </div>
         </button>
       </section>
+
+      <section class="dashboard__section dashboard__habit">
+        <h2 class="section-title">Hábito Activo</h2>
+
+        ${activeHabit ? renderActiveHabit(activeHabit, data.habits.history) : `
+          <div class="empty-state">
+            <p>No tienes ningún hábito activo.</p>
+            <a href="#habits" data-view="habits" class="btn btn--secondary">
+              Crear mi primer hábito
+            </a>
+          </div>
+        `}
+      </section>
+
+      ${renderNextActions(data)}
 
       ${renderWeeklyReviewReminder(data)}
 

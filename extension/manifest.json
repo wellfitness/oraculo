@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Oráculo - Gestión Personal Consciente",
-  "version": "1.0.0",
-  "description": "Captura ideas, organiza tu día y cultiva hábitos. Sistema de gestión personal basado en Hábitos Atómicos y filosofía Burkeman.",
+  "version": "2.0.0",
+  "description": "Gestión personal consciente: organiza tu día, cultiva hábitos y sincroniza entre dispositivos con Google Drive. Basado en Hábitos Atómicos y filosofía Burkeman.",
   "permissions": [
     "sidePanel",
     "notifications",
