@@ -3,7 +3,7 @@
  * Agrupa tareas bajo contextos específicos (viajes, proyectos, etc.)
  */
 
-import { generateId, showNotification } from '../app.js';
+import { generateId, showNotification, recordDeletion } from '../app.js';
 import { escapeHTML } from '../utils/sanitizer.js';
 const MAX_ACTIVE_PROJECTS = 4;
 import {
@@ -1097,6 +1097,7 @@ const deleteProject = (projectId) => {
   });
 
   // Eliminar proyecto
+  recordDeletion(currentData, 'projects', projectId);
   currentData.projects = currentData.projects.filter(p => p.id !== projectId);
 
   updateDataCallback('projects', currentData.projects);

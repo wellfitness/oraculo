@@ -25,7 +25,7 @@ export async function findFile(accessToken) {
   const params = new URLSearchParams({
     spaces: 'appDataFolder',
     q: `name='${FILE_NAME}'`,
-    fields: 'files(id,name,modifiedTime)',
+    fields: 'files(id,name,modifiedTime,version)',
     pageSize: '1',
   });
 
@@ -71,7 +71,7 @@ export async function createFile(accessToken, data) {
 
   const body = buildMultipartBody(metadata, data);
 
-  const res = await fetch(`${API_UPLOAD}/files?uploadType=multipart&fields=id,modifiedTime`, {
+  const res = await fetch(`${API_UPLOAD}/files?uploadType=multipart&fields=id,modifiedTime,version`, {
     method: 'POST',
     headers: {
       ...authHeaders(accessToken),
@@ -99,7 +99,7 @@ export async function updateFile(accessToken, fileId, data) {
 
   const body = buildMultipartBody(metadata, data);
 
-  const res = await fetch(`${API_UPLOAD}/files/${fileId}?uploadType=multipart&fields=id,modifiedTime`, {
+  const res = await fetch(`${API_UPLOAD}/files/${fileId}?uploadType=multipart&fields=id,modifiedTime,version`, {
     method: 'PATCH',
     headers: {
       ...authHeaders(accessToken),
@@ -111,6 +111,23 @@ export async function updateFile(accessToken, fileId, data) {
   if (!res.ok) {
     const errorText = await res.text();
     throw new Error(`Drive updateFile failed: ${res.status} ${errorText}`);
+  }
+
+  return res.json();
+}
+
+/**
+ * Obtiene solo metadata del archivo (sin descargar contenido).
+ * Ligero: solo una peticion GET con campos minimos.
+ * @returns {{ id: string, version: string, modifiedTime: string }}
+ */
+export async function getFileMetadata(accessToken, fileId) {
+  const res = await fetch(`${API_FILES}/${fileId}?fields=id,version,modifiedTime`, {
+    headers: authHeaders(accessToken),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Drive getFileMetadata failed: ${res.status} ${res.statusText}`);
   }
 
   return res.json();

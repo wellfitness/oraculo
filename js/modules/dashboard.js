@@ -3,7 +3,7 @@
  * Vista principal con resumen del día
  */
 
-import { generateId, formatDate, showNotification, openCalmTimer, openSpontaneousModal, openEveningCheckIn, openWeeklyReview } from '../app.js';
+import { generateId, formatDate, showNotification, openCalmTimer, openSpontaneousModal, openEveningCheckIn, openWeeklyReview, recordDeletion } from '../app.js';
 import { needsWeeklyReview, isReviewDay } from '../components/weekly-review-modal.js';
 import { escapeHTML } from '../utils/sanitizer.js';
 import { isEveningTime, hasEveningCheckIn } from '../components/evening-check-in.js';
@@ -247,21 +247,23 @@ export const render = (data) => {
 
       ${renderTodayAchievements(data)}
 
-      <section class="dashboard__section dashboard__muevete">
-        ${renderMueveteCard()}
+      <section class="dashboard__section dashboard__body-mind">
+        <div class="body-mind__card">
+          ${renderMueveteCard()}
+        </div>
+        <div class="body-mind__card">
+          <button class="calm-trigger" id="open-calm-timer">
+            <span class="material-symbols-outlined">self_improvement</span>
+            <div class="calm-trigger__content">
+              <span class="calm-trigger__title">5 minutos de calma</span>
+              <span class="calm-trigger__subtitle">Práctica de presencia</span>
+            </div>
+          </button>
+        </div>
+        <div class="body-mind__card">
+          ${renderEveningCheckInCard(data)}
+        </div>
       </section>
-
-      <section class="dashboard__section dashboard__calm">
-        <button class="calm-trigger" id="open-calm-timer">
-          <span class="material-symbols-outlined">self_improvement</span>
-          <div class="calm-trigger__content">
-            <span class="calm-trigger__title">5 minutos de calma</span>
-            <span class="calm-trigger__subtitle">Práctica de presencia</span>
-          </div>
-        </button>
-      </section>
-
-      ${renderEveningCheckInButton(data)}
 
       <section class="dashboard__section dashboard__quote">
         <blockquote class="quote">
@@ -641,24 +643,31 @@ const renderWeeklyReviewReminder = (data) => {
 };
 
 /**
- * Renderiza el botón de Evening Check-in (solo visible por la tarde/noche)
+ * Renderiza la tarjeta de Cierre del día (sin wrapper section)
  */
-const renderEveningCheckInButton = (data) => {
-  // Solo mostrar a partir de las 18:00 y si no se ha hecho hoy
-  if (!isEveningTime() || hasEveningCheckIn(data)) {
-    return '';
+const renderEveningCheckInCard = (data) => {
+  const done = hasEveningCheckIn(data);
+
+  if (done) {
+    return `
+      <div class="evening-trigger evening-trigger--done">
+        <span class="material-symbols-outlined">task_alt</span>
+        <div class="evening-trigger__content">
+          <span class="evening-trigger__title">Cierre del día</span>
+          <span class="evening-trigger__subtitle">Completado hoy</span>
+        </div>
+      </div>
+    `;
   }
 
   return `
-    <section class="dashboard__section dashboard__evening">
-      <button class="evening-trigger" id="open-evening-check-in">
-        <span class="material-symbols-outlined">bedtime</span>
-        <div class="evening-trigger__content">
-          <span class="evening-trigger__title">Cierre del día</span>
-          <span class="evening-trigger__subtitle">Reflexiona antes de descansar</span>
-        </div>
-      </button>
-    </section>
+    <button class="evening-trigger" id="open-evening-check-in">
+      <span class="material-symbols-outlined">bedtime</span>
+      <div class="evening-trigger__content">
+        <span class="evening-trigger__title">Cierre del día</span>
+        <span class="evening-trigger__subtitle">Reflexión + bienestar</span>
+      </div>
+    </button>
   `;
 };
 
@@ -776,6 +785,7 @@ const handleToggleTask = (taskId, completed, data) => {
 const handleDeleteTask = (taskId, data) => {
   if (!confirm('¿Eliminar esta prioridad?')) return;
 
+  recordDeletion(data, 'objectives.daily', taskId);
   data.objectives.daily = data.objectives.daily.filter(t => t.id !== taskId);
   updateDataCallback('objectives.daily', data.objectives.daily);
   showNotification('Prioridad eliminada', 'info');

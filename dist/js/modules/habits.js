@@ -3,7 +3,7 @@
  * Psicología conductista aplicada (Hábitos Atómicos)
  */
 
-import { generateId, showNotification } from '../app.js';
+import { generateId, showNotification, recordDeletion } from '../app.js';
 import { escapeHTML } from '../utils/sanitizer.js';
 import { getReflexionDelDia, getReflexionPorPilar } from '../data/burkeman.js';
 import { confirmDanger } from '../utils/confirm-modal.js';
@@ -1041,6 +1041,7 @@ const addAuditActivity = (data) => {
 const deleteAuditActivity = (activityId, data) => {
   if (!data.habits.audit) return;
 
+  recordDeletion(data, 'habits.audit.activities', activityId);
   data.habits.audit.activities = data.habits.audit.activities.filter(a => a.id !== activityId);
   updateDataCallback('habits', data.habits);
   reRender(data);
@@ -2498,6 +2499,7 @@ const deleteAtelicActivity = (activityId, data) => {
     cancelText: 'Mantener',
     type: 'warning'
   }, () => {
+    recordDeletion(data, 'atelicActivities', activityId);
     data.atelicActivities = data.atelicActivities.filter(a => a.id !== activityId);
     updateDataCallback('atelicActivities', data.atelicActivities);
     showNotification('Actividad eliminada', 'info');

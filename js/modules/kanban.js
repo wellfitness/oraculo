@@ -6,7 +6,7 @@
  * - Pendientes: Captura de ideas sin límite
  */
 
-import { generateId, showNotification } from '../app.js';
+import { generateId, showNotification, recordDeletion } from '../app.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
 import { escapeHTML } from '../utils/sanitizer.js';
 import { confirmDanger } from '../utils/confirm-modal.js';
@@ -1681,6 +1681,7 @@ const deleteItem = (itemId, data) => {
     confirmText: 'Sí, eliminar',
     cancelText: 'No, mantener'
   }, () => {
+    recordDeletion(data, `objectives.${column}`, itemId);
     data.objectives[column] = data.objectives[column].filter(i => i.id !== itemId);
     updateDataCallback('objectives', data.objectives);
     showNotification('Eliminado', 'info');
