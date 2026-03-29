@@ -207,22 +207,9 @@ export const render = (data) => {
         `}
       </section>
 
-      <section class="dashboard__section dashboard__habit">
-        <h2 class="section-title">Hábito Activo</h2>
-
-        ${activeHabit ? renderActiveHabit(activeHabit, data.habits.history) : `
-          <div class="empty-state">
-            <p>No tienes ningún hábito activo.</p>
-            <a href="#habits" data-view="habits" class="btn btn--secondary">
-              Crear mi primer hábito
-            </a>
-          </div>
-        `}
+      <section class="dashboard__section dashboard__evening">
+        ${renderEveningCheckInCard(data)}
       </section>
-
-      ${renderNextActions(data)}
-
-      ${renderWeeklyReviewReminder(data)}
 
       <section class="dashboard__section dashboard__events">
         <h2 class="section-title">Próximos Eventos</h2>
@@ -247,23 +234,33 @@ export const render = (data) => {
 
       ${renderTodayAchievements(data)}
 
-      <section class="dashboard__section dashboard__body-mind">
-        <div class="body-mind__card">
-          ${renderMueveteCard()}
-        </div>
-        <div class="body-mind__card">
-          <button class="calm-trigger" id="open-calm-timer">
-            <span class="material-symbols-outlined">self_improvement</span>
-            <div class="calm-trigger__content">
-              <span class="calm-trigger__title">5 minutos de calma</span>
-              <span class="calm-trigger__subtitle">Práctica de presencia</span>
-            </div>
-          </button>
-        </div>
-        <div class="body-mind__card">
-          ${renderEveningCheckInCard(data)}
-        </div>
+      <section class="dashboard__section dashboard__move-calm">
+        ${renderMueveteCard()}
+        <button class="calm-trigger" id="open-calm-timer">
+          <span class="material-symbols-outlined">self_improvement</span>
+          <div class="calm-trigger__content">
+            <span class="calm-trigger__title">5 minutos de calma</span>
+            <span class="calm-trigger__subtitle">Práctica de presencia</span>
+          </div>
+        </button>
       </section>
+
+      <section class="dashboard__section dashboard__habit">
+        <h2 class="section-title">Hábito Activo</h2>
+
+        ${activeHabit ? renderActiveHabit(activeHabit, data.habits.history) : `
+          <div class="empty-state">
+            <p>No tienes ningún hábito activo.</p>
+            <a href="#habits" data-view="habits" class="btn btn--secondary">
+              Crear mi primer hábito
+            </a>
+          </div>
+        `}
+      </section>
+
+      ${renderNextActions(data)}
+
+      ${renderWeeklyReviewReminder(data)}
 
       <section class="dashboard__section dashboard__quote">
         <blockquote class="quote">
@@ -650,22 +647,33 @@ const renderEveningCheckInCard = (data) => {
 
   if (done) {
     return `
-      <div class="evening-trigger evening-trigger--done">
-        <span class="material-symbols-outlined">task_alt</span>
-        <div class="evening-trigger__content">
-          <span class="evening-trigger__title">Cierre del día</span>
-          <span class="evening-trigger__subtitle">Completado hoy</span>
+      <div class="evening-card evening-card--done">
+        <div class="evening-card__header">
+          <span class="material-symbols-outlined">task_alt</span>
+          <h3 class="evening-card__title">Cierre del día</h3>
         </div>
+        <p class="evening-card__desc">Completado hoy</p>
       </div>
     `;
   }
 
   return `
-    <button class="evening-trigger" id="open-evening-check-in">
-      <span class="material-symbols-outlined">bedtime</span>
-      <div class="evening-trigger__content">
-        <span class="evening-trigger__title">Cierre del día</span>
-        <span class="evening-trigger__subtitle">Reflexión + bienestar</span>
+    <button class="evening-card" id="open-evening-check-in">
+      <div class="evening-card__header">
+        <span class="material-symbols-outlined">bedtime</span>
+        <h3 class="evening-card__title">Cierre del día</h3>
+      </div>
+      <p class="evening-card__desc">Reflexiona sobre tu día y registra cómo cuidaste tu cuerpo: alimentación, movimiento y descanso.</p>
+      <div class="evening-card__areas">
+        <span class="evening-card__area">
+          <span class="material-symbols-outlined icon-sm">restaurant</span> Alimentación
+        </span>
+        <span class="evening-card__area">
+          <span class="material-symbols-outlined icon-sm">fitness_center</span> Movimiento
+        </span>
+        <span class="evening-card__area">
+          <span class="material-symbols-outlined icon-sm">bedtime</span> Descanso
+        </span>
       </div>
     </button>
   `;

@@ -1576,6 +1576,19 @@ a:hover {
   box-shadow: var(--shadow-sm);
 }
 
+/* Muévete + Calma apilados en una sección */
+.dashboard__move-calm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+}
+
+.dashboard__move-calm .calm-trigger,
+.dashboard__move-calm .muevete-dashboard-card {
+  border-radius: var(--radius-md);
+}
+
 /* Focus List */
 .focus-list {
   list-style: none;
@@ -11229,9 +11242,7 @@ select,
   }
 
   .dashboard__header,
-  .dashboard__quote {
-    grid-column: 1 / -1;
-  }
+  .dashboard__quote,
 }
 
 /* Desktop grande */
@@ -11242,9 +11253,7 @@ select,
 
   .dashboard__header,
   .dashboard__focus,
-  .dashboard__quote {
-    grid-column: 1 / -1;
-  }
+  .dashboard__quote,
 }
 
 /* Reducir movimiento para usuarios que lo prefieren */
@@ -16355,6 +16364,144 @@ select,
   margin-top: var(--space-1);
 }
 
+/* Sección de bienestar físico en evening check-in */
+.wellbeing-section {
+  border: none;
+  padding: 0;
+  margin: var(--space-3) 0 0;
+  border-top: 1px dashed var(--gris-300);
+  padding-top: var(--space-3);
+}
+
+.wellbeing-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--gris-700);
+  margin-bottom: var(--space-2);
+}
+
+.wellbeing-legend .material-symbols-outlined {
+  color: var(--turquesa-500);
+}
+
+.wellbeing-area {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+
+.wellbeing-area__header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.wellbeing-area__header .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--gris-500);
+}
+
+.wellbeing-area__label {
+  font-size: var(--font-size-sm);
+  color: var(--gris-600);
+  font-weight: 500;
+}
+
+.wellbeing-rating {
+  display: flex;
+  gap: 4px;
+}
+
+.wellbeing-radio {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.wellbeing-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--gris-200);
+  background: var(--gris-50);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.wellbeing-btn .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--gris-400);
+  transition: color 0.15s ease;
+}
+
+.wellbeing-btn:hover {
+  border-color: var(--gris-400);
+}
+
+.wellbeing-radio:checked + .wellbeing-btn--good {
+  border-color: var(--turquesa-500);
+  background: var(--turquesa-50);
+}
+
+.wellbeing-radio:checked + .wellbeing-btn--good .material-symbols-outlined {
+  color: var(--turquesa-600);
+}
+
+.wellbeing-radio:checked + .wellbeing-btn--regular {
+  border-color: var(--tulip-tree-500);
+  background: var(--tulip-tree-50);
+}
+
+.wellbeing-radio:checked + .wellbeing-btn--regular .material-symbols-outlined {
+  color: var(--tulip-tree-500);
+}
+
+.wellbeing-radio:checked + .wellbeing-btn--bad {
+  border-color: var(--rosa-500);
+  background: var(--rosa-50);
+}
+
+.wellbeing-radio:checked + .wellbeing-btn--bad .material-symbols-outlined {
+  color: var(--rosa-600);
+}
+
+.wellbeing-radio:focus-visible + .wellbeing-btn {
+  outline: 2px solid var(--turquesa-400);
+  outline-offset: 2px;
+}
+
+.wellbeing-note {
+  flex: 1;
+  min-width: 140px;
+  padding: 6px var(--space-1);
+  border: 1px solid var(--gris-200);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  color: var(--gris-700);
+  background: transparent;
+  transition: border-color 0.15s ease;
+}
+
+.wellbeing-note:focus {
+  outline: none;
+  border-color: var(--turquesa-400);
+}
+
+.wellbeing-note::placeholder {
+  color: var(--gris-400);
+}
+
 .evening-actions {
   display: flex;
   justify-content: flex-end;
@@ -16364,10 +16511,10 @@ select,
   border-top: 1px solid var(--gris-200);
 }
 
-/* Botón trigger en el Dashboard */
-.evening-trigger {
+/* Tarjeta Cierre del día en el Dashboard */
+.evening-card {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: var(--space-2);
   width: 100%;
   padding: var(--space-3);
@@ -16377,34 +16524,74 @@ select,
   color: white;
   cursor: pointer;
   transition: all var(--transition-normal);
+  text-align: left;
+  font-family: inherit;
 }
 
-.evening-trigger:hover {
+.evening-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
 
-.evening-trigger .material-symbols-outlined {
-  font-size: 32px;
+.evening-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.evening-card__header .material-symbols-outlined {
+  font-size: 28px;
   color: var(--tulip-tree-400);
 }
 
-.evening-trigger__content {
-  text-align: left;
-}
-
-.evening-trigger__title {
-  display: block;
+.evening-card__title {
   font-weight: 600;
   font-size: var(--font-size-base);
-  margin-bottom: 2px;
+  margin: 0;
 }
 
-.evening-trigger__subtitle {
-  display: block;
+.evening-card__desc {
   font-size: var(--font-size-sm);
-  color: var(--gris-300); /* Improved contrast: ~5.5:1 on dark bg */
-  opacity: 0.9;
+  color: var(--gris-300);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.evening-card__areas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.evening-card__area {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  color: var(--gris-200);
+}
+
+.evening-card__area .material-symbols-outlined {
+  font-size: 16px;
+  color: var(--turquesa-400);
+}
+
+.evening-card--done {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.evening-card--done:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.evening-card--done .evening-card__header .material-symbols-outlined {
+  color: var(--turquesa-400);
 }
 
 /* Responsive Evening */
@@ -16423,6 +16610,19 @@ select,
 
   .evening-actions .btn {
     width: 100%;
+  }
+
+  .wellbeing-area {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .wellbeing-area__header {
+    min-width: auto;
+  }
+
+  .wellbeing-note {
+    min-width: auto;
   }
 }
 
