@@ -1,1 +1,4 @@
 onlyBuiltDependencies: sharp
+
+patchedDependencies:
+  '@codetrix-studio/capacitor-google-auth': patches/@codetrix-studio__capacitor-google-auth.patch
