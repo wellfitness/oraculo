@@ -116,6 +116,7 @@ export async function init(platform) {
       if (token) {
         await pull(token);
         notifySyncStatus('synced');
+        _lastSyncAt = Date.now();
       } else {
         notifySyncStatus('token_expired');
       }
@@ -391,11 +392,9 @@ async function push(accessToken) {
 async function pullAndMerge(accessToken, fileId) {
   console.log('[GDrive Sync] Ejecutando pullAndMerge...');
 
-  // Leer datos remotos frescos + metadata en paralelo
-  const [remoteData, remoteMeta] = await Promise.all([
-    readFile(accessToken, fileId),
-    getFileMetadata(accessToken, fileId),
-  ]);
+  // Leer datos remotos frescos, luego metadata (secuencial para evitar race condition)
+  const remoteData = await readFile(accessToken, fileId);
+  const remoteMeta = await getFileMetadata(accessToken, fileId);
 
   const localRaw = localStorage.getItem(STORAGE_KEY);
   const localData = localRaw ? JSON.parse(localRaw) : null;
@@ -523,6 +522,7 @@ function debouncedPush() {
       notifySyncStatus('synced');
     } catch (err) {
       console.warn('[GDrive Sync] Error en push:', err.message);
+      notifySyncStatus('error');
     } finally {
       _syncing = false;
     }

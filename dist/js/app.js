@@ -767,6 +767,11 @@ const setupGlobalCapture = () => {
 
     // Añadir al inicio del horizonte
     state.data.objectives[parsed.horizon].unshift(newTask);
+
+    // Stamp para merge inteligente cross-device
+    if (!state.data._sectionMeta) state.data._sectionMeta = {};
+    state.data._sectionMeta[`objectives.${parsed.horizon}`] = { updatedAt: new Date().toISOString() };
+
     saveData(state.data);
 
     // Limpiar input
@@ -974,6 +979,10 @@ export const updateData = (section, newData) => {
   } else {
     state.data[section] = newData;
   }
+
+  // Stamp para merge inteligente cross-device (Google Drive sync)
+  if (!state.data._sectionMeta) state.data._sectionMeta = {};
+  state.data._sectionMeta[section] = { updatedAt: new Date().toISOString() };
 
   saveData(state.data);
 
