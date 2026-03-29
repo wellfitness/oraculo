@@ -80,7 +80,8 @@ const VIEWS = {
   today: 'Hoy',
   muevete: 'Muévete',
   settings: 'Configuración',
-  help: 'Ayuda'
+  help: 'Ayuda',
+  changelog: 'Novedades'
 };
 
 /**
@@ -145,6 +146,9 @@ export const init = () => {
 
   // Inicializar auto-backup
   initAutoBackup();
+
+  // Mostrar indicador de novedades en el footer
+  initChangelogDot();
 
   // Verificar si necesita Daily Setup (página en lugar de modal)
   const setupEnabled = state.data.burkemanSettings?.dailySetupEnabled !== false;
@@ -385,8 +389,8 @@ const updateMenuVisibility = () => {
   document.querySelectorAll('[data-view]').forEach(link => {
     const view = link.dataset.view;
 
-    // settings y help siempre visibles
-    if (view === 'settings' || view === 'help') {
+    // settings, help y changelog siempre visibles
+    if (view === 'settings' || view === 'help' || view === 'changelog') {
       link.style.display = '';
       return;
     }
@@ -593,6 +597,20 @@ const setupSaveButton = () => {
  * Recordatorio de hábito a la hora programada
  * Verifica cada minuto si es la hora del hábito y envía notificación
  */
+const initChangelogDot = () => {
+  const dot = document.getElementById('changelog-dot');
+  if (!dot) return;
+  try {
+    const { LATEST_VERSION } = window.__changelogCache || {};
+    // Lazy import — no bloquea el arranque
+    import('./data/changelog.js').then(mod => {
+      window.__changelogCache = mod;
+      const seen = localStorage.getItem('oraculo_changelog_seen');
+      dot.hidden = seen === mod.LATEST_VERSION;
+    }).catch(() => {});
+  } catch (e) { /* no crítico */ }
+};
+
 const setupHabitReminder = () => {
   // En Capacitor: usar notificacion nativa programada (funciona en background)
   if (window.__ORACULO_CAPACITOR__) {
@@ -1092,13 +1110,16 @@ const bootstrap = async () => {
   init();
 
   // Inicializar Google Drive Sync (no bloquea el arranque)
-  try {
-    const gdriveSync = await import('./gdrive/sync.js');
-    const platform = isExtension ? 'extension' : isCapacitor ? 'capacitor' : 'web';
-    gdriveSync.init(platform);
-    initSyncButton(gdriveSync);
-  } catch (e) {
-    console.warn('[GDrive] Sync no disponible:', e.message);
+  // En Capacitor: GIS (Google Identity Services) no funciona en Android WebView
+  if (!isCapacitor) {
+    try {
+      const gdriveSync = await import('./gdrive/sync.js');
+      const platform = isExtension ? 'extension' : 'web';
+      gdriveSync.init(platform);
+      initSyncButton(gdriveSync);
+    } catch (e) {
+      console.warn('[GDrive] Sync no disponible:', e.message);
+    }
   }
 };
 

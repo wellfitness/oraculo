@@ -99,6 +99,80 @@ export const renderEveningCheckInModal = () => {
             ></textarea>
           </div>
 
+          <!-- Sección de bienestar físico -->
+          <fieldset class="wellbeing-section">
+            <legend class="wellbeing-legend">
+              <span class="material-symbols-outlined icon-sm">monitor_heart</span>
+              ¿Cómo cuidaste tu cuerpo hoy?
+            </legend>
+
+            <div class="wellbeing-area">
+              <div class="wellbeing-area__header">
+                <span class="material-symbols-outlined icon-sm">restaurant</span>
+                <span class="wellbeing-area__label">Alimentación</span>
+              </div>
+              <div class="wellbeing-rating" role="radiogroup" aria-label="Valoración de alimentación">
+                <input type="radio" name="rating-food" id="rating-food-good" value="bien" class="wellbeing-radio">
+                <label for="rating-food-good" class="wellbeing-btn wellbeing-btn--good" title="Bien">
+                  <span class="material-symbols-outlined">sentiment_satisfied</span>
+                </label>
+                <input type="radio" name="rating-food" id="rating-food-regular" value="regular" class="wellbeing-radio">
+                <label for="rating-food-regular" class="wellbeing-btn wellbeing-btn--regular" title="Regular">
+                  <span class="material-symbols-outlined">sentiment_neutral</span>
+                </label>
+                <input type="radio" name="rating-food" id="rating-food-bad" value="mal" class="wellbeing-radio">
+                <label for="rating-food-bad" class="wellbeing-btn wellbeing-btn--bad" title="Mal">
+                  <span class="material-symbols-outlined">sentiment_dissatisfied</span>
+                </label>
+              </div>
+              <input type="text" name="note-food" class="wellbeing-note" placeholder="¿Qué comiste? ¿Cómo te sentó?">
+            </div>
+
+            <div class="wellbeing-area">
+              <div class="wellbeing-area__header">
+                <span class="material-symbols-outlined icon-sm">fitness_center</span>
+                <span class="wellbeing-area__label">Movimiento</span>
+              </div>
+              <div class="wellbeing-rating" role="radiogroup" aria-label="Valoración de movimiento">
+                <input type="radio" name="rating-move" id="rating-move-good" value="bien" class="wellbeing-radio">
+                <label for="rating-move-good" class="wellbeing-btn wellbeing-btn--good" title="Bien">
+                  <span class="material-symbols-outlined">sentiment_satisfied</span>
+                </label>
+                <input type="radio" name="rating-move" id="rating-move-regular" value="regular" class="wellbeing-radio">
+                <label for="rating-move-regular" class="wellbeing-btn wellbeing-btn--regular" title="Regular">
+                  <span class="material-symbols-outlined">sentiment_neutral</span>
+                </label>
+                <input type="radio" name="rating-move" id="rating-move-bad" value="mal" class="wellbeing-radio">
+                <label for="rating-move-bad" class="wellbeing-btn wellbeing-btn--bad" title="Mal">
+                  <span class="material-symbols-outlined">sentiment_dissatisfied</span>
+                </label>
+              </div>
+              <input type="text" name="note-move" class="wellbeing-note" placeholder="¿Te moviste hoy? ¿Qué hiciste?">
+            </div>
+
+            <div class="wellbeing-area">
+              <div class="wellbeing-area__header">
+                <span class="material-symbols-outlined icon-sm">bedtime</span>
+                <span class="wellbeing-area__label">Descanso</span>
+              </div>
+              <div class="wellbeing-rating" role="radiogroup" aria-label="Valoración de descanso">
+                <input type="radio" name="rating-sleep" id="rating-sleep-good" value="bien" class="wellbeing-radio">
+                <label for="rating-sleep-good" class="wellbeing-btn wellbeing-btn--good" title="Bien">
+                  <span class="material-symbols-outlined">sentiment_satisfied</span>
+                </label>
+                <input type="radio" name="rating-sleep" id="rating-sleep-regular" value="regular" class="wellbeing-radio">
+                <label for="rating-sleep-regular" class="wellbeing-btn wellbeing-btn--regular" title="Regular">
+                  <span class="material-symbols-outlined">sentiment_neutral</span>
+                </label>
+                <input type="radio" name="rating-sleep" id="rating-sleep-bad" value="mal" class="wellbeing-radio">
+                <label for="rating-sleep-bad" class="wellbeing-btn wellbeing-btn--bad" title="Mal">
+                  <span class="material-symbols-outlined">sentiment_dissatisfied</span>
+                </label>
+              </div>
+              <input type="text" name="note-sleep" class="wellbeing-note" placeholder="¿Cómo dormiste anoche? ¿Descansaste?">
+            </div>
+          </fieldset>
+
           <blockquote class="quote quote--evening">
             <p>"${quote}"</p>
             <cite>— Oliver Burkeman</cite>
@@ -157,9 +231,20 @@ export const initEveningCheckInModal = (data, updateData) => {
     const learned = document.getElementById('evening-learned')?.value.trim();
     const letGo = document.getElementById('evening-let-go')?.value.trim();
 
+    // Leer ratings de bienestar
+    const ratingFood = form.elements['rating-food']?.value || '';
+    const ratingMove = form.elements['rating-move']?.value || '';
+    const ratingSleep = form.elements['rating-sleep']?.value || '';
+    const noteFood = form.elements['note-food']?.value.trim() || '';
+    const noteMove = form.elements['note-move']?.value.trim() || '';
+    const noteSleep = form.elements['note-sleep']?.value.trim() || '';
+
+    const hasReflection = wentWell || learned || letGo;
+    const hasWellbeing = ratingFood || ratingMove || ratingSleep;
+
     // Validar que al menos uno tenga contenido
-    if (!wentWell && !learned && !letGo) {
-      showNotification('Escribe al menos una reflexión', 'warning');
+    if (!hasReflection && !hasWellbeing) {
+      showNotification('Escribe al menos una reflexión o valora tu bienestar', 'warning');
       return;
     }
 
@@ -173,6 +258,27 @@ export const initEveningCheckInModal = (data, updateData) => {
     }
     if (letGo) {
       content += `¿Hay algo que necesito soltar?\n${letGo}`;
+    }
+
+    // Añadir bienestar si hay datos
+    if (hasWellbeing) {
+      if (hasReflection) content += '\n\n---\n';
+      content += '¿Cómo cuidaste tu cuerpo hoy?\n';
+      if (ratingFood) {
+        content += `Alimentación: ${ratingFood}`;
+        if (noteFood) content += ` — ${noteFood}`;
+        content += '\n';
+      }
+      if (ratingMove) {
+        content += `Movimiento: ${ratingMove}`;
+        if (noteMove) content += ` — ${noteMove}`;
+        content += '\n';
+      }
+      if (ratingSleep) {
+        content += `Descanso: ${ratingSleep}`;
+        if (noteSleep) content += ` — ${noteSleep}`;
+        content += '\n';
+      }
     }
 
     // Crear entrada de diario

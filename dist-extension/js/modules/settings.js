@@ -773,6 +773,49 @@ const openArchivedViewer = (data) => {
  * Renderiza la sección de sincronización entre dispositivos
  */
 const renderSyncSection = () => {
+  // En Capacitor, GIS (Google Identity Services) no funciona en Android WebView
+  // Solo mostrar sincronización manual
+  if (window.__ORACULO_CAPACITOR__) {
+    return `
+      <section class="settings-section">
+        <h2>
+          <span class="material-symbols-outlined">sync</span>
+          Sincronización entre Dispositivos
+        </h2>
+        <p class="section-description">
+          Exporta e importa datos manualmente para mover información entre dispositivos.
+        </p>
+
+        <div class="sync-instructions">
+          <div class="sync-step">
+            <span class="step-number">1</span>
+            <div class="step-content">
+              <strong>Exporta tus datos</strong>
+              <p>Descarga un archivo JSON con todo tu contenido.</p>
+              <button class="btn btn--primary" id="export-sync-btn">
+                <span class="material-symbols-outlined">download</span>
+                Descargar backup
+              </button>
+            </div>
+          </div>
+
+          <div class="sync-step">
+            <span class="step-number">2</span>
+            <div class="step-content">
+              <strong>Importa en el otro dispositivo</strong>
+              <p>Abre Oráculo en tu otro dispositivo e importa el archivo.</p>
+              <label class="btn btn--secondary">
+                <span class="material-symbols-outlined">upload</span>
+                Importar backup
+                <input type="file" id="import-sync-input" accept=".json" hidden>
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
   return `
     <section class="settings-section">
       <h2>
@@ -861,6 +904,12 @@ const renderSyncSection = () => {
  * Renderiza la sección de respaldo automático
  */
 const renderAutoBackupSection = () => {
+  // En Capacitor, File System Access API no existe (showDirectoryPicker)
+  // El backup automatico en IndexedDB sigue activo silenciosamente
+  if (window.__ORACULO_CAPACITOR__) {
+    return '';
+  }
+
   const isSupported = autoBackup.isSupported();
   const hasFolder = autoBackup.hasLinkedFolder();
   const folderName = autoBackup.getFolderName();
@@ -1035,6 +1084,9 @@ const renderUsageModeSection = (data) => {
 // ═══════════════════════════════════════════════════════════════
 
 async function initGDriveSyncUI() {
+  // En Capacitor no hay UI de GDrive — no importar sync.js innecesariamente
+  if (window.__ORACULO_CAPACITOR__) return;
+
   let gdriveSync;
   try {
     gdriveSync = await import('../gdrive/sync.js');
