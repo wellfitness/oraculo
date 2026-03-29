@@ -49,10 +49,14 @@ const SECTION_REGISTRY = {
   'habits.history': {
     type: 'append-set',
     path: 'habits.history',
-    getKey: (item) => `${item.habitId || ''}:${item.date || ''}`
+    getKey: (item) => {
+      const k = `${item.habitId || ''}:${item.date || ''}`;
+      return k === ':' ? null : k; // null si ambos campos vacios
+    }
   },
 
   // Objetos atomicos → LWW por seccion
+  'habits.audit':                    { type: 'atomic', path: 'habits.audit' },
   'settings':                        { type: 'atomic', path: 'settings' },
   'onboarding':                      { type: 'atomic', path: 'onboarding' },
   'notebook':                        { type: 'atomic', path: 'notebook' },
@@ -211,21 +215,26 @@ function mergeArrays(localArr, remoteArr, sectionKey, localData, remoteData, get
   const localMap = new Map();
   const remoteMap = new Map();
 
-  for (const item of (localArr || [])) {
+  // Hash determinista para items sin clave (evita duplicacion en merges sucesivos)
+  const hashItem = (item, index) => `_orphan_${index}_${JSON.stringify(item).length}`;
+
+  for (let i = 0; i < (localArr || []).length; i++) {
+    const item = localArr[i];
     const key = keyFn(item);
     if (key) {
       localMap.set(key, item);
     } else {
-      console.warn(`[GDrive Merge] Item sin clave en ${sectionKey}, se conservara`, item);
-      localMap.set(`_orphan_${Math.random()}`, item);
+      console.warn(`[GDrive Merge] Item sin clave en ${sectionKey}, se conservara`);
+      localMap.set(hashItem(item, i), item);
     }
   }
-  for (const item of (remoteArr || [])) {
+  for (let i = 0; i < (remoteArr || []).length; i++) {
+    const item = remoteArr[i];
     const key = keyFn(item);
     if (key) {
       remoteMap.set(key, item);
     } else {
-      remoteMap.set(`_orphan_${Math.random()}`, item);
+      remoteMap.set(hashItem(item, i), item);
     }
   }
 
@@ -246,7 +255,13 @@ function mergeArrays(localArr, remoteArr, sectionKey, localData, remoteData, get
 
     // Decidir si un borrado se honra o si el item resucita
     if (localTombstone || remoteTombstone) {
-      const item = localMap.get(key) || remoteMap.get(key);
+      // Elegir la version mas reciente del item si existe en ambos lados
+      const localItem = localMap.get(key);
+      const remoteItem = remoteMap.get(key);
+      const item = (localItem && remoteItem)
+        ? (getItemTimestamp(localItem) >= getItemTimestamp(remoteItem) ? localItem : remoteItem)
+        : (localItem || remoteItem);
+
       if (item) {
         const itemTs = getItemTimestamp(item);
         const tombstoneTs = localTombstone
@@ -254,8 +269,8 @@ function mergeArrays(localArr, remoteArr, sectionKey, localData, remoteData, get
           : new Date(remoteTombstone.deletedAt).getTime();
 
         if (itemTs > tombstoneTs) {
-          // Item fue modificado DESPUES del borrado → resucitar
-          result.push(item);
+          // Item fue modificado DESPUES del borrado → resucitar (clonado)
+          result.push(JSON.parse(JSON.stringify(item)));
           continue;
         }
       }
@@ -264,11 +279,11 @@ function mergeArrays(localArr, remoteArr, sectionKey, localData, remoteData, get
     }
 
     if (inLocal && !inRemote) {
-      // Solo en local → nuevo item creado localmente
+      // Solo en local → nuevo item creado localmente (clonado)
       result.push(JSON.parse(JSON.stringify(localMap.get(key))));
     } else if (!inLocal && inRemote) {
-      // Solo en remote → nuevo item creado en otro dispositivo
-      result.push(remoteMap.get(key));
+      // Solo en remote → nuevo item creado en otro dispositivo (clonado)
+      result.push(JSON.parse(JSON.stringify(remoteMap.get(key))));
     } else {
       // En ambos → comparar timestamps
       const localItem = localMap.get(key);
@@ -384,14 +399,24 @@ export function mergeData(localData, remoteData) {
     remoteData._deletions
   );
 
-  // Preservar campos raiz que no estan en SECTION_REGISTRY
-  // Tomar la version mas alta entre local y remote
-  if (clonedLocal.version && remoteData.version) {
-    merged.version = clonedLocal.version > remoteData.version
-      ? clonedLocal.version : remoteData.version;
-  } else {
-    merged.version = clonedLocal.version || remoteData.version;
+  // Preservar secciones no registradas del lado local (forward-compatibility)
+  const registeredPaths = new Set(
+    Object.values(SECTION_REGISTRY).map(c => c.path.split('.')[0])
+  );
+  const internalKeys = new Set([
+    'version', 'createdAt', 'updatedAt', '_sectionMeta', '_deletions'
+  ]);
+  for (const key of Object.keys(clonedLocal)) {
+    if (!registeredPaths.has(key) && !internalKeys.has(key) && !(key in merged)) {
+      merged[key] = clonedLocal[key];
+    }
   }
+
+  // Tomar la version mas alta (comparacion numerica para evitar problemas con '1.10' > '1.9')
+  const localVer = parseFloat(clonedLocal.version) || 0;
+  const remoteVer = parseFloat(remoteData.version) || 0;
+  merged.version = (localVer >= remoteVer ? clonedLocal.version : remoteData.version)
+    || clonedLocal.version || remoteData.version;
 
   if (clonedLocal.createdAt && !merged.createdAt) {
     merged.createdAt = clonedLocal.createdAt;

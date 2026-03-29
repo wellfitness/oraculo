@@ -3,7 +3,7 @@
  * Vista principal con resumen del día
  */
 
-import { generateId, formatDate, showNotification, openCalmTimer, openSpontaneousModal, openEveningCheckIn, openWeeklyReview } from '../app.js';
+import { generateId, formatDate, showNotification, openCalmTimer, openSpontaneousModal, openEveningCheckIn, openWeeklyReview, recordDeletion } from '../app.js';
 import { needsWeeklyReview, isReviewDay } from '../components/weekly-review-modal.js';
 import { escapeHTML } from '../utils/sanitizer.js';
 import { isEveningTime, hasEveningCheckIn } from '../components/evening-check-in.js';
@@ -207,6 +207,10 @@ export const render = (data) => {
         `}
       </section>
 
+      <section class="dashboard__section dashboard__evening">
+        ${renderEveningCheckInCard(data)}
+      </section>
+
       <section class="dashboard__section dashboard__habit">
         <h2 class="section-title">Hábito Activo</h2>
 
@@ -221,8 +225,6 @@ export const render = (data) => {
       </section>
 
       ${renderNextActions(data)}
-
-      ${renderWeeklyReviewReminder(data)}
 
       <section class="dashboard__section dashboard__events">
         <h2 class="section-title">Próximos Eventos</h2>
@@ -247,11 +249,8 @@ export const render = (data) => {
 
       ${renderTodayAchievements(data)}
 
-      <section class="dashboard__section dashboard__muevete">
+      <section class="dashboard__section dashboard__move-calm">
         ${renderMueveteCard()}
-      </section>
-
-      <section class="dashboard__section dashboard__calm">
         <button class="calm-trigger" id="open-calm-timer">
           <span class="material-symbols-outlined">self_improvement</span>
           <div class="calm-trigger__content">
@@ -261,7 +260,7 @@ export const render = (data) => {
         </button>
       </section>
 
-      ${renderEveningCheckInButton(data)}
+      ${renderWeeklyReviewReminder(data)}
 
       <section class="dashboard__section dashboard__quote">
         <blockquote class="quote">
@@ -641,24 +640,42 @@ const renderWeeklyReviewReminder = (data) => {
 };
 
 /**
- * Renderiza el botón de Evening Check-in (solo visible por la tarde/noche)
+ * Renderiza la tarjeta de Cierre del día (sin wrapper section)
  */
-const renderEveningCheckInButton = (data) => {
-  // Solo mostrar a partir de las 18:00 y si no se ha hecho hoy
-  if (!isEveningTime() || hasEveningCheckIn(data)) {
-    return '';
+const renderEveningCheckInCard = (data) => {
+  const done = hasEveningCheckIn(data);
+
+  if (done) {
+    return `
+      <div class="evening-card evening-card--done">
+        <div class="evening-card__header">
+          <span class="material-symbols-outlined">task_alt</span>
+          <h3 class="evening-card__title">Cierre del día</h3>
+        </div>
+        <p class="evening-card__desc">Completado hoy</p>
+      </div>
+    `;
   }
 
   return `
-    <section class="dashboard__section dashboard__evening">
-      <button class="evening-trigger" id="open-evening-check-in">
+    <button class="evening-card" id="open-evening-check-in">
+      <div class="evening-card__header">
         <span class="material-symbols-outlined">bedtime</span>
-        <div class="evening-trigger__content">
-          <span class="evening-trigger__title">Cierre del día</span>
-          <span class="evening-trigger__subtitle">Reflexiona antes de descansar</span>
-        </div>
-      </button>
-    </section>
+        <h3 class="evening-card__title">Cierre del día</h3>
+      </div>
+      <p class="evening-card__desc">Reflexiona sobre tu día y registra cómo cuidaste tu cuerpo: alimentación, movimiento y descanso.</p>
+      <div class="evening-card__areas">
+        <span class="evening-card__area">
+          <span class="material-symbols-outlined icon-sm">restaurant</span> Alimentación
+        </span>
+        <span class="evening-card__area">
+          <span class="material-symbols-outlined icon-sm">fitness_center</span> Movimiento
+        </span>
+        <span class="evening-card__area">
+          <span class="material-symbols-outlined icon-sm">bedtime</span> Descanso
+        </span>
+      </div>
+    </button>
   `;
 };
 
@@ -776,6 +793,7 @@ const handleToggleTask = (taskId, completed, data) => {
 const handleDeleteTask = (taskId, data) => {
   if (!confirm('¿Eliminar esta prioridad?')) return;
 
+  recordDeletion(data, 'objectives.daily', taskId);
   data.objectives.daily = data.objectives.daily.filter(t => t.id !== taskId);
   updateDataCallback('objectives.daily', data.objectives.daily);
   showNotification('Prioridad eliminada', 'info');
