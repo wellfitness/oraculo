@@ -495,7 +495,8 @@ export const init = (data, updateData) => {
         return;
       }
     }
-    updateDataCallback('settings.notificationsEnabled', e.target.checked);
+    data.settings.notificationsEnabled = e.target.checked;
+    updateDataCallback('settings', data.settings);
     showNotification(e.target.checked ? 'Notificaciones activadas' : 'Notificaciones desactivadas', 'info');
   });
 
@@ -509,14 +510,16 @@ export const init = (data, updateData) => {
   // Cambiar día de recordatorio
   document.getElementById('review-day-select')?.addEventListener('change', (e) => {
     const day = parseInt(e.target.value, 10);
-    updateDataCallback('settings.weeklyReviewDay', day);
+    data.settings.weeklyReviewDay = day;
+    updateDataCallback('settings', data.settings);
     const dayName = day === 0 ? 'domingos' : 'lunes';
     showNotification(`Recordatorio configurado para los ${dayName}`, 'info');
   });
 
   // Toggle recordatorio en dashboard
   document.getElementById('review-reminder-toggle')?.addEventListener('change', (e) => {
-    updateDataCallback('settings.weeklyReviewReminder', e.target.checked);
+    data.settings.weeklyReviewReminder = e.target.checked;
+    updateDataCallback('settings', data.settings);
     showNotification(
       e.target.checked ? 'Recordatorio activado' : 'Recordatorio desactivado',
       'info'
