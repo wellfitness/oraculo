@@ -101,11 +101,17 @@ export function clearConflicts() {
 export async function init(platform) {
   _platform = platform;
 
+  // GIS (Google Identity Services) no funciona en Android WebView
+  // En Capacitor se necesitaria auth nativo (futuro: auth-capacitor.js)
+  if (platform === 'capacitor') {
+    console.log('[GDrive Sync] No disponible en Capacitor (GIS no soportado en WebView)');
+    return;
+  }
+
   // Cargar modulo de auth segun plataforma
   if (platform === 'extension') {
     _authModule = await import('./auth-extension.js');
   } else {
-    // Web y Capacitor usan el mismo flujo GIS
     _authModule = await import('./auth-web.js');
   }
 

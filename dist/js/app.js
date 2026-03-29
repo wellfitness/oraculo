@@ -1110,13 +1110,16 @@ const bootstrap = async () => {
   init();
 
   // Inicializar Google Drive Sync (no bloquea el arranque)
-  try {
-    const gdriveSync = await import('./gdrive/sync.js');
-    const platform = isExtension ? 'extension' : isCapacitor ? 'capacitor' : 'web';
-    gdriveSync.init(platform);
-    initSyncButton(gdriveSync);
-  } catch (e) {
-    console.warn('[GDrive] Sync no disponible:', e.message);
+  // En Capacitor: GIS (Google Identity Services) no funciona en Android WebView
+  if (!isCapacitor) {
+    try {
+      const gdriveSync = await import('./gdrive/sync.js');
+      const platform = isExtension ? 'extension' : 'web';
+      gdriveSync.init(platform);
+      initSyncButton(gdriveSync);
+    } catch (e) {
+      console.warn('[GDrive] Sync no disponible:', e.message);
+    }
   }
 };
 
