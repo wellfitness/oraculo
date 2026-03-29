@@ -1043,6 +1043,20 @@ export const generateId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 };
 
+/**
+ * Registra un tombstone de eliminacion para sync cross-device.
+ * Llamar ANTES de hacer filter/splice para borrar un item de un array.
+ * Exportado aqui para que los modulos puedan importarlo junto a generateId, etc.
+ */
+export const recordDeletion = (data, section, itemId) => {
+  if (!data._deletions) data._deletions = [];
+  data._deletions.push({
+    section,
+    itemId,
+    deletedAt: new Date().toISOString()
+  });
+};
+
 // Bootstrap: cargar storage dinámicamente según contexto e iniciar app
 const bootstrap = async () => {
   const isExtension = !!(window.__ORACULO_EXTENSION__ || (typeof chrome !== 'undefined' && chrome.runtime?.id));

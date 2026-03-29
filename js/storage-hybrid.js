@@ -203,6 +203,28 @@ export const saveData = (data) => {
   return saveToLocalStorage(data);
 };
 
+/**
+ * Marca una seccion como modificada en _sectionMeta.
+ * Llamar antes de saveData() en modulos que mutan datos directamente.
+ */
+export const stampSection = (data, section) => {
+  if (!data._sectionMeta) data._sectionMeta = {};
+  data._sectionMeta[section] = { updatedAt: new Date().toISOString() };
+};
+
+/**
+ * Registra un tombstone de eliminacion para sync cross-device.
+ * Llamar ANTES de hacer filter/splice para borrar un item.
+ */
+export const recordDeletion = (data, section, itemId) => {
+  if (!data._deletions) data._deletions = [];
+  data._deletions.push({
+    section,
+    itemId,
+    deletedAt: new Date().toISOString()
+  });
+};
+
 export const updateSection = (section, newData) => {
   const data = loadData();
 
@@ -216,6 +238,9 @@ export const updateSection = (section, newData) => {
   } else {
     data[section] = newData;
   }
+
+  // Registrar que seccion fue modificada (para merge inteligente)
+  stampSection(data, section);
 
   return saveData(data);
 };

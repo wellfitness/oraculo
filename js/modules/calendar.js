@@ -3,7 +3,7 @@
  * Vista semanal y gestión de eventos
  */
 
-import { generateId, showNotification } from '../app.js';
+import { generateId, showNotification, recordDeletion } from '../app.js';
 import { escapeHTML } from '../utils/sanitizer.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
 
@@ -476,6 +476,7 @@ const setupEventModal = (data) => {
   document.getElementById('delete-event')?.addEventListener('click', () => {
     const id = document.getElementById('event-id').value;
     if (id && confirm('¿Eliminar este evento?')) {
+      recordDeletion(data, 'calendar.events', id);
       data.calendar.events = data.calendar.events.filter(e => e.id !== id);
       currentData.calendar = data.calendar;
       updateDataCallback('calendar', data.calendar);
@@ -564,6 +565,7 @@ const setupRecurringModal = (data) => {
   document.getElementById('delete-recurring')?.addEventListener('click', () => {
     const id = document.getElementById('recurring-id').value;
     if (id && confirm('¿Eliminar este evento recurrente?')) {
+      recordDeletion(data, 'calendar.recurring', id);
       data.calendar.recurring = data.calendar.recurring.filter(r => r.id !== id);
       currentData.calendar = data.calendar;
       updateDataCallback('calendar', data.calendar);

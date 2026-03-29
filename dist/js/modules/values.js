@@ -4,7 +4,7 @@
  * Integrado con la Rueda de la Vida para sugerir valores
  */
 
-import { generateId, showNotification } from '../app.js';
+import { generateId, showNotification, recordDeletion } from '../app.js';
 import { escapeHTML } from '../utils/sanitizer.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
 import { getBuenosValores, getMalosValores } from '../data/markmanson.js';
@@ -591,6 +591,7 @@ const handleDeleteValue = (valueId, data) => {
     confirmText: 'Sí, eliminar',
     cancelText: 'No, mantener'
   }, () => {
+    recordDeletion(data, 'values', valueId);
     data.values = data.values.filter(v => v.id !== valueId);
     updateDataCallback('values', data.values);
     showNotification('Valor eliminado', 'info');

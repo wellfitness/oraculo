@@ -3,7 +3,7 @@
  * Registra logros que no estaban planificados (Done List de Burkeman)
  */
 
-import { generateId, showNotification } from '../app.js';
+import { generateId, showNotification, recordDeletion } from '../app.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
 import { confirmDanger } from '../utils/confirm-modal.js';
 
@@ -292,6 +292,7 @@ export const deleteSpontaneousAchievement = (achievementId, data, updateData) =>
     confirmText: 'Sí, eliminar',
     cancelText: 'No, mantener'
   }, () => {
+    recordDeletion(data, 'spontaneousAchievements', achievementId);
     const filtered = achievements.filter(a => a.id !== achievementId);
     updateData('spontaneousAchievements', filtered);
     showNotification('Logro eliminado', 'info');
