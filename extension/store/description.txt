@@ -1,0 +1,37 @@
+Oráculo es un sistema de gestión personal consciente diseñado para hombres y mujeres +40 que quieren organizarse para cuidarse, no para hacer más.
+
+A diferencia de las apps de productividad tradicionales que te presionan para optimizar cada minuto, Oráculo te ayuda a priorizar lo esencial y soltar lo demás. Basada en la filosofía de Oliver Burkeman (4000 Semanas) y la ciencia de Hábitos Atómicos.
+
+FUNCIONALIDADES PRINCIPALES
+
+★ Dashboard diario: Visualiza tu foco del día con un límite inteligente de tareas (1-3 máximo según tu energía y tiempo disponible)
+★ Volumen Fijo: Configura tu día según el tiempo y energía que realmente tienes, no los que desearías tener
+★ Roca Principal: Elige UNA sola tarea prioritaria cada día y hazla primero
+★ Laboratorio de Hábitos: Un solo hábito activo a la vez, con wizard guiado de 7 pasos basado en Hábitos Atómicos (identidad, micro-versión, habit stack, las 4 leyes)
+★ Brújula de Valores: Define 3-5 valores personales que guían tus decisiones
+★ Horizontes: Organiza objetivos por trimestre, mes y semana con límites que respetan tu capacidad real
+★ Calendario semanal: Eventos puntuales y recurrentes con exportación a Google Calendar
+★ Diario reflexivo: 6 tipos de entrada incluyendo check-in diario, revisión semanal y registro de incomodidad
+★ Logros y recapitulaciones: Estadísticas motivacionales con heatmap de actividad
+★ Tareas realizadas: Celebra lo que lograste sin haberlo planeado
+★ Actividades Atélicas: Ocio sin objetivo, porque también está permitido simplemente ser
+★ Temporizador de Calma: 5 minutos de "no hacer nada"
+★ Muévete: Pausas activas integradas para cuidar tu cuerpo mientras trabajas
+
+FILOSOFÍA
+
+"Solo tienes unas 4000 semanas. Elige bien."
+
+Oráculo integra los 4 pilares de la filosofía Burkeman:
+- Finitud: Aceptar que no puedes hacerlo todo
+- Incomodidad: El crecimiento se siente incómodo, y eso está bien
+- Cuestionamiento: Vivir las preguntas en lugar de buscar respuestas rápidas
+- Insignificancia Cósmica: Soltar la presión de "dejar huella"
+
+PRIVACIDAD
+
+Todos tus datos se almacenan localmente en tu navegador (localStorage). No se envían datos a servidores externos. No se requiere cuenta ni registro para usar la extensión.
+
+CÓMO FUNCIONA
+
+Se abre como panel lateral (Side Panel) de Chrome. Haz clic en el icono de Oráculo en la barra de extensiones y el panel se abrirá a la derecha de tu navegador, siempre accesible mientras navegas.
