@@ -64,7 +64,7 @@ for (const file of jsFiles) {
 }
 
 // Copiar subdirectorios de JS (excepto supabase/)
-const jsDirs = ['modules', 'components', 'data', 'utils'];
+const jsDirs = ['modules', 'components', 'data', 'utils', 'gdrive'];
 for (const dir of jsDirs) {
   const src = resolve(ROOT, 'js', dir);
   if (existsSync(src)) {
