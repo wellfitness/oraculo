@@ -25,6 +25,7 @@
     "@capacitor/cli": "8.3.0",
     "basic-ftp": "^5.0.5",
     "dotenv": "^16.4.5",
+    "sharp": "0.34.5",
     "ws": "8.19.0"
   },
   "repository": {
