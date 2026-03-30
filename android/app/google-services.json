@@ -1,0 +1,38 @@
+{
+  "project_info": {
+    "project_number": "113523103085",
+    "project_id": "oraculo-491616",
+    "storage_bucket": ""
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:113523103085:android:0000000000000000",
+        "android_client_info": {
+          "package_name": "app.movimientofuncional.oraculo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "113523103085-kqqo1mg6im9docphob0jtj73t2hf14gc.apps.googleusercontent.com",
+          "client_type": 1
+        },
+        {
+          "client_id": "113523103085-jdtnfi537aa6contu7h5142h2mbchnqa.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": ""
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
