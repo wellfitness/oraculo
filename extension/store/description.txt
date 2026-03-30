@@ -17,6 +17,9 @@ FUNCIONALIDADES PRINCIPALES
 ★ Actividades Atélicas: Ocio sin objetivo, porque también está permitido simplemente ser
 ★ Temporizador de Calma: 5 minutos de "no hacer nada"
 ★ Muévete: Pausas activas integradas para cuidar tu cuerpo mientras trabajas
+★ Sincronización con Google Drive: Sincroniza tus datos automáticamente entre todos tus dispositivos (web, extensión y Android)
+★ Reflexión de cierre del día: Reflexión nocturna para cerrar tu jornada con consciencia
+★ Página de Novedades: Timeline visual con todas las actualizaciones de la app
 
 FILOSOFÍA
 
@@ -30,8 +33,16 @@ Oráculo integra los 4 pilares de la filosofía Burkeman:
 
 PRIVACIDAD
 
-Todos tus datos se almacenan localmente en tu navegador (localStorage). No se envían datos a servidores externos. No se requiere cuenta ni registro para usar la extensión.
+Todos tus datos se almacenan localmente en tu navegador (localStorage). La sincronización con Google Drive es opcional y solo accede a una carpeta oculta exclusiva de Oráculo — no leemos ningún otro archivo de tu Drive. No se requiere cuenta ni registro para usar la extensión.
 
 CÓMO FUNCIONA
 
 Se abre como panel lateral (Side Panel) de Chrome. Haz clic en el icono de Oráculo en la barra de extensiones y el panel se abrirá a la derecha de tu navegador, siempre accesible mientras navegas.
+
+NOVEDADES v2.0
+
+★ Sincronización con Google Drive entre dispositivos
+★ Reflexión consciente para cerrar el día
+★ App Android nativa disponible en Google Play
+★ Sistema inteligente de 3 capas para proteger tus datos al sincronizar
+★ Página de novedades y actualizaciones
