@@ -703,12 +703,26 @@ export const render = (data) => {
     quarterly: [],
     monthly: [],
     weekly: [],
-    daily: []
+    daily: [],
+    completed: []
   };
 
-  // Asegurar que backlog existe
+  // Asegurar que backlog y completed existen
   if (!objectives.backlog) {
     objectives.backlog = [];
+  }
+  if (!objectives.completed) {
+    objectives.completed = [];
+  }
+
+  // Filtro defensivo: si un item ya está en completed, no mostrarlo en horizontes
+  const completedIds = new Set(
+    objectives.completed.map(i => i.id).filter(Boolean)
+  );
+  for (const col of ['backlog', 'quarterly', 'monthly', 'weekly', 'daily']) {
+    if (objectives[col]) {
+      objectives[col] = objectives[col].filter(i => !completedIds.has(i.id));
+    }
   }
 
   const projects = (data.projects || []).filter(p => p.status === 'active' || p.status === 'paused');
@@ -1365,8 +1379,12 @@ const handleDrop = (e, data) => {
   const itemIndex = data.objectives[sourceColumn].findIndex(i => i.id === itemId);
   if (itemIndex === -1) return;
 
+  // Registrar tombstone ANTES del splice (para que el merge sepa que salió de aquí)
+  recordDeletion(data, `objectives.${sourceColumn}`, itemId);
+
   const [item] = data.objectives[sourceColumn].splice(itemIndex, 1);
   item.movedAt = new Date().toISOString();
+  item.updatedAt = new Date().toISOString();
   item.movedFrom = sourceColumn;
   data.objectives[targetColumn].push(item);
 
@@ -1616,7 +1634,11 @@ const toggleItemComplete = (itemId, completed, data) => {
     // === COMPLETAR: Mover automáticamente a "Completadas" ===
     item.completed = true;
     item.completedAt = new Date().toISOString();
+    item.updatedAt = new Date().toISOString();
     item.originalColumn = column; // Guardar origen para posible restauración
+
+    // Registrar tombstone ANTES de filtrar (para que el merge sepa que fue borrado intencionalmente)
+    recordDeletion(data, `objectives.${column}`, itemId);
 
     // Eliminar del horizonte actual
     data.objectives[column] = data.objectives[column].filter(i => i.id !== itemId);
@@ -1631,6 +1653,7 @@ const toggleItemComplete = (itemId, completed, data) => {
     // === DESMARCAR: Restaurar al horizonte original ===
     item.completed = false;
     item.completedAt = null;
+    item.updatedAt = new Date().toISOString();
 
     // Si está en "completed", moverla de vuelta a su horizonte original
     if (column === 'completed' && item.originalColumn) {
@@ -1649,8 +1672,12 @@ const toggleItemComplete = (itemId, completed, data) => {
         // El horizonte está lleno - no permitir restaurar
         showNotification(`${COLUMN_NAMES[targetColumn]} está lleno (${limit}/${limit}). Completa algo primero.`, 'warning');
         item.completed = true; // Revertir el cambio
+        item.updatedAt = null; // Revertir timestamp
         return;
       }
+
+      // Registrar tombstone ANTES de filtrar
+      recordDeletion(data, 'objectives.completed', itemId);
 
       // Eliminar de completed
       data.objectives.completed = data.objectives.completed.filter(i => i.id !== itemId);

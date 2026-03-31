@@ -4,7 +4,7 @@
  * Roca + tareas foco + timer Muévete + hábito + próximo evento.
  */
 
-import { generateId, showNotification, formatDate, openCalmTimer } from '../app.js';
+import { generateId, showNotification, formatDate, openCalmTimer, recordDeletion } from '../app.js';
 import { getMueveteState, formatTime, startWorkBlock } from '../components/muevete-timer.js';
 import { isHabitCompletedToday } from '../utils/achievements-calculator.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
@@ -164,6 +164,15 @@ export const init = (data, updateData) => {
       if (task) {
         task.completed = true;
         task.completedAt = new Date().toISOString();
+        task.updatedAt = new Date().toISOString();
+        task.originalColumn = 'daily';
+
+        // Registrar tombstone + mover a completed (igual que kanban/dashboard)
+        recordDeletion(data, 'objectives.daily', id);
+        if (!data.objectives.completed) data.objectives.completed = [];
+        data.objectives.daily = data.objectives.daily.filter(t => t.id !== id);
+        data.objectives.completed.push(task);
+
         updateData('objectives', data.objectives);
         showNotification('Tarea completada', 'success');
         reRender(data);

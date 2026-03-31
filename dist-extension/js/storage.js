@@ -24,7 +24,8 @@ const getDefaultData = () => ({
     quarterly: [],  // Máx 3 objetivos trimestrales
     monthly: [],    // Hitos mensuales
     weekly: [],     // Tareas de la semana
-    daily: []       // En Foco - lista cerrada (máx 3)
+    daily: [],      // En Foco - lista cerrada (máx 3)
+    completed: []   // Tareas completadas
   },
 
   // Laboratorio de hábitos
@@ -541,7 +542,8 @@ export const clearProductivityData = () => {
       quarterly: [],
       monthly: [],
       weekly: [],
-      daily: []
+      daily: [],
+      completed: []
     };
     data.projects = [];
     data.spontaneousAchievements = [];

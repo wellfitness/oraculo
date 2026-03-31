@@ -517,7 +517,10 @@ function debouncedPush() {
     _syncing = true;
     try {
       const accessToken = await _authModule.getTokenSilent();
-      if (!accessToken) return;
+      if (!accessToken) {
+        notifySyncStatus('token_expired');
+        return;
+      }
 
       await push(accessToken);
       _lastSyncAt = Date.now();

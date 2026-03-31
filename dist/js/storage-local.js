@@ -24,7 +24,8 @@ const getDefaultData = () => ({
     quarterly: [],
     monthly: [],
     weekly: [],
-    daily: []
+    daily: [],
+    completed: []
   },
 
   habits: {
@@ -477,7 +478,7 @@ export const clearIdentityData = () => {
 export const clearProductivityData = () => {
   if (confirm('¿Borrar tareas, proyectos y logros?\n\nValores, hábitos y diario se mantienen.')) {
     const data = loadData();
-    data.objectives = { backlog: [], quarterly: [], monthly: [], weekly: [], daily: [] };
+    data.objectives = { backlog: [], quarterly: [], monthly: [], weekly: [], daily: [], completed: [] };
     data.projects = [];
     data.spontaneousAchievements = [];
     data.dailySetup = null;
