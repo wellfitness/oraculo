@@ -366,6 +366,53 @@ function mergeArrays(localArr, remoteArr, sectionKey, localData, remoteData, get
  * @param {object} remoteData - Datos de Google Drive
  * @returns {{ merged: object, conflicts: Array }}
  */
+/**
+ * Reconcilia operaciones "move" en objectives despues del merge.
+ *
+ * Problema: el merge trata cada sub-array (weekly, completed, etc.) de forma
+ * independiente. Cuando una tarea se "mueve" (ej: weekly → completed), el merge
+ * puede acabar con el item en ambos arrays. Esta funcion limpia esos duplicados:
+ *
+ * 1. Si un item esta en completed Y en un horizonte → eliminarlo del horizonte
+ * 2. Si un item aparece varias veces en completed → deduplicar
+ */
+function reconcileObjectiveMoves(data) {
+  const completed = getSection(data, 'objectives.completed');
+  if (!Array.isArray(completed) || completed.length === 0) return;
+
+  const completedIds = new Set(completed.map(item => item.id).filter(Boolean));
+
+  // Eliminar de horizontes los items que ya estan en completed
+  const horizons = ['backlog', 'quarterly', 'monthly', 'weekly', 'daily'];
+  for (const h of horizons) {
+    const arr = getSection(data, `objectives.${h}`);
+    if (!Array.isArray(arr)) continue;
+    const filtered = arr.filter(item => !completedIds.has(item.id));
+    if (filtered.length !== arr.length) {
+      console.log(
+        `[GDrive Merge] Reconciliacion: ${arr.length - filtered.length} ` +
+        `duplicado(s) eliminados de objectives.${h}`
+      );
+      setSection(data, `objectives.${h}`, filtered);
+    }
+  }
+
+  // Deduplicar dentro de completed (mismo ID varias veces)
+  const seen = new Set();
+  const dedupedCompleted = completed.filter(item => {
+    if (!item.id || seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+  if (dedupedCompleted.length !== completed.length) {
+    console.log(
+      `[GDrive Merge] Deduplicacion: ${completed.length - dedupedCompleted.length} ` +
+      `copia(s) eliminada(s) de completed`
+    );
+    setSection(data, 'objectives.completed', dedupedCompleted);
+  }
+}
+
 export function mergeData(localData, remoteData) {
   // Deep clone de ambos lados para evitar mutacion cruzada
   const clonedLocal = JSON.parse(JSON.stringify(localData));
@@ -444,6 +491,10 @@ export function mergeData(localData, remoteData) {
   if (clonedLocal.createdAt && !merged.createdAt) {
     merged.createdAt = clonedLocal.createdAt;
   }
+
+  // Reconciliar objectives: eliminar duplicados cross-array
+  // (un item completado no debe seguir en su horizonte original)
+  reconcileObjectiveMoves(merged);
 
   // Nuevo timestamp raiz
   merged.updatedAt = new Date().toISOString();

@@ -765,7 +765,11 @@ const handleToggleTask = (taskId, completed, data) => {
     // Marcar como completada
     task.completed = true;
     task.completedAt = new Date().toISOString();
+    task.updatedAt = new Date().toISOString();
     task.originalColumn = 'daily'; // Guardar origen para posible restauración
+
+    // Registrar tombstone ANTES de filtrar (para sync con Drive)
+    recordDeletion(data, 'objectives.daily', taskId);
 
     // Mover a objectives.completed (igual que en kanban)
     if (!data.objectives.completed) {
