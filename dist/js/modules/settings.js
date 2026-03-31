@@ -278,6 +278,19 @@ export const render = (data) => {
         </div>
       </section>
 
+      <!-- Legal -->
+      <section class="settings-section" style="opacity: 0.7;">
+        <p style="font-size: 0.75rem; line-height: 1.5; color: var(--gris-500); text-align: center;">
+          Oráculo es un proyecto de <strong>código abierto</strong>, gratuito y sin ánimo de lucro.
+          Tus datos se almacenan en tu dispositivo y, opcionalmente, en tu Google Drive personal.
+          No tenemos acceso a tus datos. No nos hacemos responsables de la pérdida, inexactitud
+          o cualquier problema derivado del uso de la aplicación.
+          <a href="https://oraculo.movimientofuncional.app/aviso-legal.html" target="_blank" rel="noopener" style="color: var(--turquesa-600);">Aviso legal</a> ·
+          <a href="https://oraculo.movimientofuncional.app/privacidad.html" target="_blank" rel="noopener" style="color: var(--turquesa-600);">Privacidad</a> ·
+          <a href="https://github.com/wellfitness/oraculo" target="_blank" rel="noopener" style="color: var(--turquesa-600);">GitHub</a>
+        </p>
+      </section>
+
       <!-- Modal de confirmación de archivado -->
       <dialog id="archive-confirm-modal" class="modal">
         <div class="modal-content">

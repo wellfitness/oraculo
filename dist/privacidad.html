@@ -95,15 +95,19 @@
 
         <div class="privacy-highlight">
           <p>
-            <strong>Resumen:</strong> Oráculo no recoge, almacena ni transmite ningún dato personal a servidores externos.
-            Toda tu información permanece exclusivamente en tu navegador.
+            <strong>Resumen:</strong> Oráculo es un proyecto de <strong>código abierto y sin ánimo de lucro</strong>.
+            No recogemos ni almacenamos datos personales en nuestros servidores.
+            Toda tu información permanece en tu dispositivo y, opcionalmente, en tu propia cuenta de Google Drive.
+            <strong>No tenemos acceso a tus datos bajo ninguna circunstancia.</strong>
           </p>
         </div>
 
-        <h2>1. Responsable del tratamiento</h2>
+        <h2>1. Responsable del proyecto</h2>
         <p>
           <strong>Nombre:</strong> Elena Cruces<br>
           <strong>Proyecto:</strong> Oráculo - Gestión Personal Consciente<br>
+          <strong>Naturaleza:</strong> Proyecto de código abierto, gratuito y sin ánimo de lucro<br>
+          <strong>Código fuente:</strong> <a href="https://github.com/wellfitness/oraculo" target="_blank" rel="noopener">github.com/wellfitness/oraculo</a><br>
           <strong>Contacto:</strong> hola@movimientofuncional.com
         </p>
 
@@ -117,18 +121,18 @@
           <li>Datos de uso o comportamiento</li>
         </ul>
 
-        <h2>3. Almacenamiento local (localStorage)</h2>
+        <h2>3. Almacenamiento local</h2>
         <p>
           Todos los datos que introduces en Oráculo (objetivos, hábitos, diario, valores, etc.)
-          se almacenan <strong>exclusivamente en el almacenamiento local de tu navegador</strong> (localStorage).
+          se almacenan <strong>exclusivamente en el almacenamiento local de tu dispositivo</strong> (localStorage).
         </p>
         <p>Esto significa que:</p>
         <ul>
-          <li>Tus datos nunca salen de tu dispositivo</li>
-          <li>No tenemos acceso a tu información</li>
-          <li>No hay servidores que almacenen tus datos</li>
-          <li>Si borras los datos del navegador, se perderá la información</li>
+          <li><strong>No tenemos acceso a tu información</strong> — ni ahora, ni nunca</li>
+          <li>No hay servidores propios que almacenen tus datos</li>
+          <li>Si borras los datos del navegador o desinstalas la app, se perderá la información</li>
           <li>Cada navegador/dispositivo tiene sus propios datos independientes</li>
+          <li>Eres la única persona responsable de realizar copias de seguridad de tus datos</li>
         </ul>
 
         <h3>Extensión Chrome</h3>
@@ -137,13 +141,38 @@
           de la extensión. La extensión:
         </p>
         <ul>
-          <li>No envía datos a servidores externos</li>
+          <li>No envía datos a servidores externos (salvo Google Drive si lo conectas)</li>
           <li>No accede a tus datos de navegación ni al contenido de las páginas que visitas</li>
-          <li>Los datos de la extensión y la web app son independientes entre sí</li>
           <li>Al desinstalar la extensión, los datos se eliminan</li>
         </ul>
 
-        <h2>4. Cookies</h2>
+        <h3>App Android</h3>
+        <p>
+          En la app de Android, los datos se almacenan localmente en el dispositivo.
+          Si tienes Google Backup activo en tu dispositivo Android, los datos de la app pueden
+          respaldarse automáticamente a través de los mecanismos estándar de Android.
+        </p>
+
+        <h2>4. Sincronización con Google Drive (opcional)</h2>
+        <p>
+          Oráculo ofrece la opción de sincronizar tus datos entre dispositivos usando <strong>tu propia cuenta de Google Drive</strong>.
+          Esta funcionalidad es completamente opcional y requiere tu consentimiento explícito.
+        </p>
+        <p>Cuando activas la sincronización:</p>
+        <ul>
+          <li>Tus datos se guardan en una <strong>carpeta oculta exclusiva de Oráculo</strong> (<code>appData</code>) en tu Google Drive personal</li>
+          <li><strong>Solo tú puedes ver y acceder a esa carpeta</strong> — ni siquiera nosotros tenemos acceso</li>
+          <li>No leemos, modificamos ni accedemos a ningún otro archivo de tu Google Drive</li>
+          <li>El scope utilizado es <code>drive.appdata</code>, que es el más restrictivo de Google Drive</li>
+          <li>Puedes desconectar Google Drive en cualquier momento desde Configuración</li>
+          <li>Al desconectar, tus datos locales se mantienen intactos</li>
+        </ul>
+        <p>
+          <strong>Importante:</strong> La sincronización se realiza directamente entre tu dispositivo y tu cuenta de Google Drive.
+          Los datos no pasan por nuestros servidores en ningún momento. No tenemos capacidad técnica para acceder a ellos.
+        </p>
+
+        <h2>5. Cookies</h2>
         <p>
           Oráculo <strong>no utiliza cookies</strong> de ningún tipo:
         </p>
@@ -154,56 +183,90 @@
           <li>No hay cookies de terceros</li>
         </ul>
 
-        <h2>5. Servicios de terceros</h2>
+        <h2>6. Servicios de terceros</h2>
         <p>
-          La aplicación carga recursos de terceros únicamente para funcionalidades básicas:
+          La aplicación utiliza los siguientes servicios de terceros:
         </p>
         <ul>
           <li><strong>Google Fonts:</strong> Para cargar las tipografías (Righteous, ABeeZee) y los iconos (Material Symbols).
           Google puede recoger datos técnicos según su <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">política de privacidad</a>.</li>
+          <li><strong>Google Drive API:</strong> Solo si activas la sincronización. Se accede únicamente a la carpeta <code>appData</code> de tu Drive personal.</li>
+          <li><strong>Google Sign-In:</strong> Solo para autenticarte y obtener permiso de acceso a tu Drive. No almacenamos credenciales.</li>
         </ul>
 
-        <h2>6. Exportación de datos</h2>
+        <h2>7. Exportación de datos</h2>
         <p>
           Puedes exportar todos tus datos en cualquier momento desde la sección de Configuración
           de la aplicación. Los datos se descargan en formato JSON directamente a tu dispositivo.
         </p>
 
-        <h2>7. Eliminación de datos</h2>
+        <h2>8. Eliminación de datos</h2>
         <p>
           Para eliminar tus datos puedes:
         </p>
         <ul>
           <li>Usar la opción "Borrar todos los datos" en Configuración</li>
           <li>Borrar los datos de navegación de tu navegador</li>
-          <li>Desinstalar la PWA o la extensión Chrome (si la tienes instalada)</li>
+          <li>Desinstalar la app Android o la extensión Chrome</li>
+          <li>Si activaste Google Drive: los datos en Drive se pueden eliminar manualmente desde tu cuenta de Google</li>
         </ul>
 
-        <h2>8. Seguridad</h2>
+        <h2>9. Seguridad</h2>
         <p>
-          Al no transmitir datos a servidores externos, el riesgo de filtración es mínimo.
+          Al no transmitir datos a servidores propios, el riesgo de filtración por nuestra parte es inexistente.
           Sin embargo, recomendamos:
         </p>
         <ul>
           <li>No usar la aplicación en dispositivos compartidos sin cerrar sesión del navegador</li>
           <li>Realizar copias de seguridad periódicas (exportar datos)</li>
-          <li>Mantener el navegador actualizado</li>
+          <li>Mantener el navegador y la app actualizados</li>
+          <li>Si usas Google Drive Sync, proteger tu cuenta de Google con verificación en 2 pasos</li>
         </ul>
 
-        <h2>9. Derechos del usuario</h2>
+        <h2>10. Exención de responsabilidad sobre los datos</h2>
+        <div class="privacy-highlight">
+          <p>
+            <strong>Oráculo es un proyecto de código abierto, gratuito y sin ánimo de lucro.</strong>
+            Al no tener acceso a los datos de los usuarios (almacenados localmente en sus dispositivos
+            o en sus cuentas personales de Google Drive), <strong>no podemos responsabilizarnos de la pérdida,
+            corrupción o uso indebido de dichos datos</strong>.
+          </p>
+        </div>
+        <p>El usuario es el único responsable de:</p>
+        <ul>
+          <li>Realizar copias de seguridad de sus datos</li>
+          <li>Proteger el acceso a su dispositivo y cuenta de Google</li>
+          <li>La información que introduce en la aplicación</li>
+        </ul>
+        <p>
+          La aplicación se proporciona "tal cual" (<em>as is</em>), sin garantías de disponibilidad,
+          continuidad ni recuperación de datos. El código fuente está disponible públicamente en
+          <a href="https://github.com/wellfitness/oraculo" target="_blank" rel="noopener">GitHub</a>
+          para su auditoría.
+        </p>
+
+        <h2>11. Código abierto</h2>
+        <p>
+          Oráculo es un proyecto de <strong>código abierto</strong>. El código fuente completo está
+          disponible en <a href="https://github.com/wellfitness/oraculo" target="_blank" rel="noopener">github.com/wellfitness/oraculo</a>.
+          Cualquier persona puede auditar el código para verificar que la aplicación cumple con lo
+          descrito en esta política de privacidad.
+        </p>
+
+        <h2>12. Derechos del usuario</h2>
         <p>
           Al no almacenar datos personales en nuestros sistemas, no aplican los derechos ARCO
           (Acceso, Rectificación, Cancelación y Oposición) en el sentido tradicional.
           Tienes control total sobre tus datos directamente desde la aplicación.
         </p>
 
-        <h2>10. Cambios en esta política</h2>
+        <h2>13. Cambios en esta política</h2>
         <p>
           Nos reservamos el derecho de modificar esta política de privacidad.
           Cualquier cambio será publicado en esta página con la fecha de actualización.
         </p>
 
-        <h2>11. Contacto</h2>
+        <h2>14. Contacto</h2>
         <p>
           Si tienes preguntas sobre esta política de privacidad, puedes contactarnos en:
           <a href="mailto:hola@movimientofuncional.com">hola@movimientofuncional.com</a>
