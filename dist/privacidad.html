@@ -124,7 +124,7 @@
         <h2>3. Almacenamiento local</h2>
         <p>
           Todos los datos que introduces en Oráculo (objetivos, hábitos, diario, valores, etc.)
-          se almacenan <strong>exclusivamente en el almacenamiento local de tu dispositivo</strong> (localStorage).
+          se almacenan <strong>exclusivamente en el almacenamiento local de tu dispositivo</strong>.
         </p>
         <p>Esto significa que:</p>
         <ul>
@@ -160,10 +160,10 @@
         </p>
         <p>Cuando activas la sincronización:</p>
         <ul>
-          <li>Tus datos se guardan en una <strong>carpeta oculta exclusiva de Oráculo</strong> (<code>appData</code>) en tu Google Drive personal</li>
+          <li>Tus datos se guardan en una <strong>carpeta oculta exclusiva de Oráculo</strong> dentro de tu Google Drive personal</li>
           <li><strong>Solo tú puedes ver y acceder a esa carpeta</strong> — ni siquiera nosotros tenemos acceso</li>
           <li>No leemos, modificamos ni accedemos a ningún otro archivo de tu Google Drive</li>
-          <li>El scope utilizado es <code>drive.appdata</code>, que es el más restrictivo de Google Drive</li>
+          <li>El permiso utilizado es el más restrictivo de Google Drive (solo carpeta de datos de la app)</li>
           <li>Puedes desconectar Google Drive en cualquier momento desde Configuración</li>
           <li>Al desconectar, tus datos locales se mantienen intactos</li>
         </ul>
@@ -178,7 +178,7 @@
         </p>
         <ul>
           <li>No hay cookies de seguimiento</li>
-          <li>No hay cookies de analíticas</li>
+          <li>No hay cookies de estadísticas</li>
           <li>No hay cookies de publicidad</li>
           <li>No hay cookies de terceros</li>
         </ul>
@@ -190,14 +190,14 @@
         <ul>
           <li><strong>Google Fonts:</strong> Para cargar las tipografías (Righteous, ABeeZee) y los iconos (Material Symbols).
           Google puede recoger datos técnicos según su <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">política de privacidad</a>.</li>
-          <li><strong>Google Drive API:</strong> Solo si activas la sincronización. Se accede únicamente a la carpeta <code>appData</code> de tu Drive personal.</li>
-          <li><strong>Google Sign-In:</strong> Solo para autenticarte y obtener permiso de acceso a tu Drive. No almacenamos credenciales.</li>
+          <li><strong>Google Drive:</strong> Solo si activas la sincronización. Se accede únicamente a la carpeta privada de datos de Oráculo en tu Drive personal.</li>
+          <li><strong>Inicio de sesión con Google:</strong> Solo para identificarte y obtener permiso de acceso a tu Drive. No almacenamos credenciales.</li>
         </ul>
 
         <h2>7. Exportación de datos</h2>
         <p>
           Puedes exportar todos tus datos en cualquier momento desde la sección de Configuración
-          de la aplicación. Los datos se descargan en formato JSON directamente a tu dispositivo.
+          de la aplicación. Los datos se descargan como archivo directamente a tu dispositivo.
         </p>
 
         <h2>8. Eliminación de datos</h2>
