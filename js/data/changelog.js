@@ -12,6 +12,25 @@
 
 export const CHANGELOG = [
   {
+    version: '2.1.1',
+    date: '2026-03-31',
+    title: 'Correcciones de sincronización',
+    changes: [
+      { type: 'fix', text: 'Duplicados de tareas resueltos al sincronizar con Google Drive' },
+      { type: 'fix', text: 'Mejoras de estabilidad en el merge inteligente de datos' }
+    ]
+  },
+  {
+    version: '2.1.0',
+    date: '2026-03-30',
+    title: 'Google Drive en Android',
+    changes: [
+      { type: 'new', text: 'Inicio de sesión con Google en Android para sincronizar con Drive' },
+      { type: 'new', text: 'Página de Novedades con timeline visual de versiones' },
+      { type: 'improve', text: 'Logo del búho unificado en web, extensión y Android' }
+    ]
+  },
+  {
     version: '1.6.0',
     date: '2026-03-29',
     title: 'Sincronización y bienestar',
