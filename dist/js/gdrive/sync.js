@@ -403,7 +403,15 @@ async function pull(accessToken) {
       setSyncState({ lastSyncAt: new Date().toISOString() });
     }
   } else if (localTime > remoteTime) {
-    // Local es mas nuevo → push
+    // Anti-regresion: local mas nuevo pero VACIO (recien instalado) y remote tiene datos
+    if (isEmptyData(localData) && !isEmptyData(remoteData)) {
+      console.log('[GDrive Sync] Local vacio (recien instalado), aplicando remote');
+      localStorage.setItem(BACKUP_KEY, localRaw);
+      applyRemoteData(remoteData);
+      setSyncState({ lastSyncAt: new Date().toISOString(), fileVersion: file.version });
+      return;
+    }
+    // Local es mas nuevo y tiene datos → push
     console.log('[GDrive Sync] Datos locales mas recientes, subiendo...');
     await push(accessToken);
   } else {
