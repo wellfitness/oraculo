@@ -1125,17 +1125,57 @@ function initSyncButton(gdriveSync) {
   const icon = document.getElementById('global-sync-icon');
   if (!btn || !icon) return;
 
+  let _tokenExpiredNotified = false;
+
   function updateIcon() {
     const connected = gdriveSync.isConnected();
     btn.style.display = 'flex';
-    icon.textContent = connected ? 'cloud_done' : 'cloud_off';
-    btn.title = connected ? 'Sincronizar con Google Drive' : 'Conectar Google Drive';
     btn.classList.toggle('sync-connected', connected);
+
+    const info = gdriveSync.getSyncInfo();
+    if (connected && info.syncHealth === 'token_expired') {
+      icon.textContent = 'sync_problem';
+      btn.title = 'Sesion de Drive expirada - clic para reconectar';
+      btn.classList.add('sync-error');
+    } else if (connected && info.syncHealth === 'error') {
+      icon.textContent = 'cloud_off';
+      btn.title = 'Error de sincronizacion - clic para reintentar';
+      btn.classList.add('sync-error');
+    } else if (connected) {
+      icon.textContent = 'cloud_done';
+      btn.title = 'Sincronizar con Google Drive';
+      btn.classList.remove('sync-error');
+    } else {
+      icon.textContent = 'cloud_off';
+      btn.title = 'Conectar Google Drive';
+      btn.classList.remove('sync-error');
+    }
   }
 
   updateIcon();
 
   btn.addEventListener('click', async () => {
+    const info = gdriveSync.getSyncInfo();
+
+    // Si el token expiro, reconectar directamente
+    if (info.syncHealth === 'token_expired' && gdriveSync.isConnected()) {
+      icon.textContent = 'sync';
+      btn.disabled = true;
+      try {
+        await gdriveSync.connect();
+        _tokenExpiredNotified = false;
+        showNotification('Google Drive reconectado', 'success');
+      } catch (err) {
+        if (err.message !== 'popup_closed_by_user') {
+          showNotification('Error al reconectar: ' + err.message, 'error');
+        }
+      } finally {
+        btn.disabled = false;
+        updateIcon();
+      }
+      return;
+    }
+
     if (gdriveSync.isConnected()) {
       icon.textContent = 'sync';
       btn.disabled = true;
@@ -1166,7 +1206,18 @@ function initSyncButton(gdriveSync) {
     }
   });
 
-  window.addEventListener('gdrive-sync-status', updateIcon);
+  window.addEventListener('gdrive-sync-status', (e) => {
+    updateIcon();
+
+    const { status, syncHealth } = e.detail;
+
+    if (syncHealth === 'token_expired' && !_tokenExpiredNotified) {
+      _tokenExpiredNotified = true;
+      showNotification('Sesion de Google Drive expirada. Pulsa el icono de nube para reconectar.', 'error');
+    } else if (status === 'synced' || status === 'connected') {
+      _tokenExpiredNotified = false;
+    }
+  });
 }
 
 if (document.readyState === 'loading') {

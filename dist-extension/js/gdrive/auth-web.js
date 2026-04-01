@@ -75,6 +75,20 @@ export async function getTokenSilent() {
 }
 
 /**
+ * Fuerza refresh del token descartando el cacheado.
+ * @returns {string | null}
+ */
+export async function refreshToken() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(TOKEN_EXPIRY_KEY);
+  try {
+    return await silentRefresh();
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Cierra sesion y revoca el token.
  */
 export async function signOut() {
