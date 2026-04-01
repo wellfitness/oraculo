@@ -32,6 +32,22 @@ export async function getTokenSilent() {
 }
 
 /**
+ * Fuerza refresh del token invalidando el cacheado en Chrome.
+ * @returns {string | null}
+ */
+export async function refreshToken() {
+  try {
+    const old = await getAuthToken(false);
+    if (old) await removeCachedToken(old);
+  } catch { /* ignore */ }
+  try {
+    return await getAuthToken(false);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Cierra sesion y revoca el token.
  */
 export async function signOut() {

@@ -4,18 +4,71 @@
  * Usa fetch() directamente contra la API REST de Google Drive.
  * Trabaja exclusivamente con appDataFolder (carpeta oculta).
  * No requiere SDK ni librerias externas.
+ *
+ * Incluye retry automatico en 401 (token expirado) via
+ * _tokenRefresher inyectado desde sync.js.
  */
 
 import { GDRIVE_CONFIG } from './config.js';
 
 const { API_FILES, API_UPLOAD, FILE_NAME } = GDRIVE_CONFIG;
 
+// ───────────────────────────────────────────────
+// Token refresher (inyectado desde sync.js)
+// ───────────────────────────────────────────────
+
+let _tokenRefresher = null;
+
 /**
- * Headers de autorizacion para todas las peticiones
+ * Registra la funcion que obtiene un token fresco.
+ * Llamado por sync.js en init() para evitar dependencia circular.
  */
-function authHeaders(accessToken) {
-  return { 'Authorization': `Bearer ${accessToken}` };
+export function setTokenRefresher(fn) {
+  _tokenRefresher = fn;
 }
+
+// ───────────────────────────────────────────────
+// Fetch con retry automatico en 401
+// ───────────────────────────────────────────────
+
+/**
+ * Wrapper de fetch que:
+ * 1. Inyecta Authorization header
+ * 2. Si recibe 401 y hay _tokenRefresher, refresca token y reintenta UNA vez
+ * 3. Lanza error con .status para que el caller distinga tipo de error
+ */
+async function fetchWithAuth(url, options, accessToken) {
+  const opts = {
+    ...options,
+    headers: {
+      ...options.headers,
+      'Authorization': `Bearer ${accessToken}`,
+    },
+  };
+
+  let res = await fetch(url, opts);
+
+  // Retry en 401 si hay refresher disponible
+  if (res.status === 401 && _tokenRefresher) {
+    const newToken = await _tokenRefresher();
+    if (newToken) {
+      opts.headers['Authorization'] = `Bearer ${newToken}`;
+      res = await fetch(url, opts);
+    }
+  }
+
+  if (!res.ok) {
+    const err = new Error(`Drive API ${res.status}: ${res.statusText}`);
+    err.status = res.status;
+    throw err;
+  }
+
+  return res;
+}
+
+// ───────────────────────────────────────────────
+// API Functions
+// ───────────────────────────────────────────────
 
 /**
  * Busca el archivo oraculo_data.json en appDataFolder.
@@ -29,14 +82,7 @@ export async function findFile(accessToken) {
     pageSize: '1',
   });
 
-  const res = await fetch(`${API_FILES}?${params}`, {
-    headers: authHeaders(accessToken),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Drive findFile failed: ${res.status} ${res.statusText}`);
-  }
-
+  const res = await fetchWithAuth(`${API_FILES}?${params}`, {}, accessToken);
   const data = await res.json();
   return data.files?.length > 0 ? data.files[0] : null;
 }
@@ -46,14 +92,7 @@ export async function findFile(accessToken) {
  * @returns {object} Datos parseados
  */
 export async function readFile(accessToken, fileId) {
-  const res = await fetch(`${API_FILES}/${fileId}?alt=media`, {
-    headers: authHeaders(accessToken),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Drive readFile failed: ${res.status} ${res.statusText}`);
-  }
-
+  const res = await fetchWithAuth(`${API_FILES}/${fileId}?alt=media`, {}, accessToken);
   return res.json();
 }
 
@@ -71,19 +110,15 @@ export async function createFile(accessToken, data) {
 
   const body = buildMultipartBody(metadata, data);
 
-  const res = await fetch(`${API_UPLOAD}/files?uploadType=multipart&fields=id,modifiedTime,version`, {
-    method: 'POST',
-    headers: {
-      ...authHeaders(accessToken),
-      'Content-Type': `multipart/related; boundary=${BOUNDARY}`,
+  const res = await fetchWithAuth(
+    `${API_UPLOAD}/files?uploadType=multipart&fields=id,modifiedTime,version`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/related; boundary=${BOUNDARY}` },
+      body,
     },
-    body,
-  });
-
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(`Drive createFile failed: ${res.status} ${errorText}`);
-  }
+    accessToken
+  );
 
   return res.json();
 }
@@ -99,19 +134,15 @@ export async function updateFile(accessToken, fileId, data) {
 
   const body = buildMultipartBody(metadata, data);
 
-  const res = await fetch(`${API_UPLOAD}/files/${fileId}?uploadType=multipart&fields=id,modifiedTime,version`, {
-    method: 'PATCH',
-    headers: {
-      ...authHeaders(accessToken),
-      'Content-Type': `multipart/related; boundary=${BOUNDARY}`,
+  const res = await fetchWithAuth(
+    `${API_UPLOAD}/files/${fileId}?uploadType=multipart&fields=id,modifiedTime,version`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': `multipart/related; boundary=${BOUNDARY}` },
+      body,
     },
-    body,
-  });
-
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(`Drive updateFile failed: ${res.status} ${errorText}`);
-  }
+    accessToken
+  );
 
   return res.json();
 }
@@ -122,14 +153,11 @@ export async function updateFile(accessToken, fileId, data) {
  * @returns {{ id: string, version: string, modifiedTime: string }}
  */
 export async function getFileMetadata(accessToken, fileId) {
-  const res = await fetch(`${API_FILES}/${fileId}?fields=id,version,modifiedTime`, {
-    headers: authHeaders(accessToken),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Drive getFileMetadata failed: ${res.status} ${res.statusText}`);
-  }
-
+  const res = await fetchWithAuth(
+    `${API_FILES}/${fileId}?fields=id,version,modifiedTime`,
+    {},
+    accessToken
+  );
   return res.json();
 }
 
@@ -137,13 +165,11 @@ export async function getFileMetadata(accessToken, fileId) {
  * Elimina el archivo (para reset/desconexion).
  */
 export async function deleteFile(accessToken, fileId) {
-  const res = await fetch(`${API_FILES}/${fileId}`, {
-    method: 'DELETE',
-    headers: authHeaders(accessToken),
-  });
-
-  if (!res.ok && res.status !== 404) {
-    throw new Error(`Drive deleteFile failed: ${res.status}`);
+  const opts = { method: 'DELETE' };
+  try {
+    await fetchWithAuth(`${API_FILES}/${fileId}`, opts, accessToken);
+  } catch (err) {
+    if (err.status !== 404) throw err;
   }
 }
 
@@ -153,10 +179,12 @@ export async function deleteFile(accessToken, fileId) {
  */
 export async function verifyToken(accessToken) {
   try {
-    const res = await fetch(`${API_FILES}?spaces=appDataFolder&pageSize=1`, {
-      headers: authHeaders(accessToken),
-    });
-    return res.ok;
+    await fetchWithAuth(
+      `${API_FILES}?spaces=appDataFolder&pageSize=1`,
+      {},
+      accessToken
+    );
+    return true;
   } catch {
     return false;
   }

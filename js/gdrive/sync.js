@@ -1,5 +1,5 @@
 /**
- * Google Drive Sync - Motor de sincronizacion
+ * Google Drive Sync - Motor de sincronizacion bidireccional
  *
  * Orquesta la sincronizacion entre localStorage y Google Drive.
  * localStorage es SIEMPRE el almacenamiento primario.
@@ -9,10 +9,15 @@
  *  1. Version check: verifica que nadie escribio en Drive antes de hacer push
  *  2. Merge inteligente: combina datos por seccion en vez de sobrescribir todo
  *  3. Conflict log: guarda versiones descartadas para recuperacion
+ *
+ * Sync bidireccional:
+ *  - Push: cambios locales → Drive (debounced, tras evento data-saved)
+ *  - Pull periodico: cada 30s verifica si hay cambios remotos (metadata-only)
+ *  - Pull on focus: al volver a la tab, check inmediato
  */
 
 import { GDRIVE_CONFIG } from './config.js';
-import { findFile, readFile, createFile, updateFile, getFileMetadata } from './drive-api.js';
+import { setTokenRefresher, findFile, readFile, createFile, updateFile, getFileMetadata } from './drive-api.js';
 import { mergeData, isEmptyData, calculateDataRichness } from './merge.js';
 
 const STORAGE_KEY = 'oraculo_data';
@@ -27,6 +32,11 @@ let _debounceTimer = null;
 let _syncing = false;
 let _lastSyncAt = 0;
 let _applyingRemote = false; // Flag anti-ciclo: evita push tras recibir datos de pull
+
+// Polling y salud del sync
+let _pollTimer = null;
+let _syncHealth = 'healthy';  // 'healthy' | 'token_expired' | 'error'
+let _consecutiveFailures = 0;
 
 // ───────────────────────────────────────────────
 // Estado persistente de sync
@@ -52,7 +62,7 @@ export function isConnected() {
 }
 
 export function getSyncInfo() {
-  return getSyncState();
+  return { ...getSyncState(), syncHealth: _syncHealth };
 }
 
 // ───────────────────────────────────────────────
@@ -91,6 +101,32 @@ export function clearConflicts() {
 }
 
 // ───────────────────────────────────────────────
+// Salud del sync
+// ───────────────────────────────────────────────
+
+function markHealthy() {
+  _syncHealth = 'healthy';
+  _consecutiveFailures = 0;
+  setSyncState({ syncHealth: 'healthy' });
+}
+
+function markTokenExpired() {
+  _syncHealth = 'token_expired';
+  setSyncState({ syncHealth: 'token_expired' });
+  stopPolling();
+  notifySyncStatus('token_expired');
+}
+
+function markError() {
+  _consecutiveFailures++;
+  if (_consecutiveFailures >= 3) {
+    _syncHealth = 'error';
+    setSyncState({ syncHealth: 'error' });
+    notifySyncStatus('error');
+  }
+}
+
+// ───────────────────────────────────────────────
 // Inicializacion
 // ───────────────────────────────────────────────
 
@@ -110,20 +146,26 @@ export async function init(platform) {
     _authModule = await import('./auth-web.js');
   }
 
+  // Conectar token refresher para retry automatico en 401
+  setTokenRefresher(() => _authModule.refreshToken());
+
   // Si estaba conectado, intentar sync silencioso al iniciar
   if (isConnected()) {
     try {
       const token = await _authModule.getTokenSilent();
       if (token) {
         await pull(token);
+        markHealthy();
         notifySyncStatus('synced');
         _lastSyncAt = Date.now();
+        // Iniciar polling tras pull exitoso
+        startPolling();
       } else {
-        notifySyncStatus('token_expired');
+        markTokenExpired();
       }
     } catch (err) {
       console.warn('[GDrive Sync] Error en sync inicial:', err.message);
-      notifySyncStatus('error');
+      markError();
     }
   }
 
@@ -135,7 +177,80 @@ export async function init(platform) {
     }
   });
 
-  console.log(`[GDrive Sync] Inicializado (${platform}) con merge de 3 capas`);
+  // Pull inmediato al volver a la tab (el usuario pudo haber editado en otro dispositivo)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && isConnected() && !_syncing) {
+      checkForRemoteChanges();
+    }
+  });
+
+  console.log(`[GDrive Sync] Inicializado (${platform}) con sync bidireccional`);
+}
+
+// ───────────────────────────────────────────────
+// Polling periodico
+// ───────────────────────────────────────────────
+
+function startPolling() {
+  stopPolling(); // Evitar duplicados
+  _pollTimer = setInterval(checkForRemoteChanges, GDRIVE_CONFIG.POLL_INTERVAL_MS);
+  console.log(`[GDrive Sync] Polling iniciado (cada ${GDRIVE_CONFIG.POLL_INTERVAL_MS / 1000}s)`);
+}
+
+function stopPolling() {
+  if (_pollTimer) {
+    clearInterval(_pollTimer);
+    _pollTimer = null;
+  }
+}
+
+/**
+ * Verifica si hay cambios remotos comparando solo la version del archivo.
+ * Es una llamada ligera (metadata-only, ~200 bytes) que no gasta cuota significativa.
+ * Solo descarga el archivo completo si la version cambio.
+ */
+async function checkForRemoteChanges() {
+  // No poll en tabs ocultas (ahorra bateria y cuota)
+  if (document.visibilityState === 'hidden') return;
+  if (_syncing) return;
+  if (!isConnected()) return;
+
+  const syncState = getSyncState();
+  if (!syncState.fileId) return;
+
+  _syncing = true;
+  try {
+    const token = await _authModule.getTokenSilent();
+    if (!token) {
+      markTokenExpired();
+      return;
+    }
+
+    const meta = await getFileMetadata(token, syncState.fileId);
+
+    if (meta.version !== syncState.fileVersion) {
+      // Version diferente → otro dispositivo hizo push → pull completo
+      console.log(
+        `[GDrive Sync] Cambio remoto detectado (local: ${syncState.fileVersion}, ` +
+        `remote: ${meta.version}). Descargando...`
+      );
+      await pull(token);
+      markHealthy();
+      notifySyncStatus('synced');
+    }
+    // Si version es igual, no hay nada que hacer
+
+    _lastSyncAt = Date.now();
+  } catch (err) {
+    if (err.status === 401) {
+      markTokenExpired();
+    } else {
+      console.warn('[GDrive Sync] Error en poll:', err.message);
+      markError();
+    }
+  } finally {
+    _syncing = false;
+  }
 }
 
 // ───────────────────────────────────────────────
@@ -162,6 +277,10 @@ export async function connect() {
   // Sync inicial tras conectar
   await syncNow(result.token);
 
+  // Iniciar polling
+  markHealthy();
+  startPolling();
+
   notifySyncStatus('connected');
   return result;
 }
@@ -170,6 +289,8 @@ export async function connect() {
  * Desconecta Google Drive y limpia estado.
  */
 export async function disconnect() {
+  stopPolling();
+
   if (_authModule) {
     try {
       await _authModule.signOut();
@@ -180,6 +301,8 @@ export async function disconnect() {
 
   // Limpiar estado pero mantener datos locales intactos
   localStorage.removeItem(SYNC_STATE_KEY);
+  _syncHealth = 'healthy';
+  _consecutiveFailures = 0;
   notifySyncStatus('disconnected');
 }
 
@@ -277,7 +400,6 @@ async function pull(accessToken) {
       });
     } catch (err) {
       console.warn('[GDrive Sync] Error subiendo merged, se reintentara:', err.message);
-      notifySyncStatus('error');
       setSyncState({ lastSyncAt: new Date().toISOString() });
     }
   } else if (localTime > remoteTime) {
@@ -486,16 +608,21 @@ export async function syncNow(token) {
   try {
     const accessToken = token || await _authModule.getTokenSilent();
     if (!accessToken) {
-      notifySyncStatus('token_expired');
+      markTokenExpired();
       return;
     }
 
     await pull(accessToken);
+    markHealthy();
     notifySyncStatus('synced');
     _lastSyncAt = Date.now();
   } catch (err) {
     console.error('[GDrive Sync] Error en syncNow:', err);
-    notifySyncStatus('error');
+    if (err.status === 401) {
+      markTokenExpired();
+    } else {
+      markError();
+    }
   } finally {
     _syncing = false;
   }
@@ -518,16 +645,21 @@ function debouncedPush() {
     try {
       const accessToken = await _authModule.getTokenSilent();
       if (!accessToken) {
-        notifySyncStatus('token_expired');
+        markTokenExpired();
         return;
       }
 
       await push(accessToken);
       _lastSyncAt = Date.now();
+      markHealthy();
       notifySyncStatus('synced');
     } catch (err) {
       console.warn('[GDrive Sync] Error en push:', err.message);
-      notifySyncStatus('error');
+      if (err.status === 401) {
+        markTokenExpired();
+      } else {
+        markError();
+      }
     } finally {
       _syncing = false;
     }
@@ -558,6 +690,6 @@ function applyRemoteData(data) {
 
 function notifySyncStatus(status) {
   window.dispatchEvent(new CustomEvent('gdrive-sync-status', {
-    detail: { status, timestamp: Date.now() }
+    detail: { status, syncHealth: _syncHealth, timestamp: Date.now() }
   }));
 }

@@ -25,4 +25,5 @@ export const GDRIVE_CONFIG = {
   // Sync settings
   DEBOUNCE_MS: 2000,        // Esperar 2s tras ultimo cambio antes de push
   SYNC_COOLDOWN_MS: 5000,   // Minimo 5s entre syncs
+  POLL_INTERVAL_MS: 30000,  // Verificar cambios remotos cada 30s
 };
