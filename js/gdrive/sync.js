@@ -184,6 +184,17 @@ export async function init(platform) {
     }
   });
 
+  // En Android/Capacitor, visibilitychange no es fiable al volver desde otra app.
+  // Usar el evento nativo de Capacitor como complemento.
+  if (platform === 'capacitor' && window.Capacitor?.Plugins?.App) {
+    window.Capacitor.Plugins.App.addListener('appStateChange', ({ isActive }) => {
+      if (isActive && isConnected() && !_syncing) {
+        console.log('[GDrive Sync] App vuelve al foco (Android), verificando cambios remotos...');
+        checkForRemoteChanges();
+      }
+    });
+  }
+
   console.log(`[GDrive Sync] Inicializado (${platform}) con sync bidireccional`);
 }
 
