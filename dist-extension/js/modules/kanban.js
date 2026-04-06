@@ -1,8 +1,8 @@
 /**
- * Oráculo - Kanban por Horizontes
+ * Oráculo - Kanban por Agenda
  * Gestión de objetivos con layout de 3 secciones:
  * - En Foco: Tareas del día con slots dinámicos (Volumen Fijo)
- * - Horizontes: Trimestre → Mes → Semana
+ * - Agenda: Trimestre → Mes → Semana
  * - Pendientes: Captura de ideas sin límite
  */
 
@@ -363,7 +363,7 @@ const renderHorizonsSection = (objectives, projects, data) => {
       <header class="section-header section-header--horizons">
         <h2 class="section-title">
           <span class="material-symbols-outlined">leaderboard</span>
-          Horizontes
+          Agenda
         </h2>
         <div class="horizons-actions" id="horizons-actions" hidden>
           <button class="btn btn--icon" id="horizon-action-edit" title="Editar">
@@ -732,7 +732,7 @@ export const render = (data) => {
       <header class="page-header">
         <div class="page-header__top">
           <div>
-            <h1 class="page-title">Horizontes</h1>
+            <h1 class="page-title">Agenda</h1>
             <p class="page-description">
               Elige tu foco del día, planifica en los horizontes y captura ideas en Pendientes.
             </p>
@@ -1008,7 +1008,7 @@ const setupBacklogSelection = (data) => {
  * Limpia todas las selecciones de todas las secciones
  */
 const clearAllSelections = () => {
-  // Limpiar Horizontes (weekly, monthly, quarterly)
+  // Limpiar Agenda (weekly, monthly, quarterly)
   document.querySelectorAll('.horizon-item--selected').forEach(i => i.classList.remove('horizon-item--selected'));
   selectedHorizonItemId = null;
   // Ocultar barras de acciones de las 3 secciones de horizontes
@@ -1129,7 +1129,7 @@ const setupSoftLimitLink = () => {
   processLink.addEventListener('click', (e) => {
     e.preventDefault();
 
-    // Hacer scroll suave a la sección de Horizontes
+    // Hacer scroll suave a la sección de Agenda
     const horizonsSection = document.querySelector('.kanban-section--horizons');
     if (horizonsSection) {
       horizonsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1441,7 +1441,7 @@ const setupAddButtons = (data) => {
  * Configura acciones de items (editar, eliminar, completar)
  */
 const setupItemActions = (data) => {
-  // Checkboxes (En Foco, Horizontes, Backlog, Completadas)
+  // Checkboxes (En Foco, Agenda, Backlog, Completadas)
   document.querySelectorAll('.kanban-item__checkbox input, .horizon-item__checkbox input, .focus-item__checkbox input, .backlog-item__checkbox input, .completed-item__checkbox input').forEach(checkbox => {
     checkbox.addEventListener('change', (e) => {
       const itemId = e.target.dataset.id;

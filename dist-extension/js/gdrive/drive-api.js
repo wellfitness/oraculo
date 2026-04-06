@@ -40,6 +40,10 @@ export function setTokenRefresher(fn) {
 async function fetchWithAuth(url, options, accessToken) {
   const opts = {
     ...options,
+    // Nunca usar cache del navegador para llamadas a Drive API.
+    // Sin esto, el browser puede devolver respuestas antiguas en cache
+    // aunque el archivo en Drive haya cambiado (CDN 304 Not Modified).
+    cache: 'no-store',
     headers: {
       ...options.headers,
       'Authorization': `Bearer ${accessToken}`,
