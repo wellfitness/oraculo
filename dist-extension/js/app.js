@@ -71,7 +71,7 @@ const VIEWS = {
   dashboard: 'Dashboard',
   values: 'Brújula de Valores',
   'life-wheel': 'Rueda de la Vida',
-  kanban: 'Horizontes',
+  kanban: 'Agenda',
   projects: 'Proyectos',
   habits: 'Laboratorio de Hábitos',
   calendar: 'Calendario',

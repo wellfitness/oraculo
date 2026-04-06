@@ -463,7 +463,7 @@ const renderProjectDetail = (project) => {
       ${tasks.length === 0 ? `
         <p class="empty-message">
           Este proyecto no tiene tareas asignadas.<br>
-          Ve a <a href="#kanban">Horizontes</a> y asigna tareas a este proyecto.
+          Ve a <a href="#kanban">Agenda</a> y asigna tareas a este proyecto.
         </p>
       ` : `
         ${pendingTasks.length > 0 ? `
