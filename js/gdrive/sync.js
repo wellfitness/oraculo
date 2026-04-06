@@ -346,6 +346,10 @@ async function pull(accessToken) {
     return;
   }
 
+  // Detectar si Drive fue modificado por otro dispositivo desde nuestro ultimo sync.
+  // IMPORTANTE: capturar ANTES de actualizar el cache, porque setSyncState lo sobreescribiria.
+  const driveVersionChanged = !!syncState.fileVersion && file.version !== syncState.fileVersion;
+
   // Cachear fileId y version
   if (file.id !== syncState.fileId || file.version !== syncState.fileVersion) {
     setSyncState({ fileId: file.id, fileVersion: file.version });
@@ -375,9 +379,19 @@ async function pull(accessToken) {
   const localTime = new Date(localData.updatedAt).getTime();
   const remoteTime = new Date(remoteData.updatedAt).getTime();
 
-  if (remoteTime > localTime) {
-    // Remoto es mas nuevo → MERGE en vez de sobrescribir ciegamente
-    console.log('[GDrive Sync] Datos remotos mas recientes, haciendo merge...');
+  if (remoteTime > localTime || driveVersionChanged) {
+    // Merge si:
+    //  a) Remote tiene timestamp mas reciente (caso normal), O
+    //  b) Drive cambio de version desde nuestro ultimo sync aunque nuestro timestamp
+    //     local parezca mas reciente (otro dispositivo escribio en Drive entre medias)
+    if (driveVersionChanged && remoteTime <= localTime) {
+      console.log(
+        `[GDrive Sync] Drive cambio de version aunque local parece mas reciente. ` +
+        'Mergeando para no perder cambios remotos...'
+      );
+    } else {
+      console.log('[GDrive Sync] Datos remotos mas recientes, haciendo merge...');
+    }
 
     // Anti-regresion: si local esta vacio y remote tiene datos, usar remote directo
     if (isEmptyData(localData) && !isEmptyData(remoteData)) {
@@ -422,7 +436,7 @@ async function pull(accessToken) {
       setSyncState({ lastSyncAt: new Date().toISOString(), fileVersion: file.version });
       return;
     }
-    // Local es mas nuevo y tiene datos → push
+    // Local es mas nuevo y no hay cambios remotos pendientes → push
     console.log('[GDrive Sync] Datos locales mas recientes, subiendo...');
     await push(accessToken);
   } else {
