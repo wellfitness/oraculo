@@ -7004,7 +7004,7 @@ a.entry-type-btn {
   box-shadow: 0 0 0 2px var(--turquesa-400);
 }
 
-/* Barra de acciones en header de Horizontes */
+/* Barra de acciones en header de Agenda */
 .section-header--horizons {
   display: flex;
   align-items: center;
@@ -14128,7 +14128,7 @@ select,
 }
 
 /* --------------------------------------------------------------------------
-   KANBAN - Horizontes temporales
+   KANBAN - Agenda temporales
    -------------------------------------------------------------------------- */
 
 .kanban-page {
@@ -17817,7 +17817,7 @@ select,
   font-size: var(--font-size-sm);
 }
 
-/* Horizontes */
+/* Agenda */
 .review-horizons {
   display: grid;
   gap: var(--space-4);

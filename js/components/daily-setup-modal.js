@@ -422,7 +422,7 @@ export const initDailySetupModal = (data, updateData) => {
         <li class="setup-tasks__empty">
           <span class="material-symbols-outlined">inbox</span>
           <p>No tienes tareas pendientes</p>
-          <p class="hint">Añade tareas en la vista de Horizontes</p>
+          <p class="hint">Añade tareas en la vista de Agenda</p>
         </li>
       `;
       return;
