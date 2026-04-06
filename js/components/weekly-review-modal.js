@@ -4,7 +4,7 @@
  *
  * Pasos:
  * 1. Pendientes - Procesar ideas sin decidir
- * 2. Horizontes - Revisar estado de tareas
+ * 2. Agenda - Revisar estado de tareas
  * 3. Proyectos - Verificar próximas acciones
  * 4. Propósitos - Elegir prioridades de la semana
  */
@@ -26,7 +26,7 @@ const REVIEW_STEPS = [
   },
   {
     id: 'horizontes',
-    title: 'Horizontes',
+    title: 'Agenda',
     icon: 'view_kanban',
     description: 'Revisa el estado de tus tareas'
   },
@@ -120,7 +120,7 @@ const renderStepContent = (stepIndex) => {
     case 'pendientes':
       return renderPendientesStep();
     case 'horizontes':
-      return renderHorizontesStep();
+      return renderAgendaStep();
     case 'proyectos':
       return renderProyectosStep();
     case 'habitos':
@@ -180,9 +180,9 @@ const renderPendientesStep = () => {
 };
 
 /**
- * Paso 2: Revisar Horizontes
+ * Paso 2: Revisar Agenda
  */
-const renderHorizontesStep = () => {
+const renderAgendaStep = () => {
   const weekly = (currentData.objectives?.weekly || []).filter(t => !t.completed);
   const monthly = (currentData.objectives?.monthly || []).filter(t => !t.completed);
 

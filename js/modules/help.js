@@ -125,7 +125,7 @@ export const render = (data) => {
             </div>
           `, 'Los valores son tu norte. Revísalos cuando dudes qué priorizar.')}
 
-          ${renderHelpCard('kanban', 'view_kanban', 'Horizontes', 'Tareas por Horizonte Temporal', `
+          ${renderHelpCard('kanban', 'view_kanban', 'Agenda', 'Tareas por Horizonte Temporal', `
             <p>Sistema de tareas organizadas por cuándo las harás.</p>
             <h4>Los 4 horizontes:</h4>
             <ul>
@@ -881,7 +881,7 @@ const renderConnectionsDiagram = () => {
             <div class="connection-nodes-row">
               <div class="connection-node" data-view="kanban">
                 <span class="material-symbols-outlined">view_kanban</span>
-                <span>Horizontes</span>
+                <span>Agenda</span>
               </div>
               <div class="connection-node" data-view="calendar">
                 <span class="material-symbols-outlined">calendar_month</span>

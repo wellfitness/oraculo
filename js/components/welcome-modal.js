@@ -18,7 +18,7 @@ export const USAGE_MODES = {
     icon: 'dashboard',
     description: 'Todas las funciones de Oráculo',
     idealFor: 'Quien quiere una gestión integral de su vida',
-    includes: ['Dashboard', 'Valores', 'Rueda de la Vida', 'Horizontes', 'Proyectos', 'Hábitos', 'Calendario', 'Diario', 'Logros', 'Muévete'],
+    includes: ['Dashboard', 'Valores', 'Rueda de la Vida', 'Agenda', 'Proyectos', 'Hábitos', 'Calendario', 'Diario', 'Logros', 'Muévete'],
     views: ['dashboard', 'today', 'values', 'life-wheel', 'kanban', 'projects', 'habits', 'calendar', 'journal', 'achievements', 'muevete', 'settings', 'help', 'daily-setup']
   },
   habits: {

@@ -240,7 +240,7 @@ const renderTasksList = (weeklyTasks, dailyTasks, projects) => {
       <li class="setup-tasks__empty">
         <span class="material-symbols-outlined">inbox</span>
         <p>No tienes tareas para hoy</p>
-        <p class="hint">Añade tareas a "Semana" en Horizontes</p>
+        <p class="hint">Añade tareas a "Semana" en Agenda</p>
       </li>
     `;
   }
