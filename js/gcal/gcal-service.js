@@ -60,9 +60,91 @@ export async function listUserCalendars() {
   }));
 }
 
-// eslint-disable-next-line no-unused-vars
-export async function getEventsInRange(_start, _end, _calendarIds) {
-  throw new Error('getEventsInRange: no implementado aun');
+/**
+ * Obtiene eventos de múltiples calendarios en un rango de fechas.
+ * Si `calendarIds` está vacío, devuelve [] sin llamar a la API.
+ * Si un calendario concreto falla, se ignora (no tumba al resto).
+ *
+ * @param {string} startISO - Timestamp ISO inicio (incluido)
+ * @param {string} endISO - Timestamp ISO fin (excluido)
+ * @param {string[]} calendarIds - IDs de calendarios a consultar
+ * @returns {Promise<Array<NormalizedEvent>>}
+ */
+export async function getEventsInRange(startISO, endISO, calendarIds) {
+  if (!Array.isArray(calendarIds) || calendarIds.length === 0) return [];
+
+  const calsIndex = await _indexCalendarsById();
+
+  const perCalendar = await Promise.all(
+    calendarIds.map(async (calId) => {
+      try {
+        const url = `${GDRIVE_CONFIG.API_CALENDAR}/calendars/${encodeURIComponent(calId)}/events`
+          + `?timeMin=${encodeURIComponent(startISO)}`
+          + `&timeMax=${encodeURIComponent(endISO)}`
+          + `&singleEvents=true&orderBy=startTime&maxResults=100`;
+        const data = await _fetchWithAuth(url);
+        const meta = calsIndex[calId] || { id: calId, summary: calId, backgroundColor: '#4285F4' };
+        return (data.items || []).map(ev => _normalizeEvent(ev, meta));
+      } catch (err) {
+        console.warn(`[gcal] error en calendario ${calId}:`, err.code || err.message);
+        return [];
+      }
+    })
+  );
+
+  const flat = perCalendar.flat();
+  flat.sort((a, b) => {
+    const aKey = `${a.date} ${a.startTime || '99:99'}`;
+    const bKey = `${b.date} ${b.startTime || '99:99'}`;
+    return aKey.localeCompare(bKey);
+  });
+  return flat;
+}
+
+async function _indexCalendarsById() {
+  try {
+    const cals = await listUserCalendars();
+    return Object.fromEntries(cals.map(c => [c.id, c]));
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Normaliza un evento de Google Calendar al shape interno de Oráculo.
+ * - Evento todo el día: usa `start.date` (YYYY-MM-DD), allDay=true.
+ * - Evento con hora: usa `start.dateTime`, calcula duration en minutos.
+ */
+function _normalizeEvent(ev, calMeta) {
+  const allDay = !!ev.start?.date && !ev.start?.dateTime;
+  let date, startTime = null, duration = null;
+
+  if (allDay) {
+    date = ev.start.date;
+  } else {
+    const startDT = new Date(ev.start.dateTime);
+    const endDT = new Date(ev.end?.dateTime || ev.start.dateTime);
+    date = startDT.toLocaleDateString('en-CA');
+    startTime = startDT.toTimeString().slice(0, 5);
+    duration = Math.max(1, Math.round((endDT - startDT) / 60000));
+  }
+
+  return {
+    id: `gcal_${ev.id}`,
+    source: 'google',
+    calendarId: calMeta.id,
+    calendarName: calMeta.summary,
+    calendarColor: calMeta.backgroundColor,
+    name: ev.summary || '(sin título)',
+    date,
+    startTime,
+    duration,
+    allDay,
+    location: ev.location || '',
+    notes: ev.description || '',
+    htmlLink: ev.htmlLink,
+    readOnly: true,
+  };
 }
 
 // ───────────────────────────────────────────────
