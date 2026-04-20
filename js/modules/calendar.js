@@ -58,11 +58,6 @@ export const render = (data) => {
           <span class="material-symbols-outlined icon-sm">repeat</span>
           Evento recurrente
         </button>
-        <button class="btn btn--tertiary" id="export-ics-btn"
-          title="Descargar archivo .ics para importar en Google Calendar, Outlook, etc.">
-          <span class="material-symbols-outlined icon-sm">download</span>
-          Exportar .ics
-        </button>
         <span class="gcal-chip-status" id="gcal-chip-status" hidden></span>
       </div>
 
@@ -292,11 +287,6 @@ export const init = (data, updateData) => {
         if (event) openEventModal(event);
       }
     });
-  });
-
-  // Exportar ICS
-  document.getElementById('export-ics-btn')?.addEventListener('click', () => {
-    exportToICS(data);
   });
 
   // Añadir a Google Calendar

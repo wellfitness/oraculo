@@ -262,6 +262,11 @@ a:hover {
   margin: 0 auto;
 }
 
+/* Calendario necesita más ancho: 7 columnas + eventos Google */
+.app-main:has(.calendar-page) {
+  max-width: 1200px;
+}
+
 .app-footer {
   text-align: center;
   padding: var(--space-3);
