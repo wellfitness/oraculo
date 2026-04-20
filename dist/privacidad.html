@@ -172,7 +172,30 @@
           Los datos no pasan por nuestros servidores en ningún momento. No tenemos capacidad técnica para acceder a ellos.
         </p>
 
-        <h2>5. Cookies</h2>
+        <h2>5. Lectura de Google Calendar (opcional)</h2>
+        <p>
+          Oráculo permite, de forma opcional, visualizar dentro de la vista semanal los eventos
+          de tu Google Calendar. El objetivo es ayudarte a no planificar tareas cuando ya tienes
+          compromisos externos que requieren tu presencia (citas médicas, reuniones, etc.).
+        </p>
+        <p>Cuando activas esta integración:</p>
+        <ul>
+          <li>El permiso solicitado es <strong>únicamente de lectura</strong> (<code>calendar.readonly</code>).
+          Oráculo no puede crear, modificar ni eliminar eventos de tu calendario, aunque quisiera.</li>
+          <li>Tú eliges qué calendarios específicos mostrar (personal, trabajo, familia…). El resto permanece invisible para la app.</li>
+          <li>Los eventos obtenidos <strong>no se guardan</strong> en el almacenamiento local ni se envían a ningún servidor nuestro. Se consultan a la API de Google en cada visualización y se descartan al cerrar la vista.</li>
+          <li>Los eventos son de solo lectura: al hacer clic se abre Google Calendar en una pestaña nueva para editarlos allí.</li>
+          <li>Puedes desconectar Google Calendar en cualquier momento desde Configuración. Al desconectar, los tokens se eliminan de tu dispositivo.</li>
+          <li>El uso que hace Oráculo de los datos recibidos de las APIs de Google se atiene a la
+          <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Política de Datos de Usuario de los Servicios de API de Google</a>,
+          incluyendo los requisitos de Uso Limitado.</li>
+        </ul>
+        <p>
+          <strong>Importante:</strong> al igual que con Google Drive, la conexión se realiza directamente entre tu
+          dispositivo y la API de Google. Los datos de calendario no pasan por nuestros servidores en ningún momento.
+        </p>
+
+        <h2>6. Cookies</h2>
         <p>
           Oráculo <strong>no utiliza cookies</strong> de ningún tipo:
         </p>
@@ -183,7 +206,7 @@
           <li>No hay cookies de terceros</li>
         </ul>
 
-        <h2>6. Servicios de terceros</h2>
+        <h2>7. Servicios de terceros</h2>
         <p>
           La aplicación utiliza los siguientes servicios de terceros:
         </p>
@@ -191,16 +214,17 @@
           <li><strong>Google Fonts:</strong> Para cargar las tipografías (Righteous, ABeeZee) y los iconos (Material Symbols).
           Google puede recoger datos técnicos según su <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">política de privacidad</a>.</li>
           <li><strong>Google Drive:</strong> Solo si activas la sincronización. Se accede únicamente a la carpeta privada de datos de Oráculo en tu Drive personal.</li>
-          <li><strong>Inicio de sesión con Google:</strong> Solo para identificarte y obtener permiso de acceso a tu Drive. No almacenamos credenciales.</li>
+          <li><strong>Google Calendar:</strong> Solo si activas la integración. Se accede en modo de solo lectura a los calendarios que el usuario marque explícitamente.</li>
+          <li><strong>Inicio de sesión con Google:</strong> Solo para identificarte y obtener permiso de acceso a los servicios de Google que hayas activado. No almacenamos credenciales.</li>
         </ul>
 
-        <h2>7. Exportación de datos</h2>
+        <h2>8. Exportación de datos</h2>
         <p>
           Puedes exportar todos tus datos en cualquier momento desde la sección de Configuración
           de la aplicación. Los datos se descargan como archivo directamente a tu dispositivo.
         </p>
 
-        <h2>8. Eliminación de datos</h2>
+        <h2>9. Eliminación de datos</h2>
         <p>
           Para eliminar tus datos puedes:
         </p>
@@ -211,7 +235,7 @@
           <li>Si activaste Google Drive: los datos en Drive se pueden eliminar manualmente desde tu cuenta de Google</li>
         </ul>
 
-        <h2>9. Seguridad</h2>
+        <h2>10. Seguridad</h2>
         <p>
           Al no transmitir datos a servidores propios, el riesgo de filtración por nuestra parte es inexistente.
           Sin embargo, recomendamos:
@@ -223,7 +247,7 @@
           <li>Si usas Google Drive Sync, proteger tu cuenta de Google con verificación en 2 pasos</li>
         </ul>
 
-        <h2>10. Exención de responsabilidad sobre los datos</h2>
+        <h2>11. Exención de responsabilidad sobre los datos</h2>
         <div class="privacy-highlight">
           <p>
             <strong>Oráculo es un proyecto de código abierto, gratuito y sin ánimo de lucro.</strong>
@@ -245,7 +269,7 @@
           para su auditoría.
         </p>
 
-        <h2>11. Código abierto</h2>
+        <h2>12. Código abierto</h2>
         <p>
           Oráculo es un proyecto de <strong>código abierto</strong>. El código fuente completo está
           disponible en <a href="https://github.com/wellfitness/oraculo" target="_blank" rel="noopener">github.com/wellfitness/oraculo</a>.
@@ -253,27 +277,27 @@
           descrito en esta política de privacidad.
         </p>
 
-        <h2>12. Derechos del usuario</h2>
+        <h2>13. Derechos del usuario</h2>
         <p>
           Al no almacenar datos personales en nuestros sistemas, no aplican los derechos ARCO
           (Acceso, Rectificación, Cancelación y Oposición) en el sentido tradicional.
           Tienes control total sobre tus datos directamente desde la aplicación.
         </p>
 
-        <h2>13. Cambios en esta política</h2>
+        <h2>14. Cambios en esta política</h2>
         <p>
           Nos reservamos el derecho de modificar esta política de privacidad.
           Cualquier cambio será publicado en esta página con la fecha de actualización.
         </p>
 
-        <h2>14. Contacto</h2>
+        <h2>15. Contacto</h2>
         <p>
           Si tienes preguntas sobre esta política de privacidad, puedes contactarnos en:
           <a href="mailto:hola@movimientofuncional.com">hola@movimientofuncional.com</a>
         </p>
 
         <p class="legal-update">
-          Última actualización: Marzo 2026
+          Última actualización: Abril 2026
         </p>
       </div>
     </div>
