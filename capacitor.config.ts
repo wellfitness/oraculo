@@ -25,7 +25,10 @@ const config: CapacitorConfig = {
       sound: 'alert.mp3'
     },
     GoogleAuth: {
-      scopes: ['https://www.googleapis.com/auth/drive.appdata'],
+      scopes: [
+        'https://www.googleapis.com/auth/drive.appdata',
+        'https://www.googleapis.com/auth/calendar.readonly'
+      ],
       serverClientId: '113523103085-jdtnfi537aa6contu7h5142h2mbchnqa.apps.googleusercontent.com',
       forceCodeForRefreshToken: false
     }

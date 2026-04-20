@@ -74,9 +74,17 @@ function getCachedToken() {
 
 /**
  * Sign-in interactivo: muestra UI nativa de Google Sign-In.
+ *
+ * NOTA: En Android el plugin GoogleAuth usa los scopes definidos en
+ * capacitor.config.ts (drive.appdata + calendar.readonly). El parametro
+ * `scopes` se acepta por compatibilidad de firma con auth-web/auth-extension
+ * pero se ignora — el token emitido cubre ambos scopes simultaneamente.
+ *
+ * @param {{ scopes?: string|string[] }} [_opts] ignorado
  * @returns {Promise<{ token: string, email: string }>}
  */
-export async function signIn() {
+// eslint-disable-next-line no-unused-vars
+export async function signIn(_opts = {}) {
   await ensureInitialized();
   const GoogleAuth = getPlugin();
 
@@ -103,9 +111,13 @@ export async function signIn() {
 /**
  * Obtiene token silenciosamente (sin UI).
  * CONTRATO: Nunca throw — devuelve null si no hay token disponible.
+ *
+ * NOTA: `scopes` se ignora (ver signIn).
+ * @param {{ scopes?: string|string[] }} [_opts] ignorado
  * @returns {Promise<string | null>}
  */
-export async function getTokenSilent() {
+// eslint-disable-next-line no-unused-vars
+export async function getTokenSilent(_opts = {}) {
   try {
     // Primero intentar cache local
     const cached = getCachedToken();
@@ -130,11 +142,44 @@ export async function getTokenSilent() {
 }
 
 /**
+ * Fuerza refresh del token (descarta cache local e invoca refresh nativo).
+ * CONTRATO: Nunca throw.
+ *
+ * NOTA: `scopes` se ignora (ver signIn).
+ * @param {{ scopes?: string|string[] }} [_opts] ignorado
+ * @returns {Promise<string | null>}
+ */
+// eslint-disable-next-line no-unused-vars
+export async function refreshToken(_opts = {}) {
+  clearCachedToken();
+  try {
+    await ensureInitialized();
+    const GoogleAuth = getPlugin();
+    const result = await GoogleAuth.refresh();
+    const token = result.accessToken;
+    if (token) {
+      cacheToken(token);
+      return token;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Cierra sesion y revoca token.
  * CONTRATO: Nunca throw.
- * @returns {Promise<void>}
+ *
+ * NOTA: `scopes` se ignora. signOut() limpia TODA la sesion nativa — no
+ * soporta desconexion parcial por scope (Drive vs Calendar). Si el usuario
+ * desconecta solo Calendar desde la UI de Oraculo, la sesion nativa sigue
+ * activa hasta que tambien desconecte Drive.
+ *
+ * @param {{ scopes?: string|string[] }} [_opts] ignorado
  */
-export async function signOut() {
+// eslint-disable-next-line no-unused-vars
+export async function signOut(_opts = {}) {
   try {
     await ensureInitialized();
     const GoogleAuth = getPlugin();
