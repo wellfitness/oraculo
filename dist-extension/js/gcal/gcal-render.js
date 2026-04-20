@@ -19,18 +19,21 @@ export function renderGcalEventItem(event) {
   const calName = event.calendarName || '';
   const calColor = event.calendarColor || '#4285F4';
 
+  const tooltip = calName
+    ? `${calName} · click abre Google Calendar`
+    : 'Click abre Google Calendar';
+
   return `
     <div class="event-item event--google"
          data-id="${escapeHTML(event.id)}"
          data-htmllink="${escapeHTML(event.htmlLink || '')}"
          style="--gcal-color: ${escapeHTML(calColor)}"
-         title="${escapeHTML(calName)} — click abre Google Calendar">
+         title="${escapeHTML(tooltip)}">
       <div class="event-item__content">
         <span class="material-symbols-outlined event--google__source" aria-hidden="true">calendar_month</span>
         ${timeLabel ? `<span class="event-time">${escapeHTML(timeLabel)}</span>` : ''}
         <span class="event-name">${escapeHTML(event.name)}</span>
       </div>
-      ${calName ? `<span class="event--google__calname">${escapeHTML(calName)}</span>` : ''}
     </div>
   `;
 }
