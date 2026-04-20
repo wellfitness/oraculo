@@ -56,14 +56,7 @@ const getDefaultData = () => ({
   settings: {
     storageType: 'localStorage',
     notificationsEnabled: false,
-    theme: 'light',
-    gcal: {
-      enabled: false,
-      account: null,
-      enabledCalendars: [],
-      lastSyncAt: null,
-      lastSyncError: null
-    }
+    theme: 'light'
   },
 
   // Cuaderno actual (sistema de archivos anuales)
@@ -206,11 +199,11 @@ export const loadData = () => {
     // Migración si la versión es diferente
     if (data.version !== STORAGE_VERSION) {
       const migrated = migrateData(data);
-      ensureSettingsDefaults(migrated);
+      cleanupLegacyGcalSettings(migrated);
       return migrated;
     }
 
-    ensureSettingsDefaults(data);
+    cleanupLegacyGcalSettings(data);
     return data;
   } catch (error) {
     console.error('Error cargando datos:', error);
@@ -219,20 +212,22 @@ export const loadData = () => {
 };
 
 /**
- * Añade claves por defecto en `settings` cuando el usuario tiene data
- * previa que no las incluía (añadidas sin bump de versión).
+ * Limpia data.settings.gcal legacy. La config de Google Calendar ahora
+ * vive en su propia key de localStorage (oraculo_gcal_settings) para
+ * evitar que Drive sync la pise al hacer pull.
  */
-const ensureSettingsDefaults = (data) => {
-  if (!data.settings) data.settings = {};
-  if (!data.settings.gcal) {
-    data.settings.gcal = {
-      enabled: false,
-      account: null,
-      enabledCalendars: [],
-      lastSyncAt: null,
-      lastSyncError: null
-    };
-  }
+const cleanupLegacyGcalSettings = (data) => {
+  if (!data?.settings || !('gcal' in data.settings)) return;
+  const legacy = data.settings.gcal;
+  try {
+    const LOCAL_KEY = 'oraculo_gcal_settings';
+    const existingLocal = localStorage.getItem(LOCAL_KEY);
+    if (legacy && legacy.enabled && !existingLocal) {
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(legacy));
+    }
+  } catch { /* noop */ }
+  delete data.settings.gcal;
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* noop */ }
 };
 
 /**

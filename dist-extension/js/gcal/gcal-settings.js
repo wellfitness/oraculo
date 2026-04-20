@@ -1,23 +1,16 @@
 /**
  * UI de la seccion "Google Calendar" en Configuracion.
  *
- * Expone dos funciones:
- *   - render(data) → HTML de la section (conectado/no conectado)
- *   - init(data, updateData) → vincula listeners y carga lista de calendarios
- *
- * Estructurada como `<section class="settings-section">` para coherencia
- * con el resto de secciones de settings.js (Drive, Sincronización Manual, etc.).
+ * Usa gcal-local-store para persistir la config FUERA del objeto sincronizado
+ * con Drive — así la selección de calendarios es local por dispositivo.
  */
 
 import { escapeHTML } from '../utils/sanitizer.js';
 import * as gcalService from './gcal-service.js';
+import { getGcalSettings, setGcalSettings, patchGcalSettings } from './gcal-local-store.js';
 
-let _updateData = null;
-let _currentData = null;
-
-export function render(data) {
-  _currentData = data;
-  const cfg = data.settings?.gcal || { enabled: false };
+export function render() {
+  const cfg = getGcalSettings();
 
   if (!cfg.enabled) {
     return `
@@ -72,14 +65,11 @@ export function render(data) {
   `;
 }
 
-export function init(data, updateData) {
-  _updateData = updateData;
-  _currentData = data;
-
+export function init() {
   document.getElementById('gcal-connect-btn')?.addEventListener('click', onConnect);
   document.getElementById('gcal-disconnect-btn')?.addEventListener('click', onDisconnect);
 
-  if (data.settings?.gcal?.enabled) {
+  if (getGcalSettings().enabled) {
     loadCalendarList();
   }
 }
@@ -89,15 +79,13 @@ async function onConnect() {
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-outlined">hourglass_empty</span> Conectando…'; }
   try {
     const { email } = await gcalService.connectCalendar();
-    const newGcal = {
+    setGcalSettings({
       enabled: true,
       account: email,
       enabledCalendars: [],
       lastSyncAt: null,
       lastSyncError: null,
-    };
-    _currentData.settings.gcal = newGcal;
-    await _updateData('settings.gcal', newGcal);
+    });
     reRenderPanel();
   } catch (err) {
     console.error('[gcal] connect failed', err);
@@ -116,15 +104,13 @@ async function onDisconnect() {
   } catch (e) {
     console.warn('[gcal] disconnect (ignored)', e);
   }
-  const newGcal = {
+  setGcalSettings({
     enabled: false,
     account: null,
     enabledCalendars: [],
     lastSyncAt: null,
     lastSyncError: null,
-  };
-  _currentData.settings.gcal = newGcal;
-  await _updateData('settings.gcal', newGcal);
+  });
   reRenderPanel();
 }
 
@@ -133,7 +119,7 @@ async function loadCalendarList() {
   if (!container) return;
   try {
     const cals = await gcalService.listUserCalendars();
-    const enabled = new Set(_currentData.settings?.gcal?.enabledCalendars || []);
+    const enabled = new Set(getGcalSettings().enabledCalendars || []);
     if (!cals.length) {
       container.innerHTML = '<p class="text-muted">No hay calendarios accesibles.</p>';
       return;
@@ -166,17 +152,17 @@ async function loadCalendarList() {
   }
 }
 
-async function onToggleCalendar(e) {
+function onToggleCalendar(e) {
   const calId = e.target.dataset.calId;
-  const set = new Set(_currentData.settings.gcal.enabledCalendars);
+  const current = getGcalSettings();
+  const set = new Set(current.enabledCalendars || []);
   if (e.target.checked) set.add(calId); else set.delete(calId);
-  _currentData.settings.gcal.enabledCalendars = Array.from(set);
-  await _updateData('settings.gcal.enabledCalendars', _currentData.settings.gcal.enabledCalendars);
+  patchGcalSettings({ enabledCalendars: Array.from(set) });
 }
 
 function reRenderPanel() {
   const section = document.getElementById('gcal-settings-section');
   if (!section) return;
-  section.outerHTML = render(_currentData);
-  init(_currentData, _updateData);
+  section.outerHTML = render();
+  init();
 }

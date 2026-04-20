@@ -8,6 +8,7 @@ import { escapeHTML } from '../utils/sanitizer.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
 import * as gcalService from '../gcal/gcal-service.js';
 import { renderGcalEventItem, groupByDate } from '../gcal/gcal-render.js';
+import { getGcalSettings } from '../gcal/gcal-local-store.js';
 
 let updateDataCallback = null;
 let currentWeekStart = getWeekStart(new Date());
@@ -752,7 +753,7 @@ const openGoogleCalendar = (event) => {
  * y al menos un calendario marcado. No-op en cualquier otro caso.
  */
 function _maybeLoadGcal() {
-  const cfg = currentData?.settings?.gcal;
+  const cfg = getGcalSettings();
   if (!cfg?.enabled || !cfg.enabledCalendars?.length) {
     _updateChipStatus('hidden');
     return;
@@ -763,7 +764,7 @@ function _maybeLoadGcal() {
 }
 
 async function loadGcalEventsForVisibleWeek() {
-  const cfg = currentData?.settings?.gcal;
+  const cfg = getGcalSettings();
   if (!cfg?.enabled || !cfg.enabledCalendars?.length) return;
 
   const myToken = ++_gcalFetchToken;

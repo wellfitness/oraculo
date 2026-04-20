@@ -370,9 +370,9 @@ export const init = (data, updateData) => {
   initGDriveSyncUI();
 
   // === Google Calendar (solo lectura) ===
-  // updateData tiene firma (section, newValue) — gcal-settings.js llama con
-  // path tipo 'settings.gcal' siguiendo la convención del resto de módulos.
-  gcalSettings.init(data, updateData);
+  // gcal-settings usa su propio local store (clave aparte de oraculo_data),
+  // así Drive sync NO pisa la configuración al hacer pull.
+  gcalSettings.init();
 
   // === Sincronización manual ===
 
@@ -837,7 +837,7 @@ const renderSyncSection = (data) => {
       </div>
     </section>
 
-    ${gcalSettings.render(data)}
+    ${gcalSettings.render()}
 
     <section class="settings-section">
       <h2>

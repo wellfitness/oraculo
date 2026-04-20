@@ -53,14 +53,7 @@ const getDefaultData = () => ({
     usageMode: 'complete',
     lastWeeklyReview: null,
     weeklyReviewDay: 0,
-    weeklyReviewReminder: true,
-    gcal: {
-      enabled: false,
-      account: null,
-      enabledCalendars: [],
-      lastSyncAt: null,
-      lastSyncError: null
-    }
+    weeklyReviewReminder: true
   },
 
   onboarding: {
@@ -217,27 +210,35 @@ export const loadData = () => {
     localData = migrateData(localData);
   }
 
-  ensureSettingsDefaults(localData);
+  cleanupLegacyGcalSettings(localData);
 
   return localData;
 };
 
 /**
- * Añade claves por defecto en `settings` cuando el usuario tiene data
- * previa que no las incluía, sin requerir bump de versión.
- * Usar solo para claves opcionales puramente aditivas (flags, config nueva).
+ * Limpia `data.settings.gcal` legacy. En un primer intento de esta feature
+ * guardamos la config de Google Calendar dentro de `oraculo_data.settings.gcal`,
+ * pero eso hacía que Drive sync pisara la config en cada pull. La config
+ * ahora vive en su propia key de localStorage (`oraculo_gcal_settings`) vía
+ * gcal-local-store.js. Esta limpieza:
+ *   1) migra la config legacy al nuevo storage si existía y estaba enabled,
+ *   2) borra la copia del objeto sincronizado,
+ *   3) marca data modificada para que la próxima save propague la eliminación.
  */
-const ensureSettingsDefaults = (data) => {
-  if (!data.settings) data.settings = {};
-  if (!data.settings.gcal) {
-    data.settings.gcal = {
-      enabled: false,
-      account: null,
-      enabledCalendars: [],
-      lastSyncAt: null,
-      lastSyncError: null
-    };
-  }
+const cleanupLegacyGcalSettings = (data) => {
+  if (!data?.settings || !('gcal' in data.settings)) return;
+
+  const legacy = data.settings.gcal;
+  try {
+    const LOCAL_KEY = 'oraculo_gcal_settings';
+    const existingLocal = localStorage.getItem(LOCAL_KEY);
+    if (legacy && legacy.enabled && !existingLocal) {
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(legacy));
+    }
+  } catch { /* noop */ }
+
+  delete data.settings.gcal;
+  saveToLocalStorage(data);
 };
 
 export const saveData = (data) => {
