@@ -9,6 +9,9 @@ export const GDRIVE_CONFIG = {
   // Scope minimo: solo carpeta oculta de la app
   SCOPE: 'https://www.googleapis.com/auth/drive.appdata',
 
+  // Scope para lectura de Google Calendar
+  CALENDAR_SCOPE: 'https://www.googleapis.com/auth/calendar.readonly',
+
   // Nombre del archivo en appDataFolder
   FILE_NAME: 'oraculo_data.json',
 
@@ -21,6 +24,7 @@ export const GDRIVE_CONFIG = {
   API_BASE: 'https://www.googleapis.com',
   API_UPLOAD: 'https://www.googleapis.com/upload/drive/v3',
   API_FILES: 'https://www.googleapis.com/drive/v3/files',
+  API_CALENDAR: 'https://www.googleapis.com/calendar/v3',
 
   // Sync settings
   DEBOUNCE_MS: 2000,        // Esperar 2s tras ultimo cambio antes de push

@@ -18,6 +18,7 @@ import {
   generateYearSummary
 } from '../storage.js';
 import { escapeHTML } from '../utils/sanitizer.js';
+import * as gcalSettings from '../gcal/gcal-settings.js';
 
 let updateDataCallback = null;
 let archivedYearData = null; // Para el visor de años anteriores
@@ -134,7 +135,7 @@ export const render = (data) => {
       </section>
 
       <!-- Sincronizar entre Dispositivos -->
-      ${renderSyncSection()}
+      ${renderSyncSection(data)}
 
       <!-- Respaldo Automático (local) -->
       ${renderAutoBackupSection()}
@@ -367,6 +368,12 @@ export const init = (data, updateData) => {
 
   // === Google Drive Sync ===
   initGDriveSyncUI();
+
+  // === Google Calendar (solo lectura) ===
+  gcalSettings.init(data, async (newData) => {
+    // Persistir cambios de settings.gcal vía el mismo callback que usa el resto
+    await updateData(newData);
+  });
 
   // === Sincronización manual ===
 
@@ -785,7 +792,7 @@ const openArchivedViewer = (data) => {
 /**
  * Renderiza la sección de sincronización entre dispositivos
  */
-const renderSyncSection = () => {
+const renderSyncSection = (data) => {
   return `
     <section class="settings-section">
       <h2>
@@ -830,6 +837,8 @@ const renderSyncSection = () => {
         </div>
       </div>
     </section>
+
+    ${gcalSettings.render(data)}
 
     <section class="settings-section">
       <h2>

@@ -6,10 +6,13 @@
 import { generateId, showNotification, recordDeletion } from '../app.js';
 import { escapeHTML } from '../utils/sanitizer.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
+import * as gcalService from '../gcal/gcal-service.js';
+import { renderGcalEventItem, groupByDate } from '../gcal/gcal-render.js';
 
 let updateDataCallback = null;
 let currentWeekStart = getWeekStart(new Date());
 let currentData = null;
+let _gcalFetchToken = 0;
 
 /**
  * Renderiza el calendario
@@ -59,6 +62,7 @@ export const render = (data) => {
           <span class="material-symbols-outlined icon-sm">download</span>
           Exportar .ics
         </button>
+        <span class="gcal-chip-status" id="gcal-chip-status" hidden></span>
       </div>
 
       <div class="week-view">
@@ -195,6 +199,9 @@ const reRender = () => {
 
   // Re-bind event listeners para los nuevos elementos
   bindWeekViewEvents();
+
+  // Re-disparar carga de Google Calendar (el re-render borra cualquier chip previo)
+  _maybeLoadGcal();
 };
 
 /**
@@ -211,8 +218,8 @@ const bindWeekViewEvents = () => {
     });
   });
 
-  // Click en evento para editar
-  document.querySelectorAll('.event-item').forEach(item => {
+  // Click en evento para editar (solo eventos Oráculo, no Google)
+  document.querySelectorAll('.event-item:not(.event--google)').forEach(item => {
     item.addEventListener('click', (e) => {
       const eventId = item.dataset.id;
       const isRecurring = item.dataset.recurring === 'true';
@@ -235,7 +242,7 @@ export const init = (data, updateData) => {
   updateDataCallback = updateData;
   currentData = data;
 
-  // Navegación de semanas
+  // Navegación de semanas (reRender ya dispara carga de Google Calendar internamente)
   document.getElementById('prev-week')?.addEventListener('click', () => {
     currentWeekStart.setDate(currentWeekStart.getDate() - 7);
     reRender();
@@ -270,8 +277,8 @@ export const init = (data, updateData) => {
     });
   });
 
-  // Click en evento para editar
-  document.querySelectorAll('.event-item').forEach(item => {
+  // Click en evento para editar (solo eventos Oráculo, no Google)
+  document.querySelectorAll('.event-item:not(.event--google)').forEach(item => {
     item.addEventListener('click', (e) => {
       const eventId = item.dataset.id;
       const isRecurring = item.dataset.recurring === 'true';
@@ -302,6 +309,9 @@ export const init = (data, updateData) => {
 
   setupEventModal(data);
   setupRecurringModal(data);
+
+  // Carga inicial de eventos Google (si está configurado)
+  _maybeLoadGcal();
 };
 
 /**
@@ -732,3 +742,102 @@ const openGoogleCalendar = (event) => {
 
   showNotification('Abriendo Google Calendar...', 'info');
 };
+
+// ═══════════════════════════════════════════════
+// Google Calendar — Lectura de eventos externos
+// ═══════════════════════════════════════════════
+
+/**
+ * Dispara la carga de eventos Google SI el usuario tiene Calendar conectado
+ * y al menos un calendario marcado. No-op en cualquier otro caso.
+ */
+function _maybeLoadGcal() {
+  const cfg = currentData?.settings?.gcal;
+  if (!cfg?.enabled || !cfg.enabledCalendars?.length) {
+    _updateChipStatus('hidden');
+    return;
+  }
+  document.getElementById('gcal-chip-status')?.removeAttribute('hidden');
+  _updateChipStatus('loading');
+  loadGcalEventsForVisibleWeek();
+}
+
+async function loadGcalEventsForVisibleWeek() {
+  const cfg = currentData?.settings?.gcal;
+  if (!cfg?.enabled || !cfg.enabledCalendars?.length) return;
+
+  const myToken = ++_gcalFetchToken;
+
+  const start = new Date(currentWeekStart);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 7);
+
+  try {
+    const events = await gcalService.getEventsInRange(
+      start.toISOString(), end.toISOString(), cfg.enabledCalendars
+    );
+    if (myToken !== _gcalFetchToken) return;  // usuario cambió de semana, descartar
+    _injectGcalEvents(events);
+    _updateChipStatus('ok');
+  } catch (err) {
+    if (myToken !== _gcalFetchToken) return;
+    console.warn('[gcal] fetch failed', err);
+    _updateChipStatus('error', err);
+  }
+}
+
+function _injectGcalEvents(events) {
+  const byDate = groupByDate(events);
+  document.querySelectorAll('.day-column').forEach(col => {
+    const dateStr = col.dataset.date;
+    const container = col.querySelector('.day-events');
+    if (!container) return;
+    // Limpiar inyecciones previas (útil si hay reintento o refresh)
+    container.querySelectorAll('.event--google').forEach(el => el.remove());
+    const list = byDate.get(dateStr) || [];
+    for (const ev of list) {
+      container.insertAdjacentHTML('beforeend', renderGcalEventItem(ev));
+    }
+  });
+  _bindGcalClicks();
+}
+
+function _bindGcalClicks() {
+  document.querySelectorAll('.event--google').forEach(el => {
+    // Evitar doble-bind si ya tiene listener
+    if (el.dataset.bound === '1') return;
+    el.dataset.bound = '1';
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const href = el.dataset.htmllink;
+      if (href) window.open(href, '_blank', 'noopener');
+    });
+  });
+}
+
+function _updateChipStatus(state, err) {
+  const chip = document.getElementById('gcal-chip-status');
+  if (!chip) return;
+  chip.classList.remove('gcal-chip-status--ok', 'gcal-chip-status--error', 'gcal-chip-status--loading');
+  if (state === 'hidden') {
+    chip.setAttribute('hidden', '');
+    return;
+  }
+  chip.removeAttribute('hidden');
+  if (state === 'ok') {
+    chip.classList.add('gcal-chip-status--ok');
+    chip.innerHTML = '<span class="material-symbols-outlined icon-xs">sync</span> Sincronizado';
+  } else if (state === 'error') {
+    chip.classList.add('gcal-chip-status--error');
+    const msg = err?.code === 'NOT_AUTHENTICATED' ? 'Reconecta en Configuración' : 'Error al sincronizar';
+    chip.innerHTML = `<span class="material-symbols-outlined icon-xs">sync_problem</span> ${msg} <button class="btn btn--link" id="gcal-retry-btn" type="button">Reintentar</button>`;
+    document.getElementById('gcal-retry-btn')?.addEventListener('click', () => {
+      _updateChipStatus('loading');
+      loadGcalEventsForVisibleWeek();
+    });
+  } else if (state === 'loading') {
+    chip.classList.add('gcal-chip-status--loading');
+    chip.innerHTML = '<span class="material-symbols-outlined icon-xs">sync</span> Sincronizando…';
+  }
+}

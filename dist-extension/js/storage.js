@@ -56,7 +56,14 @@ const getDefaultData = () => ({
   settings: {
     storageType: 'localStorage',
     notificationsEnabled: false,
-    theme: 'light'
+    theme: 'light',
+    gcal: {
+      enabled: false,
+      account: null,
+      enabledCalendars: [],
+      lastSyncAt: null,
+      lastSyncError: null
+    }
   },
 
   // Cuaderno actual (sistema de archivos anuales)
@@ -198,13 +205,33 @@ export const loadData = () => {
 
     // Migración si la versión es diferente
     if (data.version !== STORAGE_VERSION) {
-      return migrateData(data);
+      const migrated = migrateData(data);
+      ensureSettingsDefaults(migrated);
+      return migrated;
     }
 
+    ensureSettingsDefaults(data);
     return data;
   } catch (error) {
     console.error('Error cargando datos:', error);
     return getDefaultData();
+  }
+};
+
+/**
+ * Añade claves por defecto en `settings` cuando el usuario tiene data
+ * previa que no las incluía (añadidas sin bump de versión).
+ */
+const ensureSettingsDefaults = (data) => {
+  if (!data.settings) data.settings = {};
+  if (!data.settings.gcal) {
+    data.settings.gcal = {
+      enabled: false,
+      account: null,
+      enabledCalendars: [],
+      lastSyncAt: null,
+      lastSyncError: null
+    };
   }
 };
 
