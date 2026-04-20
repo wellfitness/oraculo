@@ -14515,9 +14515,40 @@ select,
 /* Leyenda */
 .wheel-legend {
   display: flex;
-  gap: var(--space-4);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
   justify-content: center;
   font-size: var(--font-size-sm);
+  padding: var(--space-2) var(--space-3);
+  background: var(--gris-50);
+  border: 1px solid var(--gris-200);
+  border-radius: var(--radius-md);
+  max-width: fit-content;
+  margin: 0 auto;
+}
+
+.wheel-legend__title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--gris-600);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.wheel-legend__title .material-symbols-outlined {
+  font-size: 16px;
+  color: var(--turquesa-600);
+}
+
+.wheel-legend__items {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .legend-item {

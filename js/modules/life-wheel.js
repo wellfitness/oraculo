@@ -289,14 +289,20 @@ const renderWheelView = (evaluation, areas) => {
         })}
       </div>
 
-      <div class="wheel-legend">
-        <div class="legend-item">
-          <span class="legend-color legend-color--current"></span>
-          <span>Puntuación actual</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-color legend-color--desired"></span>
-          <span>Puntuación deseada</span>
+      <div class="wheel-legend" role="group" aria-label="Leyenda del gráfico">
+        <span class="wheel-legend__title">
+          <span class="material-symbols-outlined icon-xs">info</span>
+          Leyenda del gráfico
+        </span>
+        <div class="wheel-legend__items">
+          <div class="legend-item">
+            <span class="legend-color legend-color--current"></span>
+            <span>Puntuación actual</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color legend-color--desired"></span>
+            <span>Puntuación deseada</span>
+          </div>
         </div>
       </div>
 
@@ -371,14 +377,6 @@ const renderEditAreaModal = () => `
       <div class="form-group">
         <label for="area-name">Nombre del área</label>
         <input type="text" id="area-name" class="input" maxlength="30" required>
-      </div>
-
-      <div class="form-group">
-        <label for="area-icon">Icono (Material Symbol)</label>
-        <input type="text" id="area-icon" class="input" placeholder="fitness_center">
-        <p class="form-hint">
-          Ver iconos en <a href="https://fonts.google.com/icons" target="_blank">Material Symbols</a>
-        </p>
       </div>
 
       <div class="form-group">
@@ -1004,7 +1002,6 @@ const openEditAreaModal = (area, values) => {
 
   document.getElementById('area-id').value = area.id;
   document.getElementById('area-name').value = area.name;
-  document.getElementById('area-icon').value = area.icon;
 
   // Poblar selector de valores
   const valueSelect = document.getElementById('area-value');
@@ -1026,7 +1023,6 @@ const openEditAreaModal = (area, values) => {
 const saveAreaEdit = (data) => {
   const areaId = document.getElementById('area-id').value;
   const name = document.getElementById('area-name').value.trim();
-  const icon = document.getElementById('area-icon').value.trim();
   const linkedValueId = document.getElementById('area-value').value || null;
 
   if (!name) {
@@ -1041,7 +1037,6 @@ const saveAreaEdit = (data) => {
     lifeWheel.areas[areaIndex] = {
       ...lifeWheel.areas[areaIndex],
       name,
-      icon: icon || 'circle',
       linkedValueId
     };
 
