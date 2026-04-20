@@ -370,10 +370,9 @@ export const init = (data, updateData) => {
   initGDriveSyncUI();
 
   // === Google Calendar (solo lectura) ===
-  gcalSettings.init(data, async (newData) => {
-    // Persistir cambios de settings.gcal vía el mismo callback que usa el resto
-    await updateData(newData);
-  });
+  // updateData tiene firma (section, newValue) — gcal-settings.js llama con
+  // path tipo 'settings.gcal' siguiendo la convención del resto de módulos.
+  gcalSettings.init(data, updateData);
 
   // === Sincronización manual ===
 

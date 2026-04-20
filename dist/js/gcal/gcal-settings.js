@@ -89,15 +89,15 @@ async function onConnect() {
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-outlined">hourglass_empty</span> Conectando…'; }
   try {
     const { email } = await gcalService.connectCalendar();
-    const data = _currentData;
-    data.settings.gcal = {
+    const newGcal = {
       enabled: true,
       account: email,
       enabledCalendars: [],
       lastSyncAt: null,
       lastSyncError: null,
     };
-    await _updateData(data);
+    _currentData.settings.gcal = newGcal;
+    await _updateData('settings.gcal', newGcal);
     reRenderPanel();
   } catch (err) {
     console.error('[gcal] connect failed', err);
@@ -116,15 +116,15 @@ async function onDisconnect() {
   } catch (e) {
     console.warn('[gcal] disconnect (ignored)', e);
   }
-  const data = _currentData;
-  data.settings.gcal = {
+  const newGcal = {
     enabled: false,
     account: null,
     enabledCalendars: [],
     lastSyncAt: null,
     lastSyncError: null,
   };
-  await _updateData(data);
+  _currentData.settings.gcal = newGcal;
+  await _updateData('settings.gcal', newGcal);
   reRenderPanel();
 }
 
@@ -168,11 +168,10 @@ async function loadCalendarList() {
 
 async function onToggleCalendar(e) {
   const calId = e.target.dataset.calId;
-  const data = _currentData;
-  const set = new Set(data.settings.gcal.enabledCalendars);
+  const set = new Set(_currentData.settings.gcal.enabledCalendars);
   if (e.target.checked) set.add(calId); else set.delete(calId);
-  data.settings.gcal.enabledCalendars = Array.from(set);
-  await _updateData(data);
+  _currentData.settings.gcal.enabledCalendars = Array.from(set);
+  await _updateData('settings.gcal.enabledCalendars', _currentData.settings.gcal.enabledCalendars);
 }
 
 function reRenderPanel() {
