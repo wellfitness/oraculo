@@ -53,7 +53,14 @@ const getDefaultData = () => ({
     usageMode: 'complete',
     lastWeeklyReview: null,
     weeklyReviewDay: 0,
-    weeklyReviewReminder: true
+    weeklyReviewReminder: true,
+    gcal: {
+      enabled: false,
+      account: null,
+      enabledCalendars: [],
+      lastSyncAt: null,
+      lastSyncError: null
+    }
   },
 
   onboarding: {
@@ -210,7 +217,27 @@ export const loadData = () => {
     localData = migrateData(localData);
   }
 
+  ensureSettingsDefaults(localData);
+
   return localData;
+};
+
+/**
+ * Añade claves por defecto en `settings` cuando el usuario tiene data
+ * previa que no las incluía, sin requerir bump de versión.
+ * Usar solo para claves opcionales puramente aditivas (flags, config nueva).
+ */
+const ensureSettingsDefaults = (data) => {
+  if (!data.settings) data.settings = {};
+  if (!data.settings.gcal) {
+    data.settings.gcal = {
+      enabled: false,
+      account: null,
+      enabledCalendars: [],
+      lastSyncAt: null,
+      lastSyncError: null
+    };
+  }
 };
 
 export const saveData = (data) => {
