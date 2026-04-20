@@ -4,7 +4,7 @@
  */
 
 import { generateId, formatDate, showNotification, openCalmTimer, openSpontaneousModal, openEveningCheckIn, openWeeklyReview, recordDeletion } from '../app.js';
-import { needsWeeklyReview, isReviewDay } from '../components/weekly-review-modal.js';
+import { needsWeeklyReview } from '../components/weekly-review-modal.js';
 import { escapeHTML } from '../utils/sanitizer.js';
 import { isEveningTime, hasEveningCheckIn } from '../components/evening-check-in.js';
 import { getAchievementsStats, isHabitCompletedToday } from '../utils/achievements-calculator.js';
@@ -373,14 +373,6 @@ export const init = (data, updateData) => {
     openWeeklyReview();
   });
 
-  // Descartar recordatorio de revisión (solo para esta sesión)
-  document.getElementById('dismiss-review-reminder')?.addEventListener('click', () => {
-    const reminder = document.querySelector('.dashboard__review-reminder');
-    if (reminder) {
-      reminder.style.display = 'none';
-    }
-  });
-
   // Eventos de hoy desde Google Calendar (si está configurado)
   _loadTodayGcalEvents();
 };
@@ -671,33 +663,42 @@ const renderNextActions = (data) => {
  * - El recordatorio está activado en settings
  */
 const renderWeeklyReviewReminder = (data) => {
-  // Verificar si el recordatorio está desactivado
+  // El usuario puede desactivar por completo el acceso
   if (data.settings?.weeklyReviewReminder === false) return '';
 
-  // Verificar si necesita revisión
-  if (!needsWeeklyReview(data)) return '';
-
-  // Solo mostrar en el día configurado o si han pasado más de 10 días
   const lastReview = data.settings?.lastWeeklyReview;
   const daysSinceReview = lastReview
     ? Math.floor((Date.now() - new Date(lastReview).getTime()) / (1000 * 60 * 60 * 24))
-    : 999;
+    : null;
 
-  // Mostrar si es el día de revisión O si han pasado muchos días
-  if (!isReviewDay(data) && daysSinceReview < 10) return '';
+  const overdue = daysSinceReview === null || daysSinceReview >= 7;
+  const variant = overdue ? 'review-reminder--overdue' : 'review-reminder--ok';
+
+  // Texto descriptivo según el estado
+  let title, text;
+  if (daysSinceReview === null) {
+    title = 'Haz tu primera revisión semanal';
+    text = 'Te ayuda a tener el sistema al día y a decidir qué priorizar esta semana.';
+  } else if (overdue) {
+    title = `Han pasado ${daysSinceReview} días desde tu última revisión`;
+    text = 'La revisión semanal te ayuda a mantener todo bajo control.';
+  } else {
+    const diasTxt = daysSinceReview === 0
+      ? 'hoy'
+      : daysSinceReview === 1 ? 'ayer' : `hace ${daysSinceReview} días`;
+    title = `Revisión semanal — última ${diasTxt}`;
+    text = 'Ábrela cuantas veces quieras: no estorba y siempre suma claridad.';
+  }
 
   return `
     <section class="dashboard__section dashboard__review-reminder">
-      <div class="review-reminder">
+      <div class="review-reminder ${variant}">
         <span class="material-symbols-outlined review-reminder__icon">checklist_rtl</span>
-        <strong class="review-reminder__title">Es hora de revisar tu sistema</strong>
-        <p class="review-reminder__text">La revisión semanal te ayuda a mantener todo bajo control.</p>
+        <strong class="review-reminder__title">${escapeHTML(title)}</strong>
+        <p class="review-reminder__text">${escapeHTML(text)}</p>
         <div class="review-reminder__actions">
-          <button class="btn btn--primary" id="start-review-from-dashboard">
-            Revisar ahora
-          </button>
-          <button class="btn btn--ghost btn--sm" id="dismiss-review-reminder">
-            Más tarde
+          <button class="btn ${overdue ? 'btn--primary' : 'btn--secondary'}" id="start-review-from-dashboard">
+            ${overdue ? 'Revisar ahora' : 'Abrir revisión'}
           </button>
         </div>
       </div>

@@ -18109,8 +18109,34 @@ select,
   margin-top: var(--space-2);
 }
 
-.review-reminder__actions .btn--primary {
+.review-reminder__actions .btn--primary,
+.review-reminder__actions .btn--secondary {
   width: 100%;
+}
+
+/* Variante "al día": tono neutro, discreto */
+.review-reminder--ok {
+  background: var(--gris-50, #f9fafb);
+  border-color: var(--gris-200);
+}
+
+.review-reminder--ok .review-reminder__icon {
+  color: var(--gris-400);
+}
+
+/* Variante "atrasado": tono turquesa con aviso visual */
+.review-reminder--overdue {
+  background: linear-gradient(135deg, var(--turquesa-50) 0%, var(--amarillo-50) 100%);
+  border-color: var(--turquesa-400);
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.08);
+}
+
+.review-reminder--overdue .review-reminder__icon {
+  color: var(--turquesa-500);
+}
+
+.review-reminder--overdue .review-reminder__title {
+  color: var(--turquesa-800, #155e75);
 }
 
 .review-reminder__actions .btn--ghost {
