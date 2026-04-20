@@ -38,8 +38,26 @@ export async function disconnectCalendar() {
   await auth.signOut(SCOPES);
 }
 
+/**
+ * Lista los calendarios accesibles al usuario (minAccessRole=reader).
+ * Requiere que exista una sesión Calendar activa; si no, lanza NOT_AUTHENTICATED.
+ *
+ * @returns {Promise<Array<{
+ *   id: string, summary: string, backgroundColor: string,
+ *   primary: boolean, accessRole: string, selected: boolean
+ * }>>}
+ */
 export async function listUserCalendars() {
-  throw new Error('listUserCalendars: no implementado aun');
+  const url = `${GDRIVE_CONFIG.API_CALENDAR}/users/me/calendarList?minAccessRole=reader`;
+  const data = await _fetchWithAuth(url);
+  return (data.items || []).map(c => ({
+    id: c.id,
+    summary: c.summaryOverride || c.summary || c.id,
+    backgroundColor: c.backgroundColor || '#4285F4',
+    primary: !!c.primary,
+    accessRole: c.accessRole,
+    selected: !!c.selected,
+  }));
 }
 
 // eslint-disable-next-line no-unused-vars
@@ -50,6 +68,46 @@ export async function getEventsInRange(_start, _end, _calendarIds) {
 // ───────────────────────────────────────────────
 // Helpers internos
 // ───────────────────────────────────────────────
+
+/**
+ * Fetch autenticado contra la Calendar API.
+ * - Usa getTokenSilent (sin popup); si no hay → lanza NOT_AUTHENTICATED.
+ * - Si la API responde 401, hace un refresh y reintenta una vez.
+ * - Otros errores HTTP se propagan con `.code` (RATE_LIMIT / FORBIDDEN / API_ERROR).
+ */
+async function _fetchWithAuth(url) {
+  const auth = await getAuthModule();
+  let token = await auth.getTokenSilent(SCOPES);
+  if (!token) {
+    const err = new Error('NOT_AUTHENTICATED');
+    err.code = 'NOT_AUTHENTICATED';
+    throw err;
+  }
+  let res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}`, 'Cache-Control': 'no-cache' },
+  });
+  if (res.status === 401) {
+    token = (auth.refreshToken ? await auth.refreshToken(SCOPES) : null)
+      || await auth.getTokenSilent(SCOPES);
+    if (!token) {
+      const err = new Error('NOT_AUTHENTICATED');
+      err.code = 'NOT_AUTHENTICATED';
+      throw err;
+    }
+    res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}`, 'Cache-Control': 'no-cache' },
+    });
+  }
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    const err = new Error(`HTTP ${res.status}: ${body.slice(0, 200)}`);
+    err.code = res.status === 429 ? 'RATE_LIMIT'
+      : res.status === 403 ? 'FORBIDDEN'
+      : 'API_ERROR';
+    throw err;
+  }
+  return res.json();
+}
 
 /**
  * Selecciona el modulo de auth apropiado segun la plataforma en ejecucion.
