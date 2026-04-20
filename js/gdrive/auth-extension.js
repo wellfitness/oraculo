@@ -1,31 +1,37 @@
 /**
- * Google Drive Auth - Extension Chrome
- *
- * Usa chrome.identity.getAuthToken() que es la forma nativa
- * de autenticar en extensiones Chrome. Aprovecha la sesion
- * de Google del usuario sin necesitar librerias externas.
+ * Google Auth - Extension Chrome (chrome.identity).
+ * Acepta scopes opcionales para multiples APIs. Chrome cachea por (clientId, scopes).
  */
 
 import { GDRIVE_CONFIG } from './config.js';
 
+function normalizeScopes(scopes) {
+  if (!scopes) return [GDRIVE_CONFIG.SCOPE];
+  if (typeof scopes === 'string') return [scopes];
+  return scopes;
+}
+
 /**
  * Inicia sesion interactiva (muestra popup de consentimiento).
- * @returns {{ token: string, email: string }}
+ * @param {{ scopes?: string|string[] }} [opts]
+ * @returns {Promise<{ token: string, email: string }>}
  */
-export async function signIn() {
-  const token = await getAuthToken(true);
+export async function signIn({ scopes } = {}) {
+  const scopeList = normalizeScopes(scopes);
+  const token = await getAuthToken(true, scopeList);
   const email = await fetchUserEmail(token);
   return { token, email };
 }
 
 /**
  * Obtiene token silenciosamente (sin popup).
- * Devuelve null si no hay sesion activa.
- * @returns {string | null}
+ * @param {{ scopes?: string|string[] }} [opts]
+ * @returns {Promise<string | null>}
  */
-export async function getTokenSilent() {
+export async function getTokenSilent({ scopes } = {}) {
+  const scopeList = normalizeScopes(scopes);
   try {
-    return await getAuthToken(false);
+    return await getAuthToken(false, scopeList);
   } catch {
     return null;
   }
@@ -33,15 +39,17 @@ export async function getTokenSilent() {
 
 /**
  * Fuerza refresh del token invalidando el cacheado en Chrome.
- * @returns {string | null}
+ * @param {{ scopes?: string|string[] }} [opts]
+ * @returns {Promise<string | null>}
  */
-export async function refreshToken() {
+export async function refreshToken({ scopes } = {}) {
+  const scopeList = normalizeScopes(scopes);
   try {
-    const old = await getAuthToken(false);
+    const old = await getAuthToken(false, scopeList);
     if (old) await removeCachedToken(old);
   } catch { /* ignore */ }
   try {
-    return await getAuthToken(false);
+    return await getAuthToken(false, scopeList);
   } catch {
     return null;
   }
@@ -49,10 +57,12 @@ export async function refreshToken() {
 
 /**
  * Cierra sesion y revoca el token.
+ * @param {{ scopes?: string|string[] }} [opts]
  */
-export async function signOut() {
+export async function signOut({ scopes } = {}) {
+  const scopeList = normalizeScopes(scopes);
   try {
-    const token = await getAuthToken(false);
+    const token = await getAuthToken(false, scopeList);
     if (token) {
       // Revocar en Google
       await fetch(`https://accounts.google.com/o/oauth2/revoke?token=${token}`);
@@ -68,10 +78,10 @@ export async function signOut() {
 // Helpers internos
 // ───────────────────────────────────────────────
 
-function getAuthToken(interactive) {
+function getAuthToken(interactive, scopes) {
   return new Promise((resolve, reject) => {
     chrome.identity.getAuthToken(
-      { interactive, scopes: [GDRIVE_CONFIG.SCOPE] },
+      { interactive, scopes },
       (token) => {
         if (chrome.runtime.lastError) {
           reject(new Error(chrome.runtime.lastError.message));
@@ -94,7 +104,7 @@ function removeCachedToken(token) {
 async function fetchUserEmail(token) {
   try {
     const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: { 'Authorization': `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}` },
     });
     if (res.ok) {
       const info = await res.json();
