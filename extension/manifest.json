@@ -14,7 +14,8 @@
   "oauth2": {
     "client_id": "113523103085-t0sj57s11kqo5r28r9e7s7b8llv1rttp.apps.googleusercontent.com",
     "scopes": [
-      "https://www.googleapis.com/auth/drive.appdata"
+      "https://www.googleapis.com/auth/drive.appdata",
+      "https://www.googleapis.com/auth/calendar.readonly"
     ]
   },
   "side_panel": {
