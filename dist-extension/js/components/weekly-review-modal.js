@@ -154,7 +154,7 @@ const renderPendientesStep = () => {
         </div>
       ` : `
         <p class="review-hint">
-          Para cada idea, decide: ¿la mueves a un horizonte, la eliminas, o la dejas para después?
+          Para cada idea, decide: ¿la mueves a la semana, mes o trimestre, la eliminas, o la dejas para después?
         </p>
         <ul class="review-list" id="backlog-review-list">
           ${backlog.map(item => `
@@ -190,7 +190,7 @@ const renderAgendaStep = () => {
     <div class="review-step-content">
       <h3>
         <span class="material-symbols-outlined">view_kanban</span>
-        Estado de tus horizontes
+        Estado de tu agenda
       </h3>
 
       <div class="review-horizons">

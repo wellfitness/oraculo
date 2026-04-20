@@ -114,7 +114,7 @@ export const render = (data) => {
       ` : dailyTasks.length === 0 ? `
         <div class="today__empty">
           <span class="material-symbols-outlined">task_alt</span>
-          <p>Sin tareas en foco. <a href="#kanban" data-view="kanban">Añadir desde Agenda</a></p>
+          <p>Sin prioridades hoy. <a href="#kanban" data-view="kanban">Añadir desde Agenda</a></p>
         </div>
       ` : ''}
 

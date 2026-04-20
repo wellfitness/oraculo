@@ -179,7 +179,7 @@ export const render = (data) => {
 
       <section class="dashboard__section dashboard__focus">
         <div class="section-header">
-          <h2 class="section-title">Foco del Día</h2>
+          <h2 class="section-title">Prioridades del Día</h2>
           <span class="section-limit">${dailyTasks.length}/${dailyLimit}</span>
         </div>
 

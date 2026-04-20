@@ -2140,6 +2140,7 @@ a:hover {
   margin-bottom: var(--space-1);
   cursor: grab;
   transition: all var(--transition-fast);
+  position: relative;
 }
 
 .kanban-item:hover {
@@ -2215,6 +2216,52 @@ a:hover {
 
 .kanban-item:hover .kanban-item__actions {
   opacity: 1;
+}
+
+/* Popover "Mover a" */
+.item-move-wrapper {
+  position: relative;
+}
+
+.move-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 200;
+  background: #ffffff;
+  border: 1px solid var(--gris-200);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-1);
+  min-width: 140px;
+}
+
+.move-popover__label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--gris-400);
+  padding: 2px var(--space-1) var(--space-1);
+  border-bottom: 1px solid var(--gris-100);
+  margin-bottom: 2px;
+}
+
+.move-popover__option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-1) var(--space-2);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--gris-700);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+.move-popover__option:hover {
+  background: var(--gris-50);
+  color: var(--color-primary);
 }
 
 .kanban-add-btn {
@@ -6973,8 +7020,8 @@ a.entry-type-btn {
   display: flex;
   align-items: flex-start;
   gap: 6px;
-  flex: 1;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .horizon-item__checkbox input {
@@ -6987,6 +7034,9 @@ a.entry-type-btn {
   font-size: 0.85rem;
   color: var(--gris-700);
   line-height: 1.3;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
 }
 
 .horizon-item__project {
@@ -7057,14 +7107,23 @@ a.entry-type-btn {
 
 .section-actions .btn--icon {
   padding: 4px;
+  background: transparent;
+  color: var(--gris-600);
+}
+
+.section-actions .btn--icon:hover {
+  background: var(--gris-100);
+  color: var(--gris-800);
 }
 
 .section-actions .btn--danger {
+  background: transparent;
   color: var(--rosa-600);
 }
 
 .section-actions .btn--danger:hover {
   background: var(--rosa-100);
+  color: var(--rosa-700);
 }
 
 /* Items seleccionados en Focus y Backlog */

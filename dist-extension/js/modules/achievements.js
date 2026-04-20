@@ -115,11 +115,11 @@ export const render = (data) => {
         </div>
       </section>
 
-      <!-- Barras de progreso por horizonte -->
+      <!-- Barras de progreso por sección -->
       <section class="achievements-progress">
         <h2>
           <span class="material-symbols-outlined icon-sm">leaderboard</span>
-          Progreso por horizonte
+          Progreso por sección
         </h2>
         <div class="progress-list">
           ${renderProgressBars(data.objectives || {})}

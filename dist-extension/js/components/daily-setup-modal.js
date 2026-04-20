@@ -31,11 +31,11 @@ const TIME_OPTIONS = [
   { value: 'full', label: 'Día', sublabel: '3 tareas', icon: 'wb_sunny', limit: 3 }
 ];
 
-// Opciones de nivel de energía - Mejorado v1.7 (sublabels con modificador)
+// Opciones de nivel de energía - Mejorado v1.7 (sublabels cualitativos)
 const ENERGY_OPTIONS = [
-  { value: 'low', label: 'Baja', sublabel: '-1 tarea', icon: 'battery_1_bar', modifier: -1 },
-  { value: 'medium', label: 'Media', sublabel: 'normal', icon: 'battery_4_bar', modifier: 0 },
-  { value: 'high', label: 'Alta', sublabel: '+1 tarea', icon: 'battery_full', modifier: 1 }
+  { value: 'low', label: 'Baja', sublabel: 'jornada ligera', icon: 'battery_1_bar', modifier: -1 },
+  { value: 'medium', label: 'Media', sublabel: 'ritmo normal', icon: 'battery_4_bar', modifier: 0 },
+  { value: 'high', label: 'Alta', sublabel: 'máxima energía', icon: 'battery_full', modifier: 1 }
 ];
 
 /**
@@ -288,7 +288,7 @@ export const initDailySetupModal = (data, updateData) => {
         <div class="task-item__content">
           <p class="task-item__text">${item.text}</p>
           <div class="task-item__meta">
-            <span class="task-item__tag task-item__tag--in-daily">En foco</span>
+            <span class="task-item__tag task-item__tag--in-daily">Prioridad</span>
             ${item.movedFrom ? `
               <span class="task-item__tag task-item__tag--origin">
                 de ${COLUMN_NAMES[item.movedFrom]}
@@ -359,7 +359,7 @@ export const initDailySetupModal = (data, updateData) => {
 
           if (totalAfterAdd > currentLimit) {
             e.preventDefault(); // Evita que el checkbox se marque (sin parpadeo)
-            showNotification(`Solo puedes tener ${currentLimit} prioridad${currentLimit > 1 ? 'es' : ''} en foco`, 'warning');
+            showNotification(`Solo puedes tener ${currentLimit} prioridad${currentLimit > 1 ? 'es' : ''} activa${currentLimit > 1 ? 's' : ''}`, 'warning');
           }
         }
       });
@@ -644,7 +644,7 @@ export const initDailySetupModal = (data, updateData) => {
 
     let message = '¡Día configurado!';
     if (addedCount > 0) {
-      message += ` +${addedCount} al foco.`;
+      message += ` +${addedCount} a prioridades.`;
     }
     if (removedCount > 0) {
       message += ` ${removedCount} devuelta${removedCount > 1 ? 's' : ''}.`;

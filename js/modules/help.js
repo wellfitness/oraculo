@@ -132,7 +132,7 @@ export const render = (data) => {
               <li><strong>Trimestre</strong> (máx 3): Objetivos grandes</li>
               <li><strong>Mes</strong> (máx 6): Hitos mensuales</li>
               <li><strong>Semana</strong> (máx 10): Lo de esta semana</li>
-              <li><strong>Hoy / En Foco</strong> (1-3): Solo lo esencial</li>
+              <li><strong>Hoy / Prioridades</strong> (1-3): Solo lo esencial</li>
             </ul>
             <p><strong>Backlog:</strong> Ideas sin presión (sin límite)</p>
             <div class="help-relation">

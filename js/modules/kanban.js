@@ -1,7 +1,7 @@
 /**
  * Oráculo - Kanban por Agenda
  * Gestión de objetivos con layout de 3 secciones:
- * - En Foco: Tareas del día con slots dinámicos (Volumen Fijo)
+ * - Prioridades: Tareas del día con slots dinámicos (Volumen Fijo)
  * - Agenda: Trimestre → Mes → Semana
  * - Pendientes: Captura de ideas sin límite
  */
@@ -16,7 +16,7 @@ let draggedItem = null;
 let currentData = null;
 let activeFilter = null; // null = todos, '' = sin proyecto, 'id' = proyecto específico
 let selectedHorizonItemId = null; // ID del item de horizonte seleccionado
-let selectedFocusItemId = null; // ID del item de En Foco seleccionado
+let selectedFocusItemId = null; // ID del item de Prioridades seleccionado
 let selectedBacklogItemId = null; // ID del item de Pendientes seleccionado
 
 // Tipos de tarea (simplificado a solo "importante")
@@ -30,7 +30,7 @@ const LIMITS = {
   quarterly: 3,
   monthly: 6,
   weekly: 10,
-  daily: 3        // "En Foco" - lista cerrada (pero dinámico según Volumen Fijo)
+  daily: 3        // "Prioridades" - lista cerrada (pero dinámico según Volumen Fijo)
 };
 
 /**
@@ -66,7 +66,7 @@ const COLUMN_NAMES = {
   quarterly: 'Trimestre',
   monthly: 'Mes',
   weekly: 'Semana',
-  daily: 'En Foco'
+  daily: 'Prioridades'
 };
 
 // Agrupación de columnas para el nuevo layout
@@ -106,7 +106,34 @@ const reRender = (data) => {
 };
 
 /**
- * SECCIÓN 1: EN FOCO
+ * Renderiza el botón "Mover a" con su popover para la barra de acciones de una sección.
+ * @param {string} excludeColumn - Columna a excluir del listado (la actual)
+ * @param {string} popoverId - ID único del popover (ej. 'section-move-focus')
+ */
+const renderSectionMoveButton = (excludeColumn, popoverId) => {
+  const options = Object.entries(COLUMN_NAMES)
+    .filter(([key]) => key !== excludeColumn && key !== 'completed')
+    .map(([key, name]) => `
+      <button type="button" class="move-popover__option" data-target="${key}">
+        ${name}
+      </button>
+    `).join('');
+
+  return `
+    <div class="item-move-wrapper">
+      <button type="button" class="btn btn--icon section-move-btn" data-popover="${popoverId}" title="Mover a otra sección">
+        <span class="material-symbols-outlined">swap_vert</span>
+      </button>
+      <div class="move-popover" id="${popoverId}" hidden>
+        <span class="move-popover__label">Mover a:</span>
+        ${options}
+      </div>
+    </div>
+  `;
+};
+
+/**
+ * SECCIÓN 1: PRIORIDADES
  * Renderiza la sección principal del día con máxima prominencia
  */
 const renderFocusSection = (items, projects, data) => {
@@ -122,11 +149,11 @@ const renderFocusSection = (items, projects, data) => {
 
   const getSlotMessage = () => {
     if (slotsAvailable === 0) {
-      return `<span class="material-symbols-outlined icon-sm">block</span> Sin slots disponibles. ¡Completa algo primero!`;
+      return `<span class="material-symbols-outlined icon-sm">block</span> Sin huecos libres. ¡Completa algo primero!`;
     } else if (slotsAvailable === 1) {
-      return `<span class="material-symbols-outlined icon-sm">looks_one</span> 1 slot disponible`;
+      return `<span class="material-symbols-outlined icon-sm">looks_one</span> 1 hueco libre`;
     } else {
-      return `<span class="material-symbols-outlined icon-sm">target</span> ${slotsAvailable} slots disponibles`;
+      return `<span class="material-symbols-outlined icon-sm">target</span> ${slotsAvailable} huecos libres`;
     }
   };
 
@@ -135,10 +162,11 @@ const renderFocusSection = (items, projects, data) => {
       <header class="section-header section-header--focus">
         <h2 class="section-title">
           <span class="material-symbols-outlined">target</span>
-          En Foco
+          Prioridades
         </h2>
         <div class="section-header__right">
           <div class="section-actions" id="focus-actions" hidden>
+            ${renderSectionMoveButton('daily', 'section-move-focus')}
             <button class="btn btn--icon" id="focus-action-edit" title="Editar">
               <span class="material-symbols-outlined">edit</span>
             </button>
@@ -173,11 +201,11 @@ const renderFocusSection = (items, projects, data) => {
       ${!isFull ? `
         <button class="kanban-add-btn kanban-add-btn--focus" data-column="daily">
           <span class="material-symbols-outlined icon-sm">add</span>
-          Añadir al foco
+          Añadir prioridad
         </button>
       ` : `
         <p class="kanban-limit-msg">
-          ¡Completa algo para liberar un slot! La magia está en terminar.
+          ¡Completa algo para liberar un hueco! La magia está en terminar.
         </p>
       `}
     </section>
@@ -185,7 +213,7 @@ const renderFocusSection = (items, projects, data) => {
 };
 
 /**
- * Renderiza un item en la sección En Foco
+ * Renderiza un item en la sección Prioridades
  * (versión más prominente con checkboxes grandes)
  */
 const renderFocusItem = (item, projects, isRoca = false) => {
@@ -239,6 +267,7 @@ const renderWeeklySection = (items, projects) => {
         </h2>
         <div class="section-header__right">
           <div class="section-actions" id="weekly-actions" hidden>
+            ${renderSectionMoveButton('weekly', 'section-move-weekly')}
             <button class="btn btn--icon" id="weekly-action-edit" title="Editar">
               <span class="material-symbols-outlined">edit</span>
             </button>
@@ -281,6 +310,7 @@ const renderMonthlySection = (items, projects) => {
         </h2>
         <div class="section-header__right">
           <div class="section-actions" id="monthly-actions" hidden>
+            ${renderSectionMoveButton('monthly', 'section-move-monthly')}
             <button class="btn btn--icon" id="monthly-action-edit" title="Editar">
               <span class="material-symbols-outlined">edit</span>
             </button>
@@ -323,6 +353,7 @@ const renderQuarterlySection = (items, projects) => {
         </h2>
         <div class="section-header__right">
           <div class="section-actions" id="quarterly-actions" hidden>
+            ${renderSectionMoveButton('quarterly', 'section-move-quarterly')}
             <button class="btn btn--icon" id="quarterly-action-edit" title="Editar">
               <span class="material-symbols-outlined">edit</span>
             </button>
@@ -416,6 +447,8 @@ const renderHorizonColumn = (columnKey, items, limit, projects, icon) => {
 
 /**
  * Renderiza un item en una columna de horizonte
+ * El <label> solo envuelve el checkbox: clicar el texto NO completa la tarea,
+ * selecciona el item para mostrar acciones (mover/editar/eliminar).
  */
 const renderHorizonItem = (item, projects) => {
   const project = item.projectId ? projects.find(p => p.id === item.projectId) : null;
@@ -427,10 +460,10 @@ const renderHorizonItem = (item, projects) => {
       data-project="${item.projectId || ''}"
       draggable="true"
     >
-      <label class="horizon-item__checkbox">
+      <label class="horizon-item__checkbox" title="Marcar como completada">
         <input type="checkbox" ${item.completed ? 'checked' : ''} data-id="${item.id}">
-        <span class="horizon-item__text">${escapeHTML(item.text)}</span>
       </label>
+      <span class="horizon-item__text">${escapeHTML(item.text)}</span>
       ${project ? `
         <span class="horizon-item__project" style="background-color: ${project.color}15; color: ${project.color}">
           ${escapeHTML(project.name)}
@@ -459,6 +492,7 @@ const renderPendientesSidebar = (items, projects) => {
           <span class="kanban-sidebar__count ${showSoftLimitWarning ? 'kanban-sidebar__count--warning' : ''}">${count}</span>
         </h2>
         <div class="section-actions" id="backlog-actions" hidden>
+          ${renderSectionMoveButton('backlog', 'section-move-backlog')}
           <button class="btn btn--icon" id="backlog-action-edit" title="Editar">
             <span class="material-symbols-outlined">edit</span>
           </button>
@@ -612,7 +646,7 @@ const formatWeekLabel = (weekStartISO) => {
  */
 const getColumnDisplayName = (column) => {
   const names = {
-    daily: 'Foco',
+    daily: 'Prioridades',
     weekly: 'Semana',
     monthly: 'Mes',
     quarterly: 'Trimestre'
@@ -734,7 +768,7 @@ export const render = (data) => {
           <div>
             <h1 class="page-title">Agenda</h1>
             <p class="page-description">
-              Elige tu foco del día, planifica en los horizontes y captura ideas en Pendientes.
+              Elige tus prioridades del día, planifica la semana, el mes y el trimestre, y captura ideas en Pendientes.
             </p>
             <a href="#daily-setup" data-view="daily-setup" class="dashboard__reconfigure" title="Reconfigurar mi día">
               <span class="material-symbols-outlined">tune</span>
@@ -768,7 +802,7 @@ export const render = (data) => {
         <!-- SIDEBAR: PENDIENTES DE DECIDIR -->
         ${renderPendientesSidebar(objectives.backlog || [], projects)}
 
-        <!-- FILA 1: Foco de Hoy | Esta semana -->
+        <!-- FILA 1: Prioridades | Esta semana -->
         ${renderFocusSection(objectives.daily || [], projects, data)}
         ${renderWeeklySection(objectives.weekly || [], projects)}
 
@@ -868,8 +902,8 @@ const setupHorizonSelection = (data) => {
     // Clic en items de horizonte para seleccionar
     document.querySelectorAll(`.kanban-section--${sectionKey} .horizon-item`).forEach(item => {
       item.addEventListener('click', (e) => {
-        // Si es clic en checkbox, no seleccionar
-        if (e.target.closest('.horizon-item__checkbox input')) return;
+        // Si es clic en el checkbox (o su label), no seleccionar
+        if (e.target.closest('.horizon-item__checkbox')) return;
 
         const itemId = item.dataset.id;
 
@@ -910,7 +944,7 @@ const setupHorizonSelection = (data) => {
 };
 
 /**
- * Configura selección de items en En Foco y barra de acciones
+ * Configura selección de items en Prioridades y barra de acciones
  */
 const setupFocusSelection = (data) => {
   const actionsBar = document.getElementById('focus-actions');
@@ -919,8 +953,8 @@ const setupFocusSelection = (data) => {
   // Clic en items de focus para seleccionar
   document.querySelectorAll('.kanban-section--focus .focus-item').forEach(item => {
     item.addEventListener('click', (e) => {
-      // Si es clic en checkbox, no seleccionar
-      if (e.target.closest('.focus-item__checkbox input')) return;
+      // Si es clic en el checkbox (o su label), no seleccionar
+      if (e.target.closest('.focus-item__checkbox')) return;
 
       const itemId = item.dataset.id;
 
@@ -1116,7 +1150,50 @@ export const init = (data, updateData) => {
   setupHorizonSelection(data);
   setupFocusSelection(data);
   setupBacklogSelection(data);
+  setupSectionMoveButtons(data);
   setupGlobalDeselection();
+
+  // Cerrar popovers "Mover a" al hacer clic fuera
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.move-popover:not([hidden])').forEach(p => { p.hidden = true; });
+  });
+};
+
+/**
+ * Devuelve el id del item actualmente seleccionado en cualquier sección
+ * (focus, horizon, backlog). Null si no hay selección.
+ */
+const getCurrentSelectedId = () => {
+  return selectedFocusItemId || selectedHorizonItemId || selectedBacklogItemId || null;
+};
+
+/**
+ * Configura el botón "Mover a" de las barras de acciones de sección
+ * y las opciones del popover asociado. Usa el item seleccionado en la sección.
+ */
+const setupSectionMoveButtons = (data) => {
+  document.querySelectorAll('.section-move-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const popoverId = btn.dataset.popover;
+      const popover = document.getElementById(popoverId);
+      if (!popover) return;
+      const wasHidden = popover.hidden;
+      document.querySelectorAll('.move-popover').forEach(p => { p.hidden = true; });
+      popover.hidden = !wasHidden;
+    });
+  });
+
+  document.querySelectorAll('.section-actions .move-popover__option').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const itemId = getCurrentSelectedId();
+      btn.closest('.move-popover').hidden = true;
+      if (!itemId) return;
+      moveItem(itemId, btn.dataset.target, data);
+      // reRender regenera el DOM, no hace falta limpiar selección manualmente
+    });
+  });
 };
 
 /**
@@ -1165,7 +1242,7 @@ const setupBacklogToggle = () => {
 
 /**
  * Renderiza una columna del Kanban
- * Para "En Foco" (daily): el límite es dinámico y cuenta solo tareas activas
+ * Para "Prioridades" (daily): el límite es dinámico y cuenta solo tareas activas
  */
 const renderColumn = (columnKey, items, limit, projects = [], data = null) => {
   // Para la columna daily, usamos límite dinámico y contamos solo activas
@@ -1199,7 +1276,7 @@ const renderColumn = (columnKey, items, limit, projects = [], data = null) => {
   // Mensajes según el estado
   const getLimitMessage = () => {
     if (isDaily) {
-      return 'Completa algo para liberar un slot. ¡La magia está en terminar!';
+      return 'Completa algo para liberar un hueco. ¡La magia está en terminar!';
     }
     return 'Límite alcanzado. Completa o mueve algo antes de añadir.';
   };
@@ -1207,11 +1284,11 @@ const renderColumn = (columnKey, items, limit, projects = [], data = null) => {
   // Hint dinámico para daily
   const getDailyHint = () => {
     if (slotsAvailable === 0) {
-      return `<span class="material-symbols-outlined icon-sm">block</span> Sin slots. Completa algo primero.`;
+      return `<span class="material-symbols-outlined icon-sm">block</span> Sin huecos. Completa algo primero.`;
     } else if (slotsAvailable === 1) {
-      return `<span class="material-symbols-outlined icon-sm">looks_one</span> 1 slot disponible`;
+      return `<span class="material-symbols-outlined icon-sm">looks_one</span> 1 hueco libre`;
     } else {
-      return `<span class="material-symbols-outlined icon-sm">target</span> ${slotsAvailable} slots disponibles`;
+      return `<span class="material-symbols-outlined icon-sm">target</span> ${slotsAvailable} huecos libres`;
     }
   };
 
@@ -1262,6 +1339,14 @@ const renderColumn = (columnKey, items, limit, projects = [], data = null) => {
 const renderItem = (item, columnKey, projects = []) => {
   const project = item.projectId ? projects.find(p => p.id === item.projectId) : null;
 
+  const moveOptions = Object.entries(COLUMN_NAMES)
+    .filter(([key]) => key !== columnKey)
+    .map(([key, name]) => `
+      <button class="move-popover__option" data-id="${item.id}" data-target="${key}">
+        ${name}
+      </button>
+    `).join('');
+
   return `
     <li
       class="kanban-item ${item.completed ? 'kanban-item--completed' : ''}"
@@ -1284,6 +1369,15 @@ const renderItem = (item, columnKey, projects = []) => {
       </div>
 
       <div class="kanban-item__actions">
+        <div class="item-move-wrapper">
+          <button class="btn btn--icon item-move" data-id="${item.id}" title="Mover a otro horizonte">
+            <span class="material-symbols-outlined icon-sm">swap_vert</span>
+          </button>
+          <div class="move-popover" id="move-popover-${item.id}" hidden>
+            <span class="move-popover__label">Mover a:</span>
+            ${moveOptions}
+          </div>
+        </div>
         <button class="btn btn--icon item-edit" data-id="${item.id}" title="Editar">
           <span class="material-symbols-outlined icon-sm">edit</span>
         </button>
@@ -1341,47 +1435,37 @@ const handleDragLeave = (e) => {
   e.currentTarget.classList.remove('drag-over');
 };
 
-const handleDrop = (e, data) => {
-  e.preventDefault();
-  const targetColumn = e.currentTarget.dataset.column;
-
-  if (!draggedItem || !targetColumn) return;
-
-  const itemId = draggedItem.dataset.id;
+/**
+ * Mueve un item a otra columna. Usado por drag-and-drop y por el botón "Mover a".
+ */
+const moveItem = (itemId, targetColumn, data) => {
   const sourceColumn = findItemColumn(itemId, data.objectives);
-
   if (!sourceColumn || sourceColumn === targetColumn) return;
 
-  // Asegurar que existe la columna destino
   if (!data.objectives[targetColumn]) {
     data.objectives[targetColumn] = [];
   }
 
-  // Para daily: usar límite dinámico y contar solo tareas activas
   const isDaily = targetColumn === 'daily';
   const limit = isDaily ? getDailyLimit(data) : LIMITS[targetColumn];
   const activeCount = isDaily
     ? getActiveTasksCount(data.objectives[targetColumn])
     : data.objectives[targetColumn].length;
 
-  // Verificar límite (solo tareas activas para daily)
   if (limit !== null && activeCount >= limit) {
     if (isDaily) {
       const slotsMsg = limit === 1 ? '1 tarea activa' : `${limit} tareas activas`;
-      showNotification(`Ya tienes ${slotsMsg}. ¡Completa algo para liberar un slot!`, 'warning');
+      showNotification(`Ya tienes ${slotsMsg}. ¡Completa algo para liberar un hueco!`, 'warning');
     } else {
-      showNotification(`La columna "${COLUMN_NAMES[targetColumn]}" está llena.`, 'warning');
+      showNotification(`"${COLUMN_NAMES[targetColumn]}" está llena.`, 'warning');
     }
     return;
   }
 
-  // Mover item
   const itemIndex = data.objectives[sourceColumn].findIndex(i => i.id === itemId);
   if (itemIndex === -1) return;
 
-  // Registrar tombstone ANTES del splice (para que el merge sepa que salió de aquí)
   recordDeletion(data, `objectives.${sourceColumn}`, itemId);
-
   const [item] = data.objectives[sourceColumn].splice(itemIndex, 1);
   item.movedAt = new Date().toISOString();
   item.updatedAt = new Date().toISOString();
@@ -1390,11 +1474,10 @@ const handleDrop = (e, data) => {
 
   updateDataCallback('objectives', data.objectives);
 
-  // Mensaje especial según destino
   if (isDaily) {
     const remaining = limit - activeCount - 1;
-    const remainingMsg = remaining > 0 ? ` (${remaining} slot${remaining > 1 ? 's' : ''} libre${remaining > 1 ? 's' : ''})` : '';
-    showNotification(`¡Añadido al foco!${remainingMsg}`, 'success');
+    const remainingMsg = remaining > 0 ? ` (${remaining} hueco${remaining > 1 ? 's' : ''} libre${remaining > 1 ? 's' : ''})` : '';
+    showNotification(`¡Añadido a Prioridades!${remainingMsg}`, 'success');
   } else if (targetColumn === 'backlog') {
     showNotification('Guardado en Pendientes', 'info');
   } else {
@@ -1403,7 +1486,6 @@ const handleDrop = (e, data) => {
 
   reRender(data);
 
-  // Añadir feedback visual al item movido (después del reRender)
   requestAnimationFrame(() => {
     const movedElement = document.querySelector(`[data-id="${itemId}"]`);
     if (movedElement) {
@@ -1411,6 +1493,13 @@ const handleDrop = (e, data) => {
       setTimeout(() => movedElement.classList.remove('kanban-item--dropped'), 600);
     }
   });
+};
+
+const handleDrop = (e, data) => {
+  e.preventDefault();
+  const targetColumn = e.currentTarget.dataset.column;
+  if (!draggedItem || !targetColumn) return;
+  moveItem(draggedItem.dataset.id, targetColumn, data);
 };
 
 /**
@@ -1441,11 +1530,34 @@ const setupAddButtons = (data) => {
  * Configura acciones de items (editar, eliminar, completar)
  */
 const setupItemActions = (data) => {
-  // Checkboxes (En Foco, Agenda, Backlog, Completadas)
+  // Checkboxes (Prioridades, Agenda, Backlog, Completadas)
   document.querySelectorAll('.kanban-item__checkbox input, .horizon-item__checkbox input, .focus-item__checkbox input, .backlog-item__checkbox input, .completed-item__checkbox input').forEach(checkbox => {
     checkbox.addEventListener('change', (e) => {
       const itemId = e.target.dataset.id;
       toggleItemComplete(itemId, e.target.checked, data);
+    });
+  });
+
+  // Botón "Mover a" (alternativa al drag para móvil/extensión)
+  document.querySelectorAll('.item-move').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const popoverId = `move-popover-${btn.dataset.id}`;
+      const isCurrentlyHidden = document.getElementById(popoverId)?.hidden;
+      // Cerrar todos los popovers abiertos
+      document.querySelectorAll('.move-popover').forEach(p => { p.hidden = true; });
+      // Alternar el popover de este item
+      const popover = document.getElementById(popoverId);
+      if (popover) popover.hidden = !isCurrentlyHidden;
+    });
+  });
+
+  // Opciones del popover "Mover a"
+  document.querySelectorAll('.move-popover__option').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      btn.closest('.move-popover').hidden = true;
+      moveItem(btn.dataset.id, btn.dataset.target, data);
     });
   });
 
@@ -1577,7 +1689,7 @@ const saveItem = (data, keepOpen = false) => {
 
     if (limit !== null && count >= limit) {
       if (isDaily) {
-        showNotification('¡Completa algo para liberar un slot!', 'warning');
+        showNotification('¡Completa algo para liberar un hueco!', 'warning');
       } else {
         showNotification(`Límite alcanzado en ${COLUMN_NAMES[column]}`, 'warning');
       }
@@ -1616,13 +1728,14 @@ const saveItem = (data, keepOpen = false) => {
 /**
  * Marca/desmarca un item como completado
  * Al completar: mueve automáticamente a la sección "Completadas"
- * Al desmarcar: restaura al horizonte original
+ * Al desmarcar: restaura al horizonte original. Si ese horizonte ya no existe,
+ * está lleno, o la tarea viene sin `originalColumn` (p.ej. sincronizada desde
+ * otro dispositivo o legacy), cae a `backlog` como destino seguro sin límite.
  */
 const toggleItemComplete = (itemId, completed, data) => {
   const column = findItemColumn(itemId, data.objectives);
   if (!column) return;
 
-  // Inicializar columna completed si no existe
   if (!data.objectives.completed) {
     data.objectives.completed = [];
   }
@@ -1635,61 +1748,61 @@ const toggleItemComplete = (itemId, completed, data) => {
     item.completed = true;
     item.completedAt = new Date().toISOString();
     item.updatedAt = new Date().toISOString();
-    item.originalColumn = column; // Guardar origen para posible restauración
+    item.originalColumn = column;
 
-    // Registrar tombstone ANTES de filtrar (para que el merge sepa que fue borrado intencionalmente)
     recordDeletion(data, `objectives.${column}`, itemId);
-
-    // Eliminar del horizonte actual
     data.objectives[column] = data.objectives[column].filter(i => i.id !== itemId);
-
-    // Añadir a completadas
     data.objectives.completed.push(item);
 
     updateDataCallback('objectives', data.objectives);
     showNotification('¡Completado! Movido a Completadas.', 'success');
     reRender(data);
-  } else {
-    // === DESMARCAR: Restaurar al horizonte original ===
-    item.completed = false;
-    item.completedAt = null;
-    item.updatedAt = new Date().toISOString();
+    return;
+  }
 
-    // Si está en "completed", moverla de vuelta a su horizonte original
-    if (column === 'completed' && item.originalColumn) {
-      // Verificar que el horizonte original existe
-      if (!data.objectives[item.originalColumn]) {
-        data.objectives[item.originalColumn] = [];
-      }
+  // === DESMARCAR: Restaurar al horizonte original (o backlog de fallback) ===
+  item.completed = false;
+  item.completedAt = null;
+  item.updatedAt = new Date().toISOString();
 
-      // Verificar límite del horizonte destino antes de restaurar
-      const targetColumn = item.originalColumn;
-      const isDaily = targetColumn === 'daily';
-      const limit = isDaily ? getDailyLimit(data) : LIMITS[targetColumn];
-      const activeCount = getActiveTasksCount(data.objectives[targetColumn]);
-
-      if (limit && activeCount >= limit) {
-        // El horizonte está lleno - no permitir restaurar
-        showNotification(`${COLUMN_NAMES[targetColumn]} está lleno (${limit}/${limit}). Completa algo primero.`, 'warning');
-        item.completed = true; // Revertir el cambio
-        item.updatedAt = null; // Revertir timestamp
-        return;
-      }
-
-      // Registrar tombstone ANTES de filtrar
-      recordDeletion(data, 'objectives.completed', itemId);
-
-      // Eliminar de completed
-      data.objectives.completed = data.objectives.completed.filter(i => i.id !== itemId);
-
-      // Restaurar al horizonte original
-      data.objectives[item.originalColumn].push(item);
-      showNotification(`Restaurado a ${COLUMN_NAMES[item.originalColumn]}`, 'info');
-    }
-
+  // Si no está en "completed" (caso raro: sync/legacy), sólo actualizar el flag.
+  if (column !== 'completed') {
     updateDataCallback('objectives', data.objectives);
     reRender(data);
+    return;
   }
+
+  // Resolver columna destino con fallbacks seguros
+  const validColumns = ['daily', 'weekly', 'monthly', 'quarterly', 'backlog'];
+  let targetColumn = validColumns.includes(item.originalColumn) ? item.originalColumn : 'backlog';
+
+  if (!data.objectives[targetColumn]) {
+    data.objectives[targetColumn] = [];
+  }
+
+  // Si el destino tiene límite y está lleno, caer a backlog (sin límite)
+  const limit = targetColumn === 'daily' ? getDailyLimit(data) : LIMITS[targetColumn];
+  const activeCount = getActiveTasksCount(data.objectives[targetColumn]);
+  let fellBackToBacklog = false;
+
+  if (limit !== null && activeCount >= limit && targetColumn !== 'backlog') {
+    targetColumn = 'backlog';
+    if (!data.objectives.backlog) data.objectives.backlog = [];
+    fellBackToBacklog = true;
+  }
+
+  recordDeletion(data, 'objectives.completed', itemId);
+  data.objectives.completed = data.objectives.completed.filter(i => i.id !== itemId);
+  data.objectives[targetColumn].push(item);
+
+  if (fellBackToBacklog) {
+    showNotification(`${COLUMN_NAMES[item.originalColumn]} está lleno. Restaurado a Pendientes.`, 'warning');
+  } else {
+    showNotification(`Restaurado a ${COLUMN_NAMES[targetColumn]}`, 'info');
+  }
+
+  updateDataCallback('objectives', data.objectives);
+  reRender(data);
 };
 
 /**

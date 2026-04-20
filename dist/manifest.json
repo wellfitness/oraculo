@@ -34,7 +34,7 @@
     {
       "name": "Dashboard",
       "short_name": "Inicio",
-      "description": "Ver tu foco del día",
+      "description": "Ver tus prioridades del día",
       "url": "/app.html#dashboard"
     },
     {

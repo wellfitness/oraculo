@@ -729,7 +729,7 @@ const setupGlobalCapture = () => {
         'semana': 'weekly', 'sem': 'weekly', 's': 'weekly',
         'mes': 'monthly', 'm': 'monthly',
         'trimestre': 'quarterly', 'tri': 'quarterly', 't': 'quarterly',
-        'hoy': 'daily', 'foco': 'daily', 'h': 'daily'
+        'hoy': 'daily', 'foco': 'daily', 'prioridades': 'daily', 'prioridad': 'daily', 'p': 'daily', 'h': 'daily'
       };
       if (horizonMap[h]) {
         horizon = horizonMap[h];
@@ -763,7 +763,7 @@ const setupGlobalCapture = () => {
     if (limit) {
       const current = (state.data.objectives?.[parsed.horizon] || []).filter(t => !t.completed).length;
       if (current >= limit) {
-        showNotification(`${parsed.horizon === 'daily' ? 'Foco' : parsed.horizon} está lleno (${current}/${limit}). Va a Pendientes.`, 'warning');
+        showNotification(`${parsed.horizon === 'daily' ? 'Prioridades' : parsed.horizon} está lleno (${current}/${limit}). Va a Pendientes.`, 'warning');
         parsed.horizon = 'backlog';
       }
     }
@@ -798,7 +798,7 @@ const setupGlobalCapture = () => {
 
     // Feedback visual con contexto
     const project = parsed.projectId ? (state.data.projects || []).find(p => p.id === parsed.projectId) : null;
-    const horizonNames = { backlog: 'Pendientes', weekly: 'Semana', monthly: 'Mes', quarterly: 'Trimestre', daily: 'Foco' };
+    const horizonNames = { backlog: 'Pendientes', weekly: 'Semana', monthly: 'Mes', quarterly: 'Trimestre', daily: 'Prioridades' };
     let msg = `Capturado en ${horizonNames[parsed.horizon] || 'Pendientes'}`;
     if (project) msg += ` (${project.name})`;
     if (parsed.isImportant) msg += ' !';

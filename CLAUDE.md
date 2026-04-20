@@ -236,7 +236,7 @@ Ocio sin objetivo (la actividad es el fin):
 
 ### 1. Dashboard (vista inicial)
 
-- **Foco del día**: Máx 1-3 tareas (límite dinámico según Volumen Fijo)
+- **Prioridades del día**: Máx 1-3 tareas (límite dinámico según Volumen Fijo)
 - **Roca Principal**: Tarea prioritaria con icono de diamante
 - **Hábito activo**: Con racha de fuego + botón marcar hoy
 - **Próximos eventos**: Del calendario de hoy
@@ -256,7 +256,7 @@ Ocio sin objetivo (la actividad es el fin):
 
 Tres secciones diferenciadas:
 
-**EN FOCO** (Lista cerrada):
+**PRIORIDADES** (Lista cerrada):
 - Tareas activas del día (límite dinámico 1-3)
 - Indicador de "slots disponibles"
 - Roca Principal destacada
@@ -415,7 +415,7 @@ idle → working (2h) → break_alert → active_break (8min) → working → ..
 
 Vista compacta sin scroll (accesible via `#today`, en launcher de extensión):
 - Roca del día (completar con 1 clic)
-- Tareas del foco pendientes
+- Prioridades del día pendientes
 - Widget Muévete (timer o botón iniciar)
 - Widget hábito activo
 - Próximo evento del día

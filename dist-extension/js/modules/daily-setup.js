@@ -48,9 +48,9 @@ const TIME_OPTIONS = [
 
 // Opciones de nivel de energía
 const ENERGY_OPTIONS = [
-  { value: 'low', label: 'Baja', sublabel: '-1 tarea', icon: 'battery_1_bar', modifier: -1 },
-  { value: 'medium', label: 'Media', sublabel: 'normal', icon: 'battery_4_bar', modifier: 0 },
-  { value: 'high', label: 'Alta', sublabel: '+1 tarea', icon: 'battery_full', modifier: 1 }
+  { value: 'low', label: 'Baja', sublabel: 'jornada ligera', icon: 'battery_1_bar', modifier: -1 },
+  { value: 'medium', label: 'Media', sublabel: 'ritmo normal', icon: 'battery_4_bar', modifier: 0 },
+  { value: 'high', label: 'Alta', sublabel: 'máxima energía', icon: 'battery_full', modifier: 1 }
 ];
 
 /**
@@ -250,7 +250,7 @@ const renderTasksList = (weeklyTasks, dailyTasks, projects) => {
 
   // 1. Tareas ya en DAILY (en foco) - marcadas, se pueden desmarcar
   if (dailyTasks.length > 0) {
-    html += `<li class="setup-tasks__separator">En foco</li>`;
+    html += `<li class="setup-tasks__separator">Prioridades</li>`;
     dailyTasks.forEach(task => {
       const project = task.projectId ? projects.find(p => p.id === task.projectId) : null;
       html += `
@@ -269,7 +269,7 @@ const renderTasksList = (weeklyTasks, dailyTasks, projects) => {
           <div class="task-item__content">
             <p class="task-item__text">${task.text}</p>
             <div class="task-item__meta">
-              <span class="task-item__tag task-item__tag--in-daily">En foco</span>
+              <span class="task-item__tag task-item__tag--in-daily">Prioridad</span>
               ${project ? `
                 <span class="task-item__tag task-item__tag--project"
                       style="--project-color: ${project.color}">
@@ -414,6 +414,18 @@ export const init = (data, updateData) => {
     }
   };
 
+  // --- Pre-fill si ya hay setup del día (reconfiguración) ---
+  const today = getLocalDateString();
+  if (data.dailySetup?.date === today
+      && data.dailySetup?.availableTime
+      && data.dailySetup?.energyLevel) {
+    selectedTime = data.dailySetup.availableTime;
+    selectedEnergy = data.dailySetup.energyLevel;
+    document.querySelector(`[data-time="${selectedTime}"]`)?.setAttribute('aria-pressed', 'true');
+    document.querySelector(`[data-energy="${selectedEnergy}"]`)?.setAttribute('aria-pressed', 'true');
+    updateResult();
+  }
+
   // --- Checkboxes de tareas (v3: bidireccional) ---
   document.querySelectorAll('.task-item input[type="checkbox"]').forEach(cb => {
     cb.addEventListener('change', () => {
@@ -438,13 +450,19 @@ export const init = (data, updateData) => {
           if (!tasksToMoveToDaily.includes(taskId)) {
             tasksToMoveToDaily.push(taskId);
           }
+          // Badge visual: indica que irá a Prioridades
+          const tagEl = item.querySelector('.task-item__tag:not(.task-item__tag--project)');
+          if (tagEl) tagEl.textContent = '→ Prioridad';
         } else {
           // Desmarcó → quitar de la lista
           const idx = tasksToMoveToDaily.indexOf(taskId);
           if (idx > -1) tasksToMoveToDaily.splice(idx, 1);
+          // Restaurar badge
+          const tagEl = item.querySelector('.task-item__tag:not(.task-item__tag--project)');
+          if (tagEl) tagEl.textContent = 'Semana';
         }
       } else if (action === 'remove') {
-        // Tarea de daily → quiere quitar del foco
+        // Tarea de daily → quiere quitar de Prioridades
         if (!cb.checked) {
           // Añadir a la lista de tareas a devolver a weekly
           if (!tasksToRemoveFromDaily.includes(taskId)) {
@@ -551,7 +569,7 @@ export const init = (data, updateData) => {
     // Mensaje y navegar
     let tasksMsg = '';
     if (addedCount > 0) {
-      tasksMsg += ` +${addedCount} tarea${addedCount > 1 ? 's' : ''} en foco.`;
+      tasksMsg += ` +${addedCount} en prioridades.`;
     }
     if (removedCount > 0) {
       tasksMsg += ` -${removedCount} devuelta${removedCount > 1 ? 's' : ''} a semana.`;
