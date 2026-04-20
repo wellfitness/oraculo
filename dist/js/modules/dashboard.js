@@ -578,7 +578,7 @@ const renderActiveHabit = (habit, history) => {
       <div class="habit-card__footer">
         <div class="habit-streak">
           <span class="streak-icon material-symbols-outlined filled icon-warning">local_fire_department</span>
-          <span class="streak-count">${streak} ${streak === 1 ? 'dia' : 'dias'}</span>
+          <span class="streak-count">${streak} ${streak === 1 ? 'día' : 'días'}</span>
         </div>
 
         ${completedToday ? `
@@ -598,7 +598,7 @@ const renderActiveHabit = (habit, history) => {
     </div>
 
     <a href="#habits" data-view="habits" class="link-subtle">
-      Ver detalles del habito
+      Ver detalles del hábito
     </a>
   `;
 };

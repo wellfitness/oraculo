@@ -1080,12 +1080,12 @@ const renderActiveHabit = (habit, history) => {
   } else if (!completedToday && ctx.completedYesterday) {
     streakMessage = `<p class="streak-encouragement">
       <span class="material-symbols-outlined icon-sm">trending_up</span>
-      Hoy es tu dia. No te lo saltes dos veces.
+      Hoy es tu día. No te lo saltes dos veces.
     </p>`;
   } else if (!completedToday && ctx.daysSinceLastCompletion !== null && ctx.daysSinceLastCompletion <= 3) {
     streakMessage = `<p class="streak-encouragement">
       <span class="material-symbols-outlined icon-sm">refresh</span>
-      Cada dia es una oportunidad de volver a empezar.
+      Cada día es una oportunidad de volver a empezar.
     </p>`;
   } else if (!completedToday && ctx.daysSinceLastCompletion !== null && ctx.daysSinceLastCompletion > 3) {
     streakMessage = `<p class="streak-encouragement">
@@ -1159,7 +1159,7 @@ const renderActiveHabit = (habit, history) => {
       <div class="habit-stats">
         <div class="stat">
           <span class="stat-value">${streak}</span>
-          <span class="stat-label">dias de racha</span>
+          <span class="stat-label">días de racha</span>
         </div>
         <div class="stat">
           <span class="stat-value">${progress.completed}</span>
@@ -1328,7 +1328,7 @@ const markHabitDone = (data) => {
   } else if (ctx.streak >= 7) {
     showNotification('Una semana mas. Tu constancia es inspiradora.', 'success');
   } else {
-    showNotification('Otro dia mas. Sigue asi.', 'success');
+    showNotification('Otro día más. Sigue así.', 'success');
   }
 
   reRender(data);
@@ -1997,7 +1997,7 @@ const renderHabitWizard = () => {
           <div class="wizard-law-badge">Ley 1: Hacerlo Obvio</div>
           <h1 class="wizard-title">Acumulacion de Habitos</h1>
           <p class="wizard-subtitle">
-            Vincula tu nuevo habito a algo que ya haces automaticamente.
+            Vincula tu nuevo hábito a algo que ya haces automáticamente.
             <em>Despues de [HABITO ACTUAL], hare [NUEVO HABITO].</em>
           </p>
 
@@ -2023,8 +2023,8 @@ const renderHabitWizard = () => {
             </summary>
             <ul>
               <li><strong>Disena tu entorno</strong>: Coloca senales visuales donde las veas (las senales visuales son las mas poderosas)</li>
-              <li><strong>Un espacio, un uso</strong>: Si puedes, dedica un lugar especifico para tu habito</li>
-              <li><strong>Senala y verbaliza</strong>: Di en voz alta "Voy a hacer [habito] ahora" para hacerlo consciente</li>
+              <li><strong>Un espacio, un uso</strong>: Si puedes, dedica un lugar específico para tu hábito</li>
+              <li><strong>Señala y verbaliza</strong>: Di en voz alta "Voy a hacer [hábito] ahora" para hacerlo consciente</li>
             </ul>
           </details>
         </main>
@@ -2062,7 +2062,7 @@ const renderHabitWizard = () => {
         <main class="wizard-content">
           <h1 class="wizard-title">Disena tu entorno</h1>
           <p class="wizard-subtitle">
-            Aplica las 3 leyes restantes para que tu habito sea mas facil de mantener.
+            Aplica las 3 leyes restantes para que tu hábito sea más fácil de mantener.
           </p>
 
           <div class="wizard-law-guide">
@@ -2083,7 +2083,7 @@ const renderHabitWizard = () => {
                 Tecnicas
               </summary>
               <ul>
-                <li><strong>Acumulacion de tentaciones</strong>: Combina el habito con algo que disfrutes</li>
+                <li><strong>Acumulación de tentaciones</strong>: Combina el hábito con algo que disfrutes</li>
                 <li><strong>Entorno social</strong>: Rodearme de personas que ya hacen lo que quiero hacer</li>
                 <li><strong>Cambio de mentalidad</strong>: En vez de "tengo que...", piensa "elijo... porque..."</li>
               </ul>
@@ -2093,7 +2093,7 @@ const renderHabitWizard = () => {
           <div class="wizard-law-guide">
             <div class="wizard-law-badge small">Ley 3: Hacerlo Facil</div>
             <p class="wizard-law-principle">Centrate en la version factible, no en la ideal. Empezar es mas importante que ser perfecta.</p>
-            <label for="wizard-easy">¿Como reduces la friccion?</label>
+            <label for="wizard-easy">¿Cómo reduces la fricción?</label>
             <input
               type="text"
               id="wizard-easy"
@@ -2108,8 +2108,8 @@ const renderHabitWizard = () => {
                 Tecnicas
               </summary>
               <ul>
-                <li><strong>Reduce la friccion</strong>: Elimina pasos entre tu y el habito</li>
-                <li><strong>Momentos decisivos</strong>: Identifica el momento clave del dia donde todo cambia</li>
+                <li><strong>Reduce la fricción</strong>: Elimina pasos entre tú y el hábito</li>
+                <li><strong>Momentos decisivos</strong>: Identifica el momento clave del día donde todo cambia</li>
                 <li><strong>Dispositivos de compromiso</strong>: Prepara las cosas para que sea inevitable hacerlo</li>
                 <li><strong>Automatiza</strong>: Usa recordatorios, alarmas o rutinas fijas</li>
               </ul>
@@ -2118,8 +2118,8 @@ const renderHabitWizard = () => {
 
           <div class="wizard-law-guide">
             <div class="wizard-law-badge small">Ley 4: Hacerlo Satisfactorio</div>
-            <p class="wizard-law-principle">El coste de los buenos habitos se paga ahora; la recompensa llega despues. Anade algo inmediato.</p>
-            <label for="wizard-reward">¿Que recompensa te das justo despues?</label>
+            <p class="wizard-law-principle">El coste de los buenos hábitos se paga ahora; la recompensa llega después. Añade algo inmediato.</p>
+            <label for="wizard-reward">¿Qué recompensa te das justo después?</label>
             <input
               type="text"
               id="wizard-reward"
@@ -2135,8 +2135,8 @@ const renderHabitWizard = () => {
               </summary>
               <ul>
                 <li><strong>Recompensa inmediata</strong>: Date algo placentero justo al terminar</li>
-                <li><strong>Seguimiento visible</strong>: Marcar el dia completado ya es satisfactorio</li>
-                <li><strong>Nunca te lo saltes dos veces</strong>: Si fallas un dia, el siguiente es el que importa</li>
+                <li><strong>Seguimiento visible</strong>: Marcar el día completado ya es satisfactorio</li>
+                <li><strong>Nunca te lo saltes dos veces</strong>: Si fallas un día, el siguiente es el que importa</li>
               </ul>
             </details>
           </div>
