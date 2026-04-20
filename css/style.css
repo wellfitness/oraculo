@@ -19387,3 +19387,99 @@ body.capacitor-native .capture-banner {
 }
 
 /* Reutiliza estilos de gdrive-status para la vista "conectado" */
+
+/* ═══════════════════════════════════════════════ */
+/* Google Calendar — Eventos en vista semanal       */
+/* ═══════════════════════════════════════════════ */
+
+.event--google {
+  border: 1px dashed var(--gcal-color, #4285F4) !important;
+  background: color-mix(in srgb, var(--gcal-color, #4285F4) 8%, transparent);
+  opacity: 0.88;
+  position: relative;
+  padding-left: calc(var(--space-1) + 5px);
+  cursor: pointer;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.event--google::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 3px;
+  background: var(--gcal-color, #4285F4);
+  border-radius: 2px 0 0 2px;
+}
+
+.event--google:hover {
+  opacity: 1;
+  transform: translateX(1px);
+}
+
+.event--google__source {
+  font-size: 14px !important;
+  color: var(--gcal-color, #4285F4);
+  opacity: 0.9;
+}
+
+.event--google__calname {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--color-text-muted, #6b7280);
+  margin-top: 2px;
+  font-style: italic;
+  opacity: 0.75;
+}
+
+/* ─── Chip de estado en cabecera ──────────────── */
+
+.gcal-chip-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.8rem;
+  background: var(--color-surface-2, #f3f4f6);
+  color: var(--color-text-muted, #6b7280);
+}
+
+.gcal-chip-status[hidden] {
+  display: none;
+}
+
+.gcal-chip-status--ok {
+  color: var(--color-success-text, #065f46);
+  background: var(--color-success-bg, #d1fae5);
+}
+
+.gcal-chip-status--error {
+  color: var(--color-danger-text, #991b1b);
+  background: var(--color-danger-bg, #fee2e2);
+}
+
+.gcal-chip-status--loading {
+  color: var(--color-text-muted, #6b7280);
+}
+
+.gcal-chip-status--loading .material-symbols-outlined {
+  animation: gcal-spin 1.4s linear infinite;
+}
+
+@keyframes gcal-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.gcal-chip-status .btn--link {
+  background: none;
+  border: none;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0 2px;
+  font: inherit;
+}
