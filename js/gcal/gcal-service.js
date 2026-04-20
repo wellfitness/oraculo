@@ -18,8 +18,24 @@ const SCOPES = { scopes: GDRIVE_CONFIG.CALENDAR_SCOPE };
 // API publica
 // ───────────────────────────────────────────────
 
+/**
+ * Inicia el flujo OAuth interactivo con scope de Calendar (solo lectura).
+ * No afecta al token de Drive existente (cache separada por scope-set).
+ * @returns {Promise<{ email: string }>}
+ */
 export async function connectCalendar() {
-  throw new Error('connectCalendar: no implementado aun');
+  const auth = await getAuthModule();
+  const result = await auth.signIn(SCOPES);
+  return { email: result.email };
+}
+
+/**
+ * Revoca el token de Calendar. En Android, por limitación del plugin nativo,
+ * esto cierra también la sesión de Drive — ver JSDoc de auth-capacitor.signOut.
+ */
+export async function disconnectCalendar() {
+  const auth = await getAuthModule();
+  await auth.signOut(SCOPES);
 }
 
 export async function listUserCalendars() {
@@ -29,10 +45,6 @@ export async function listUserCalendars() {
 // eslint-disable-next-line no-unused-vars
 export async function getEventsInRange(_start, _end, _calendarIds) {
   throw new Error('getEventsInRange: no implementado aun');
-}
-
-export async function disconnectCalendar() {
-  throw new Error('disconnectCalendar: no implementado aun');
 }
 
 // ───────────────────────────────────────────────
