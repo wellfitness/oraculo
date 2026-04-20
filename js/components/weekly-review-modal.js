@@ -9,7 +9,7 @@
  * 4. Propósitos - Elegir prioridades de la semana
  */
 
-import { showNotification, generateId } from '../app.js';
+import { showNotification, generateId, recordDeletion } from '../app.js';
 import { escapeHTML } from '../utils/sanitizer.js';
 
 let updateDataCallback = null;
@@ -602,17 +602,34 @@ const applyBacklogChanges = () => {
 };
 
 /**
- * Completa una tarea
+ * Completa una tarea: la marca como completa, la saca de su columna y la
+ * mueve a objectives.completed. Misma lógica que toggleItemComplete() del
+ * kanban.js — sin esto, la tarea queda en el limbo (completed:true pero
+ * sigue en weekly/monthly/daily al volver al tablero).
  */
 const completeTask = (taskId, horizon) => {
   const tasks = currentData.objectives[horizon] || [];
   const task = tasks.find(t => t.id === taskId);
-  if (task) {
-    task.completed = true;
-    task.completedAt = new Date().toISOString();
-    updateDataCallback('objectives', currentData.objectives);
-    showNotification('Tarea completada', 'success');
+  if (!task) return;
+
+  if (!currentData.objectives.completed) {
+    currentData.objectives.completed = [];
   }
+
+  task.completed = true;
+  task.completedAt = new Date().toISOString();
+  task.updatedAt = new Date().toISOString();
+  task.originalColumn = horizon;
+
+  // Tombstone para sync cross-device (Drive merge)
+  recordDeletion(currentData, `objectives.${horizon}`, taskId);
+
+  // Mover físicamente de la columna a completed
+  currentData.objectives[horizon] = currentData.objectives[horizon].filter(i => i.id !== taskId);
+  currentData.objectives.completed.push(task);
+
+  updateDataCallback('objectives', currentData.objectives);
+  showNotification('Tarea completada', 'success');
 };
 
 /**
