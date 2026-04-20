@@ -10,6 +10,8 @@ import { isEveningTime, hasEveningCheckIn } from '../components/evening-check-in
 import { getAchievementsStats, isHabitCompletedToday } from '../utils/achievements-calculator.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
 import { getMueveteState, formatTime } from '../components/muevete-timer.js';
+import * as gcalService from '../gcal/gcal-service.js';
+import { getGcalSettings } from '../gcal/gcal-local-store.js';
 
 let updateDataCallback = null;
 
@@ -378,7 +380,71 @@ export const init = (data, updateData) => {
       reminder.style.display = 'none';
     }
   });
+
+  // Eventos de hoy desde Google Calendar (si está configurado)
+  _loadTodayGcalEvents();
 };
+
+// ═══════════════════════════════════════════════
+// Google Calendar — eventos de hoy en el dashboard
+// ═══════════════════════════════════════════════
+
+async function _loadTodayGcalEvents() {
+  const cfg = getGcalSettings();
+  if (!cfg?.enabled || !cfg.enabledCalendars?.length) return;
+
+  const eventsSection = document.querySelector('.dashboard__events');
+  if (!eventsSection) return;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  try {
+    const events = await gcalService.getEventsInRange(
+      today.toISOString(), tomorrow.toISOString(), cfg.enabledCalendars
+    );
+    if (!events.length) return;
+    _injectDashboardGcalEvents(eventsSection, events);
+  } catch (err) {
+    console.warn('[dashboard] gcal fetch failed', err);
+  }
+}
+
+function _injectDashboardGcalEvents(section, events) {
+  // Reemplazar estado vacío por lista si no la hay
+  let list = section.querySelector('.events-list');
+  if (!list) {
+    const empty = section.querySelector('.empty-state');
+    if (empty) empty.remove();
+    list = document.createElement('ul');
+    list.className = 'events-list';
+    const link = section.querySelector('a.link-subtle');
+    section.insertBefore(list, link);
+  }
+
+  // Limpiar inyecciones previas
+  list.querySelectorAll('li.event-item--google').forEach(el => el.remove());
+
+  for (const ev of events) {
+    const li = document.createElement('li');
+    li.className = 'event-item event-item--google';
+    li.style.setProperty('--gcal-color', ev.calendarColor || '#4285F4');
+    li.title = `${ev.calendarName || ''} · click abre Google Calendar`;
+    li.dataset.htmllink = ev.htmlLink || '';
+    const timeLabel = ev.allDay ? 'Todo el día' : (ev.startTime || '');
+    li.innerHTML = `
+      <span class="material-symbols-outlined icon-xs event--google__source" aria-hidden="true">calendar_month</span>
+      ${timeLabel ? `<span class="event-time">${timeLabel}</span>` : ''}
+      <span class="event-name">${escapeHTML(ev.name)}</span>
+    `;
+    li.addEventListener('click', () => {
+      if (li.dataset.htmllink) window.open(li.dataset.htmllink, '_blank', 'noopener');
+    });
+    list.appendChild(li);
+  }
+}
 
 /**
  * Renderiza una tarea del foco diario

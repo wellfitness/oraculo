@@ -10855,8 +10855,9 @@ body {
   background: var(--rosa-200);
 }
 
-/* Responsive calendario */
-@media (max-width: 768px) {
+/* Responsive calendario — vertical en móvil Y tablet
+   (un día debajo del otro hasta 1024px, 7 columnas solo en desktop) */
+@media (max-width: 1024px) {
   .week-view {
     grid-template-columns: 1fr;
     gap: var(--space-1);
@@ -19436,6 +19437,28 @@ body.capacitor-native .capture-banner {
   margin-top: 2px;
   font-style: italic;
   opacity: 0.75;
+}
+
+/* Dashboard: item de evento Google en "Próximos Eventos" */
+.events-list .event-item--google {
+  border-left: 3px solid var(--gcal-color, #4285F4);
+  background: color-mix(in srgb, var(--gcal-color, #4285F4) 6%, transparent);
+  border-style: dashed;
+  border-top-style: none;
+  border-right-style: none;
+  border-bottom-style: none;
+  padding-left: 10px;
+  opacity: 0.9;
+  cursor: pointer;
+}
+
+.events-list .event-item--google:hover {
+  opacity: 1;
+}
+
+.events-list .event-item--google .event--google__source {
+  color: var(--gcal-color, #4285F4);
+  margin-right: 4px;
 }
 
 /* ─── Chip de estado en cabecera ──────────────── */
