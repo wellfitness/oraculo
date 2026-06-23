@@ -71,15 +71,41 @@ export class McpBridge {
         this._fileName = s.fileName || null;
       }
     } catch { /* noop */ }
+
+    // Detectar estado obsoleto: enabled=true pero sin handle vivo.
+    // Esto ocurre siempre al recargar la página (los FileHandles no se serializan).
+    // La UI lo usa para mostrar el banner "permiso perdido" en lugar del toggle fantasma.
+    this._hasStaleState = this._enabled && this._fileHandle === null && !!this._fileName;
+    if (this._hasStaleState) {
+      // NO reseteamos _enabled aquí — la UI decide qué hacer y mantiene
+      // el fileName conocido para mostrarlo al usuario.
+      this._enabled = false;
+      this._saveSettings();
+    }
   }
 
   _saveSettings() {
     try {
+      // Solo persistir enabled=true si hay FileHandle vivo.
+      // Esto evita el bug 5: si por algún motivo _enabled quedó en true sin handle,
+      // el siguiente load detecta el estado obsoleto y lo corrige.
+      const effectiveEnabled = this._enabled && this._fileHandle !== null;
       localStorage.setItem(BRIDGE_SETTINGS_KEY, JSON.stringify({
-        enabled: this._enabled,
+        enabled: effectiveEnabled,
         fileName: this._fileHandle?.name || this._fileName || null,
       }));
     } catch { /* noop */ }
+  }
+
+  /**
+   * Emite el evento stale-state para que la UI muestre el banner de "permiso perdido".
+   * Llamar desde la UI después de cargar settings.
+   */
+  emitStaleStateIfNeeded() {
+    if (this._hasStaleState) {
+      this._emit('stale-state', { fileName: this._fileName });
+      this._hasStaleState = false;
+    }
   }
 
   // ─────────────────────────────────────────────
@@ -93,6 +119,8 @@ export class McpBridge {
   get isEnabled() { return this._enabled; }
   get isConnected() { return this._enabled && this._fileHandle !== null; }
   get fileName() { return this._fileHandle?.name || this._fileName || null; }
+  get hasStaleState() { return !!this._hasStaleState; }
+  get lastFileName() { return this._fileName; }
 
   // ─────────────────────────────────────────────
   // SELECCIÓN DE ARCHIVO (primera vez)
@@ -107,24 +135,25 @@ export class McpBridge {
       throw new Error('Tu navegador no soporta File System Access API. Usa Chrome o Edge.');
     }
 
+    let handle = null;
     try {
       // Intentar abrir archivo existente primero
-      const [handle] = await window.showOpenFilePicker({
+      [handle] = await window.showOpenFilePicker({
         types: [{ description: 'Oráculo Bridge', accept: { 'application/json': ['.json'] } }],
         multiple: false,
         excludeAcceptAllOption: false,
       });
-
-      this._fileHandle = handle;
-      this._enabled = true;
-      this._saveSettings();
-      this._emit('connected', { fileName: handle.name });
-
-      return handle.name;
     } catch (err) {
       if (err.name === 'AbortError') return null; // Usuario canceló
       throw err;
     }
+
+    this._fileHandle = handle;
+    this._enabled = true;
+    this._saveSettings();
+    this._emit('connected', { fileName: handle.name });
+
+    return handle.name;
   }
 
   /**
@@ -135,21 +164,56 @@ export class McpBridge {
       throw new Error('Tu navegador no soporta File System Access API. Usa Chrome o Edge.');
     }
 
+    let handle = null;
     try {
-      const handle = await window.showSaveFilePicker({
+      handle = await window.showSaveFilePicker({
         suggestedName: 'oraculo-bridge.json',
         types: [{ description: 'Oráculo Bridge', accept: { 'application/json': ['.json'] } }],
       });
-
-      this._fileHandle = handle;
-      this._enabled = true;
-      this._saveSettings();
-      this._emit('connected', { fileName: handle.name });
-
-      return handle.name;
     } catch (err) {
       if (err.name === 'AbortError') return null;
       throw err;
+    }
+
+    this._fileHandle = handle;
+    this._enabled = true;
+    this._saveSettings();
+    this._emit('connected', { fileName: handle.name });
+
+    return handle.name;
+  }
+
+  /**
+   * Re-validar el handle actual usando queryPermission/requestPermission.
+   * Si el navegador ha olvidado el permiso (NotAllowedError), emite permission-lost
+   * y resetea el estado para que la UI pueda mostrar el banner de reconexión.
+   *
+   * @returns {Promise<boolean>} true si el handle sigue válido, false si no.
+   */
+  async verifyHandle() {
+    if (!this._fileHandle) return false;
+    if (typeof this._fileHandle.queryPermission !== 'function') return true;
+
+    try {
+      const perm = await this._fileHandle.queryPermission({ mode: 'readwrite' });
+      if (perm === 'granted') return true;
+
+      // Pedir permiso de nuevo
+      const reqPerm = await this._fileHandle.requestPermission({ mode: 'readwrite' });
+      if (reqPerm === 'granted') return true;
+
+      this._emit('permission-lost');
+      this._fileHandle = null;
+      this._enabled = false;
+      this._saveSettings();
+      return false;
+    } catch (err) {
+      console.warn('[McpBridge] Error verificando handle:', err.message);
+      this._emit('permission-lost');
+      this._fileHandle = null;
+      this._enabled = false;
+      this._saveSettings();
+      return false;
     }
   }
 
@@ -195,11 +259,18 @@ export class McpBridge {
 
       this._emit('synced', { exportedAt: bridge._bridge.exportedAt });
     } catch (err) {
-      // Perder permisos es normal (ventana cerrada, etc.) — fallar silenciosamente
+      // Perder permisos es normal (ventana cerrada, etc.) — notificar a la UI
       console.warn('[McpBridge] Error al sincronizar:', err.message);
       if (err.name === 'NotAllowedError') {
         // El handle ha perdido permisos — pedir de nuevo al usuario
+        this._fileHandle = null;
+        this._enabled = false;
+        this._saveSettings();
         this._emit('permission-lost');
+      } else {
+        // Otros errores (archivo corrupto, ruta inaccesible, etc.) — no reseteamos
+        // el handle porque puede ser transitorio, pero avisamos a la UI.
+        this._emit('sync-error', { message: err.message });
       }
     } finally {
       this._syncing = false;
@@ -334,6 +405,8 @@ export class McpBridge {
   disable() {
     this._enabled = false;
     this._fileHandle = null;
+    this._hasStaleState = false;
+    this._fileName = null;
     this._saveSettings();
     this._emit('disconnected');
   }

@@ -888,18 +888,54 @@ const renderSyncSection = (data) => {
 
 /**
  * Renderiza la sección del Agente IA (MCP)
+ *
+ * Cuatro estados visuales posibles:
+ *  - not-supported: navegador sin File System Access API (Firefox, Safari, móvil)
+ *  - stale:        enabled estaba activo pero el FileHandle se perdió (recarga/Cierre de Chrome)
+ *  - connected:    handle vivo, todo OK
+ *  - idle:         desactivado o sin archivo
+ *
+ * La extensión Chrome y Capacitor no muestran esta sección (no soportan File System Access API).
  */
 const renderMcpSection = () => {
-  // Solo en web: el bridge se inicializa únicamente con (!isExtension && !isCapacitor) en app.js.
-  // No mostrar en extensión Chrome ni Android (Capacitor), ni en navegadores sin File System Access API.
-  if (!McpBridge.isSupported() || window.__ORACULO_EXTENSION__ || window.__ORACULO_CAPACITOR__) {
+  // En extensión Chrome y Capacitor, esta sección no se renderiza.
+  if (window.__ORACULO_EXTENSION__ || window.__ORACULO_CAPACITOR__) {
     return '';
   }
 
-  const isEnabled = mcpBridge.isEnabled;
+  const isSupported = McpBridge.isSupported();
   const isConnected = mcpBridge.isConnected;
+  const hasStale = mcpBridge.hasStaleState;
+  const lastFileName = mcpBridge.lastFileName;
   const fileName = mcpBridge.fileName;
 
+  // ── Estado 1: navegador sin soporte ────────────────────────────────────
+  if (!isSupported) {
+    return `
+      <section class="settings-section settings-section--mcp">
+        <h2>
+          <span class="material-symbols-outlined">smart_toy</span>
+          Agente IA
+        </h2>
+        <p class="section-description">
+          Conecta Oráculo con tu asistente de IA mediante un archivo
+          <em>bridge</em> en tu ordenador.
+        </p>
+        <div class="mcp-not-supported">
+          <span class="material-symbols-outlined">cloud_off</span>
+          <div>
+            <strong>Función no disponible en este navegador</strong>
+            <p>La sincronización con agentes IA requiere acceso directo al sistema de archivos,
+            disponible solo en <strong>Chrome</strong> o <strong>Edge</strong> de escritorio.
+            Tu navegador actual (${escapeHTML(navigator.vendor || navigator.userAgent.split(' ').pop())})
+            no soporta esta API.</p>
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
+  // ── Estados 2-4: navegador con soporte ────────────────────────────────
   return `
     <section class="settings-section settings-section--mcp">
       <h2>
@@ -940,11 +976,26 @@ const renderMcpSection = () => {
       </details>
 
       <label class="toggle-label">
-        <input type="checkbox" id="mcp-enabled-toggle" ${isEnabled ? 'checked' : ''}>
+        <input type="checkbox" id="mcp-enabled-toggle" ${isConnected ? 'checked' : ''}>
         <span>Habilitar sincronización MCP</span>
       </label>
 
-      <div id="mcp-config-panel" style="${isEnabled ? '' : 'display:none;'} margin-top: var(--space-4);">
+      <div id="mcp-config-panel" style="margin-top: var(--space-4);">
+        ${hasStale ? `
+          <div class="mcp-status mcp-status--warning" id="mcp-permission-lost-banner">
+            <span class="material-symbols-outlined status-icon status-icon--warning">lock_reset</span>
+            <div class="mcp-info">
+              <strong>Permiso perdido</strong>
+              <span class="mcp-file">Tu navegador ha olvidado el acceso a <code>${escapeHTML(lastFileName || 'el archivo')}</code>.
+              Vuelve a seleccionarlo para seguir sincronizando.</span>
+            </div>
+            <button class="btn btn--primary" id="mcp-reconnect-btn">
+              <span class="material-symbols-outlined">refresh</span>
+              Reconectar
+            </button>
+          </div>
+        ` : ''}
+
         ${isConnected ? `
           <div class="mcp-status mcp-status--connected">
             <span class="material-symbols-outlined status-icon status-icon--success">check_circle</span>
@@ -963,21 +1014,25 @@ const renderMcpSection = () => {
               Desconectar
             </button>
           </div>
-        ` : `
+        ` : !hasStale ? `
           <div class="mcp-status mcp-status--disconnected">
             <span class="material-symbols-outlined status-icon status-icon--warning">link_off</span>
             <div class="mcp-info">
               <strong>Sin archivo bridge</strong>
-              <span class="mcp-file">Selecciona el archivo que usarán los agentes</span>
+              <span class="mcp-file">Selecciona o crea el archivo que usarán los agentes</span>
             </div>
           </div>
           <div class="settings-actions">
             <button class="btn btn--primary" id="mcp-select-file-btn">
+              <span class="material-symbols-outlined">folder_open</span>
+              Seleccionar archivo existente
+            </button>
+            <button class="btn btn--secondary" id="mcp-create-file-btn">
               <span class="material-symbols-outlined">create_new_folder</span>
-              Seleccionar o crear archivo
+              Crear oraculo-bridge.json
             </button>
           </div>
-        `}
+        ` : ''}
       </div>
 
       <div id="mcp-pending-panel" style="display:none; margin-top: var(--space-4);">
@@ -1312,12 +1367,16 @@ function formatTimeAgo(isoString) {
 // ═══════════════════════════════════════════════════════════════
 
 function initMcpUI(data) {
-  if (!McpBridge.isSupported()) return;
-
+  // Si la sección no se renderizó (extensión / capacitor), salir sin error.
   const toggle = document.getElementById('mcp-enabled-toggle');
+  if (!toggle) return;
+
   const configPanel = document.getElementById('mcp-config-panel');
   const selectBtn = document.getElementById('mcp-select-file-btn');
+  const createBtn = document.getElementById('mcp-create-file-btn');
   const disableBtn = document.getElementById('mcp-disable-btn');
+  const reconnectBtn = document.getElementById('mcp-reconnect-btn');
+  const permissionLostBanner = document.getElementById('mcp-permission-lost-banner');
   const pendingPanel = document.getElementById('mcp-pending-panel');
   const pendingForm = document.getElementById('mcp-pending-form');
   const pendingCount = document.getElementById('mcp-pending-count');
@@ -1325,18 +1384,22 @@ function initMcpUI(data) {
   const rejectBtn = document.getElementById('mcp-reject-selected-btn');
   const refreshBtn = document.getElementById('mcp-refresh-queue-btn');
 
-  if (!toggle) return;
-
-  // Actualizar visibilidad del panel de config según toggle
-  const updateConfigVisibility = () => {
-    if (toggle.checked) {
-      configPanel.style.display = '';
-    } else {
-      configPanel.style.display = 'none';
-      pendingPanel.style.display = 'none';
-    }
+  // ── Handlers compartidos ──────────────────────────────────────────────
+  const handleSelectSuccess = () => {
+    showNotification('Archivo bridge configurado', 'success');
+    location.reload();
   };
 
+  const handlePickerCancel = () => {
+    showNotification('No se seleccionó archivo. Sincronización MCP desactivada.', 'warning');
+  };
+
+  const handlePickerError = (err) => {
+    console.error('[McpUI] Error:', err);
+    showNotification('Error: ' + err.message, 'error');
+  };
+
+  // ── Toggle habilitar/deshabilitar ────────────────────────────────────
   toggle.addEventListener('change', async () => {
     if (toggle.checked) {
       // Al habilitar, intentar seleccionar archivo inmediatamente
@@ -1344,40 +1407,111 @@ function initMcpUI(data) {
         await mcpBridge.selectBridgeFile();
         if (!mcpBridge.isConnected) {
           toggle.checked = false;
-          showNotification('No se seleccionó archivo. Sincronización MCP desactivada.', 'warning');
+          handlePickerCancel();
         } else {
-          showNotification('Sincronización MCP activada', 'success');
-          location.reload();
+          handleSelectSuccess();
         }
       } catch (err) {
         toggle.checked = false;
-        showNotification('Error: ' + err.message, 'error');
+        handlePickerError(err);
       }
     } else {
       mcpBridge.disable();
       showNotification('Sincronización MCP desactivada', 'info');
-      updateConfigVisibility();
     }
   });
 
+  // ── Botón "Seleccionar archivo existente" ─────────────────────────────
   selectBtn?.addEventListener('click', async () => {
     try {
       await mcpBridge.selectBridgeFile();
       if (mcpBridge.isConnected) {
-        showNotification('Archivo bridge actualizado', 'success');
-        location.reload();
+        handleSelectSuccess();
+      } else {
+        handlePickerCancel();
       }
     } catch (err) {
-      showNotification('Error: ' + err.message, 'error');
+      handlePickerError(err);
     }
   });
 
+  // ── Botón "Crear oraculo-bridge.json" ─────────────────────────────────
+  createBtn?.addEventListener('click', async () => {
+    try {
+      await mcpBridge.createBridgeFile();
+      if (mcpBridge.isConnected) {
+        handleSelectSuccess();
+      } else {
+        handlePickerCancel();
+      }
+    } catch (err) {
+      handlePickerError(err);
+    }
+  });
+
+  // ── Botón "Desconectar" ──────────────────────────────────────────────
   disableBtn?.addEventListener('click', () => {
     if (confirm('¿Desconectar el agente IA? Tus datos locales se mantendrán.')) {
       mcpBridge.disable();
       showNotification('Agente IA desconectado', 'info');
       location.reload();
     }
+  });
+
+  // ── Botón "Reconectar" del banner de permiso perdido ──────────────────
+  reconnectBtn?.addEventListener('click', async () => {
+    // Intentar primero re-validar el handle existente (sin prompt)
+    if (mcpBridge._fileHandle) {
+      const valid = await mcpBridge.verifyHandle();
+      if (valid) {
+        showNotification('Permiso restaurado. Sincronización reactivada.', 'success');
+        location.reload();
+        return;
+      }
+    }
+    // Si no hay handle o la re-validación falló, pedir nuevo archivo
+    try {
+      await mcpBridge.selectBridgeFile();
+      if (mcpBridge.isConnected) {
+        handleSelectSuccess();
+      } else {
+        showNotification('Reconexión cancelada.', 'info');
+      }
+    } catch (err) {
+      handlePickerError(err);
+    }
+  });
+
+  // ── Listeners de eventos del bridge ──────────────────────────────────
+  // Bug 2: permission-lost ya se emite pero nadie lo escuchaba.
+  // Ahora actualizamos la UI para que la usuaria sepa qué pasó.
+  mcpBridge.on('permission-lost', () => {
+    showNotification('Permiso MCP perdido. Vuelve a seleccionar el archivo.', 'error');
+    // Marcar para que al recargar (si la usuaria lo hace) o al volver
+    // a esta vista se muestre el banner. El toggle se desmarca visualmente.
+    if (toggle) toggle.checked = false;
+    if (permissionLostBanner) permissionLostBanner.style.display = '';
+  });
+
+  mcpBridge.on('stale-state', (e) => {
+    if (permissionLostBanner) {
+      permissionLostBanner.style.display = '';
+      // Actualizar el nombre del archivo mostrado en el banner si vino en el evento
+      const fileSpan = permissionLostBanner.querySelector('.mcp-file');
+      if (fileSpan && e?.fileName) {
+        fileSpan.innerHTML = `Tu navegador ha olvidado el acceso a <code>${escapeHTML(e.fileName)}</code>.
+        Vuelve a seleccionarlo para seguir sincronizando.`;
+      }
+    }
+    if (toggle) toggle.checked = false;
+  });
+
+  mcpBridge.on('sync-error', (e) => {
+    showNotification('Error al sincronizar bridge: ' + (e?.message || 'desconocido'), 'error');
+  });
+
+  mcpBridge.on('disconnected', () => {
+    if (toggle) toggle.checked = false;
   });
 
   // Renderizar lista de acciones pendientes
@@ -1505,9 +1639,11 @@ function initMcpUI(data) {
   mcpBridge.on('connected', refreshQueue);
   mcpBridge.on('queue-pending', (e) => renderPendingActions(e.actions));
 
-  // Carga inicial
-  updateConfigVisibility();
-  if (mcpBridge.isEnabled) {
+  // Carga inicial: emitir stale-state si corresponde (banner tras recarga)
+  mcpBridge.emitStaleStateIfNeeded();
+
+  // Solo refrescar queue si hay conexión viva (Bug 1)
+  if (mcpBridge.isConnected) {
     refreshQueue();
   }
 }

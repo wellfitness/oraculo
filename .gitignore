@@ -64,3 +64,17 @@ android/local.properties
 # Google OAuth secrets (nunca commitear)
 client_secret_*.json
 google-services.json
+
+# MCP bridge files (datos personales de la usuaria — backups locales)
+oraculo-bridge.json
+*-bridge.json
+test-bridge.json
+
+# Scripts de testing local (no forman parte del repo)
+test-mcp-fixes.mjs
+
+# Documentación de referencia personal
+CLAUDE-ORACULO-REF.md
+
+# Build artifacts de la extensión Chrome (regenerables con build-extension.mjs)
+dist/*.zip

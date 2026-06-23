@@ -44,7 +44,7 @@ import {
 import { getSpeechHandler, isSpeechSupported } from './utils/speech-handler.js';
 import * as autoBackup from './utils/auto-backup.js';
 import { initMueveteTimer } from './components/muevete-timer.js';
-import { initMcpBridge } from './utils/mcp-bridge.js';
+import { initMcpBridge, mcpBridge } from './utils/mcp-bridge.js';
 
 // Exportar módulo de auto-backup para uso en settings
 export { autoBackup };
@@ -1126,6 +1126,17 @@ const bootstrap = async () => {
   if (!isExtension && !isCapacitor) {
     try {
       initMcpBridge(loadData);
+
+      // Bug 1: si al cargar detectamos estado obsoleto (enabled=true pero FileHandle
+      // perdido tras cerrar Chrome), emitir el evento y notificar a la usuaria.
+      // La UI de Configuración también escucha este evento para mostrar el banner.
+      if (mcpBridge.hasStaleState) {
+        showNotification(
+          'Tu agente IA perdió el permiso del archivo. Ve a Configuración para reconectar.',
+          'warning'
+        );
+        mcpBridge.emitStaleStateIfNeeded();
+      }
     } catch (e) {
       console.warn('[McpBridge] No disponible:', e.message);
     }
