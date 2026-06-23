@@ -5438,6 +5438,42 @@ a.entry-type-btn {
   flex-shrink: 0;
 }
 
+/* Estado "esperando reconexión" — tras recarga, antes de re-otorgar permiso */
+.mcp-status--waiting {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: #ecfeff;  /* turquesa-50 */
+  border: 1px solid #a5f3fc;  /* turquesa-200 */
+  border-left: 4px solid var(--turquesa-500, #06b6d4);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.mcp-status--waiting .mcp-info {
+  flex: 1;
+  min-width: 200px;
+}
+
+.mcp-status--waiting .status-icon {
+  color: var(--turquesa-600, #0891b2);
+  flex-shrink: 0;
+}
+
+.mcp-status--waiting .mcp-file {
+  color: var(--gris-700, #374151);
+}
+
+.mcp-status--waiting code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 1px 4px;
+  border-radius: var(--radius-sm, 4px);
+  font-size: 0.85em;
+  word-break: break-all;
+}
+
 /* Estado de navegador no compatible (Firefox, Safari, móvil sin Chrome) */
 .mcp-not-supported {
   display: flex;

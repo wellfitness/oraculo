@@ -891,11 +891,10 @@ const renderSyncSection = (data) => {
  *
  * Cinco estados visuales posibles:
  *  - not-supported: navegador sin File System Access API (Firefox, Safari, móvil)
- *  - needs-reconnect: el usuario tenía MCP activo pero el handle se perdió
- *                     (normal tras recarga — Chrome requiere re-otorgar permisos)
- *  - stale:          hubo un error de permisos en esta sesión (permission-lost)
- *  - connected:      handle vivo, todo OK
- *  - idle:           desactivado o sin archivo
+ *  - connected:     handle vivo, todo OK
+ *  - waiting:       MCP activado pero handle no vivo (normal tras recarga, NO es error)
+ *  - error:         hubo un error de permisos en esta sesión (permission-lost) — banner amarillo
+ *  - idle:          desactivado o sin archivo
  *
  * La extensión Chrome y Capacitor no muestran esta sección (no soportan File System Access API).
  */
@@ -908,13 +907,13 @@ const renderMcpSection = () => {
   const isSupported = McpBridge.isSupported();
   const isConnected = mcpBridge.isConnected;
   const isEnabled = mcpBridge.isEnabled;
+  const hasStale = mcpBridge.hasStaleState;  // Solo true tras NotAllowedError real
   const lastFileName = mcpBridge.lastFileName;
   const fileName = mcpBridge.fileName;
-  // Mostrar banner "Reconectar" si:
-  //   - enabled=true (usuario quiere sincronizar)
-  //   - !isConnected (no hay handle vivo, normal tras recarga)
-  //   - hay un fileName previo (sabemos qué archivo era)
-  const needsReconnect = isEnabled && !isConnected && !!(lastFileName || fileName);
+  // "Esperando reconexión" = usuario activó MCP pero Chrome perdió el handle.
+  // Esto es NORMAL tras recarga — NO es un error, solo requiere que la usuaria
+  // haga click en "Reconectar" una vez por sesión.
+  const waitingReconnect = isEnabled && !isConnected && !hasStale && !!(lastFileName || fileName);
 
   // ── Estado 1: navegador sin soporte ────────────────────────────────────
   if (!isSupported) {
@@ -983,12 +982,12 @@ const renderMcpSection = () => {
       </details>
 
       <label class="toggle-label">
-        <input type="checkbox" id="mcp-enabled-toggle" ${isConnected ? 'checked' : ''}>
+        <input type="checkbox" id="mcp-enabled-toggle" ${isEnabled ? 'checked' : ''}>
         <span>Habilitar sincronización MCP</span>
       </label>
 
       <div id="mcp-config-panel" style="margin-top: var(--space-4);">
-        ${needsReconnect ? `
+        ${hasStale ? `
           <div class="mcp-status mcp-status--warning" id="mcp-permission-lost-banner">
             <span class="material-symbols-outlined status-icon status-icon--warning">lock_reset</span>
             <div class="mcp-info">
@@ -1027,7 +1026,26 @@ const renderMcpSection = () => {
               Desconectar
             </button>
           </div>
-        ` : !needsReconnect ? `
+        ` : waitingReconnect ? `
+          <div class="mcp-status mcp-status--waiting">
+            <span class="material-symbols-outlined status-icon status-icon--info">sync</span>
+            <div class="mcp-info">
+              <strong>Activado — esperando reconexión</strong>
+              <span class="mcp-file">Archivo: <code>${escapeHTML(lastFileName || fileName)}</code>.
+              Cada sesión requiere re-otorgar el permiso a Chrome.</span>
+            </div>
+            <div class="mcp-banner-actions">
+              <button class="btn btn--primary" id="mcp-reconnect-btn">
+                <span class="material-symbols-outlined">refresh</span>
+                Reconectar ahora
+              </button>
+              <button class="btn btn--outline btn--warning" id="mcp-disable-btn">
+                <span class="material-symbols-outlined">link_off</span>
+                Desactivar
+              </button>
+            </div>
+          </div>
+        ` : `
           <div class="mcp-status mcp-status--disconnected">
             <span class="material-symbols-outlined status-icon status-icon--warning">link_off</span>
             <div class="mcp-info">
@@ -1045,7 +1063,7 @@ const renderMcpSection = () => {
               Crear oraculo-bridge.json
             </button>
           </div>
-        ` : ''}
+        `}
       </div>
 
       <div id="mcp-pending-panel" style="display:none; margin-top: var(--space-4);">
@@ -1416,7 +1434,16 @@ function initMcpUI(data) {
   // ── Toggle habilitar/deshabilitar ────────────────────────────────────
   toggle.addEventListener('change', async () => {
     if (toggle.checked) {
-      // Al habilitar, intentar seleccionar archivo inmediatamente
+      // Si ya estaba enabled (estado waitingReconnect), el render del checkbox puede
+      // llegar desmarcado aunque isEnabled=true. NO abrimos el picker aquí — eso
+      // lo hace el botón "Reconectar" del panel de waiting. Solo sincronizamos
+      // la UI con el estado real del bridge.
+      if (mcpBridge.isEnabled) {
+        // Ya activado, nada que hacer. El botón "Reconectar" abre el picker cuando
+        // la usuaria lo necesite.
+        return;
+      }
+      // Si NO estaba enabled, sí abrimos el picker para seleccionar archivo.
       try {
         await mcpBridge.selectBridgeFile();
         if (!mcpBridge.isConnected) {
