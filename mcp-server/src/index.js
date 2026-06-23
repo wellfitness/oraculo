@@ -12,10 +12,13 @@
  *   - Cualquier cliente MCP stdio
  *
  * Uso:
- *   node src/index.js --bridge /ruta/a/oraculo-bridge.json
+ *   node src/index.js --bridge-dir /ruta/a/carpeta-agente-ia
  *
  * O via pnpm:
- *   pnpm start -- --bridge /ruta/a/oraculo-bridge.json
+ *   pnpm start -- --bridge-dir /ruta/a/carpeta-agente-ia
+ *
+ * La carpeta contiene dos archivos (un único escritor cada uno):
+ *   oraculo-bridge.json  (escribe la app)  ·  oraculo-queue.json (escribe el servidor)
  */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -29,18 +32,18 @@ import { TOOL_DEFINITIONS, handleTool } from './tools.js';
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  const result = { bridge: null };
+  const result = { bridgeDir: null };
 
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--bridge' && args[i + 1]) {
-      result.bridge = args[i + 1];
+    if (args[i] === '--bridge-dir' && args[i + 1]) {
+      result.bridgeDir = args[i + 1];
       i++;
     }
   }
 
   // También aceptar variable de entorno
-  if (!result.bridge && process.env.ORACULO_BRIDGE_PATH) {
-    result.bridge = process.env.ORACULO_BRIDGE_PATH;
+  if (!result.bridgeDir && process.env.ORACULO_BRIDGE_DIR) {
+    result.bridgeDir = process.env.ORACULO_BRIDGE_DIR;
   }
 
   return result;
@@ -51,13 +54,13 @@ function parseArgs() {
 // ─────────────────────────────────────────────────
 
 async function main() {
-  const { bridge: bridgePath } = parseArgs();
+  const { bridgeDir } = parseArgs();
 
-  if (!bridgePath) {
+  if (!bridgeDir) {
     console.error(
-      '[Oráculo MCP] Error: Se requiere la ruta del bridge file.\n' +
-      'Uso: node src/index.js --bridge /ruta/a/oraculo-bridge.json\n' +
-      'O establece la variable de entorno: ORACULO_BRIDGE_PATH'
+      '[Oráculo MCP] Error: Se requiere la carpeta del bridge.\n' +
+      'Uso: node src/index.js --bridge-dir /ruta/a/carpeta-agente-ia\n' +
+      'O establece la variable de entorno: ORACULO_BRIDGE_DIR'
     );
     process.exit(1);
   }
@@ -78,7 +81,7 @@ async function main() {
       zodSchema,
       async (args) => {
         try {
-          return await handleTool(toolDef.name, args, bridgePath);
+          return await handleTool(toolDef.name, args, bridgeDir);
         } catch (err) {
           return {
             content: [{
@@ -97,7 +100,7 @@ async function main() {
   await server.connect(transport);
 
   // Log solo a stderr (stdout está reservado para el protocolo MCP)
-  console.error(`[Oráculo MCP] Servidor iniciado. Bridge: ${bridgePath}`);
+  console.error(`[Oráculo MCP] Servidor iniciado. Carpeta bridge: ${bridgeDir}`);
 }
 
 // ─────────────────────────────────────────────────

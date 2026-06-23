@@ -1,20 +1,28 @@
 /**
- * Oráculo MCP Bridge — File System Access API
+ * Oráculo MCP Bridge — File System Access API (modelo de 2 archivos, dueño único)
  *
- * Puente bidireccional entre la app Oráculo y los agentes LLM.
- * Usa File System Access API (Chrome/Edge) para escribir el bridge file
- * en disco sin necesidad de un servidor intermedio.
+ * Puente entre la app Oráculo y los agentes LLM. La usuaria elige una CARPETA;
+ * dentro viven dos archivos, cada uno con un único escritor:
+ *
+ *   oraculo-bridge.json  → escribe SOLO la app   → { _bridge, data, acks }
+ *   oraculo-queue.json   → escribe SOLO el servidor → { _queue, agentQueue }
+ *
+ * Dueño único por archivo = la race condition del modelo de un archivo es
+ * imposible por construcción: una escritura de la app no puede pisar la cola
+ * del agente, ni una escritura del servidor puede revertir los datos de la app.
+ *
+ * Cómo se marca una acción aplicada/rechazada SIN tocar la cola (que es del
+ * servidor): la app escribe acuses (`acks`) en SU propio archivo. El servidor
+ * lee esos acks y poda su cola. Eventual consistency: la app filtra por acks
+ * para no mostrar una acción dos veces aunque el servidor aún no haya podado.
  *
  * IMPORTANTE - Compatibilidad con Drive Sync (PRIORIDAD ABSOLUTA):
- *   El bridge NO interfiere con el sistema de Google Drive.
- *   - Solo escribe en el bridge FILE externo (no en localStorage directamente).
- *   - Escucha 'data-saved' (emitido por storage.js / storage-hybrid.js)
- *     pero el flag _mcpSyncing evita bucles.
- *   - Los cambios del agente se aplican via saveData() normal, de modo que
- *     Drive sync los recoja como un cambio legítimo aprobado por la usuaria.
- *   - NUNCA escribe directamente en localStorage. NUNCA emite 'data-saved'.
+ *   - El bridge NUNCA escribe en localStorage ni emite 'data-saved'.
+ *   - Solo escribe los archivos externos de la carpeta del Agente IA.
+ *   - Los cambios del agente se aplican vía saveData() normal para que Drive
+ *     sync los recoja como un cambio legítimo aprobado por la usuaria.
  *
- * Secciones excluidas del bridge file (datos efímeros/privados):
+ * Secciones excluidas del data file (datos efímeros/privados):
  *   - muevete.timerState (cambia cada segundo)
  *   - _deletions (tombstones internos de Drive)
  *   - _sectionMeta (metadatos internos de merge)
@@ -24,14 +32,21 @@
 const BRIDGE_SETTINGS_KEY = 'oraculo_mcp_bridge';
 const BRIDGE_VERSION = '1.0';
 
-// Campos a excluir del export al bridge (datos efímeros o internos)
+// Nombres de archivo dentro de la carpeta elegida por la usuaria
+const DATA_FILE = 'oraculo-bridge.json';
+const QUEUE_FILE = 'oraculo-queue.json';
+
+// Acuses más viejos que esto se podan (housekeeping). El servidor ya habrá
+// podado su cola para entonces.
+const ACK_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+// Campos a excluir del export al data file (datos efímeros o internos)
 const EXCLUDED_FIELDS = ['_deletions', '_sectionMeta'];
 
 // Reducir muevete a solo lo necesario para el agente
 function sanitizeForBridge(data) {
   const clean = { ...data };
 
-  // Eliminar campos internos
   for (const field of EXCLUDED_FIELDS) {
     delete clean[field];
   }
@@ -48,10 +63,9 @@ function sanitizeForBridge(data) {
 
 export class McpBridge {
   constructor() {
-    this._fileHandle = null;  // FileSystemFileHandle
+    this._dirHandle = null;   // FileSystemDirectoryHandle
     this._enabled = false;
     this._syncing = false;
-    this._pendingQueue = [];
     this._listeners = new Map();
 
     this._loadSettings();
@@ -67,41 +81,38 @@ export class McpBridge {
       if (raw) {
         const s = JSON.parse(raw);
         this._enabled = s.enabled || false;
-        // El FileHandle no se puede serializar — se pide de nuevo al cargar
-        this._fileName = s.fileName || null;
+        // El DirectoryHandle no se puede serializar — se pide de nuevo al cargar
+        this._folderName = s.folderName || null;
       }
     } catch { /* noop */ }
 
-    // NOTA: NO marcamos stale state aquí. Los FileHandles NUNCA se restauran entre
+    // NOTA: NO marcamos stale state aquí. Los handles NUNCA se restauran entre
     // sesiones (limitación de File System Access API), por lo que cada recarga
-    // tiene enabled=true pero _fileHandle=null. Eso NO es un error — es el
-    // comportamiento normal. La UI debe mostrar "Reconectar" y el usuario decide.
+    // tiene enabled=true pero _dirHandle=null. Eso NO es un error: la UI muestra
+    // "Reconectar" y la usuaria decide.
     //
-    // El flag _hasStaleState SOLO se activa cuando el bridge pierde permisos
-    // durante la sesión actual (NotAllowedError en syncToBridge o verifyHandle).
+    // _hasStaleState SOLO se activa cuando el bridge pierde permisos durante la
+    // sesión actual (NotAllowedError en syncToBridge o verifyHandle).
     this._hasStaleState = false;
   }
 
   _saveSettings() {
     try {
-      // Solo persistir enabled=true si hay FileHandle vivo.
-      // Esto evita el bug 5: si por algún motivo _enabled quedó en true sin handle,
-      // el siguiente load detecta el estado obsoleto y lo corrige.
-      const effectiveEnabled = this._enabled && this._fileHandle !== null;
+      // Solo persistir enabled=true si hay DirectoryHandle vivo.
+      const effectiveEnabled = this._enabled && this._dirHandle !== null;
       localStorage.setItem(BRIDGE_SETTINGS_KEY, JSON.stringify({
         enabled: effectiveEnabled,
-        fileName: this._fileHandle?.name || this._fileName || null,
+        folderName: this._dirHandle?.name || this._folderName || null,
       }));
     } catch { /* noop */ }
   }
 
   /**
    * Emite el evento stale-state para que la UI muestre el banner de "permiso perdido".
-   * Llamar desde la UI después de cargar settings.
    */
   emitStaleStateIfNeeded() {
     if (this._hasStaleState) {
-      this._emit('stale-state', { fileName: this._fileName });
+      this._emit('stale-state', { folderName: this._folderName });
       this._hasStaleState = false;
     }
   }
@@ -111,97 +122,74 @@ export class McpBridge {
   // ─────────────────────────────────────────────
 
   static isSupported() {
-    return 'showSaveFilePicker' in window || 'showOpenFilePicker' in window;
+    return 'showDirectoryPicker' in window;
   }
 
   get isEnabled() { return this._enabled; }
-  get isConnected() { return this._enabled && this._fileHandle !== null; }
-  get fileName() { return this._fileHandle?.name || this._fileName || null; }
+  get isConnected() { return this._enabled && this._dirHandle !== null; }
+  get folderName() { return this._dirHandle?.name || this._folderName || null; }
   get hasStaleState() { return !!this._hasStaleState; }
-  get lastFileName() { return this._fileName; }
+  get lastFolderName() { return this._folderName; }
 
   // ─────────────────────────────────────────────
-  // SELECCIÓN DE ARCHIVO (primera vez)
+  // SELECCIÓN DE CARPETA
   // ─────────────────────────────────────────────
 
   /**
-   * Abre el picker de archivo para que la usuaria elija dónde guardar el bridge file.
-   * Crea el archivo si no existe.
+   * Abre el picker de carpeta. La app crea/lee los dos archivos dentro.
+   * @returns {Promise<string|null>} nombre de la carpeta, o null si se cancela
    */
-  async selectBridgeFile() {
+  async selectBridgeFolder() {
     if (!McpBridge.isSupported()) {
       throw new Error('Tu navegador no soporta File System Access API. Usa Chrome o Edge.');
     }
 
     let handle = null;
     try {
-      // Intentar abrir archivo existente primero
-      [handle] = await window.showOpenFilePicker({
-        types: [{ description: 'Oráculo Bridge', accept: { 'application/json': ['.json'] } }],
-        multiple: false,
-        excludeAcceptAllOption: false,
-      });
+      handle = await window.showDirectoryPicker({ mode: 'readwrite' });
     } catch (err) {
-      if (err.name === 'AbortError') return null; // Usuario canceló
+      if (err.name === 'AbortError') return null; // Usuaria canceló
       throw err;
     }
 
-    this._fileHandle = handle;
+    // Pedir permiso de escritura explícito (algunos navegadores lo difieren)
+    if (typeof handle.requestPermission === 'function') {
+      const perm = await handle.requestPermission({ mode: 'readwrite' });
+      if (perm !== 'granted') {
+        this._emit('permission-lost');
+        return null;
+      }
+    }
+
+    this._dirHandle = handle;
     this._enabled = true;
     this._saveSettings();
-    this._emit('connected', { fileName: handle.name });
+
+    // Crear el data file de inmediato si no existe (la primera exportación
+    // ocurre en el próximo data-saved; aquí garantizamos que la carpeta es válida)
+    this._emit('connected', { folderName: handle.name });
 
     return handle.name;
   }
 
   /**
-   * Crea un nuevo bridge file en la ubicación elegida por la usuaria.
-   */
-  async createBridgeFile() {
-    if (!McpBridge.isSupported()) {
-      throw new Error('Tu navegador no soporta File System Access API. Usa Chrome o Edge.');
-    }
-
-    let handle = null;
-    try {
-      handle = await window.showSaveFilePicker({
-        suggestedName: 'oraculo-bridge.json',
-        types: [{ description: 'Oráculo Bridge', accept: { 'application/json': ['.json'] } }],
-      });
-    } catch (err) {
-      if (err.name === 'AbortError') return null;
-      throw err;
-    }
-
-    this._fileHandle = handle;
-    this._enabled = true;
-    this._saveSettings();
-    this._emit('connected', { fileName: handle.name });
-
-    return handle.name;
-  }
-
-  /**
-   * Re-validar el handle actual usando queryPermission/requestPermission.
-   * Si el navegador ha olvidado el permiso (NotAllowedError), emite permission-lost
-   * y resetea el estado para que la UI pueda mostrar el banner de reconexión.
-   *
-   * @returns {Promise<boolean>} true si el handle sigue válido, false si no.
+   * Re-valida el handle de carpeta. Si el navegador olvidó el permiso, emite
+   * permission-lost y resetea el estado para que la UI muestre reconexión.
+   * @returns {Promise<boolean>}
    */
   async verifyHandle() {
-    if (!this._fileHandle) return false;
-    if (typeof this._fileHandle.queryPermission !== 'function') return true;
+    if (!this._dirHandle) return false;
+    if (typeof this._dirHandle.queryPermission !== 'function') return true;
 
     try {
-      const perm = await this._fileHandle.queryPermission({ mode: 'readwrite' });
+      const perm = await this._dirHandle.queryPermission({ mode: 'readwrite' });
       if (perm === 'granted') return true;
 
-      // Pedir permiso de nuevo
-      const reqPerm = await this._fileHandle.requestPermission({ mode: 'readwrite' });
+      const reqPerm = await this._dirHandle.requestPermission({ mode: 'readwrite' });
       if (reqPerm === 'granted') return true;
 
       this._emit('permission-lost');
-      this._fileHandle = null;
+      this._dirHandle = null;
       this._enabled = false;
       this._saveSettings();
       return false;
@@ -209,7 +197,7 @@ export class McpBridge {
       console.warn('[McpBridge] Error verificando handle:', err.message);
       this._hasStaleState = true;
       this._emit('permission-lost');
-      this._fileHandle = null;
+      this._dirHandle = null;
       this._enabled = false;
       this._saveSettings();
       return false;
@@ -217,59 +205,68 @@ export class McpBridge {
   }
 
   // ─────────────────────────────────────────────
-  // SINCRONIZACIÓN: APP → BRIDGE FILE
+  // HELPERS DE ARCHIVO
+  // ─────────────────────────────────────────────
+
+  async _getDataHandle(create = true) {
+    return this._dirHandle.getFileHandle(DATA_FILE, { create });
+  }
+
+  async _getQueueHandle(create = false) {
+    return this._dirHandle.getFileHandle(QUEUE_FILE, { create });
+  }
+
+  /** Lee y parsea el data file actual (o null si no existe/corrupto). */
+  async _readDataFile() {
+    try {
+      const handle = await this._getDataHandle(false);
+      const text = await (await handle.getFile()).text();
+      return JSON.parse(text);
+    } catch {
+      return null;
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // SINCRONIZACIÓN: APP → DATA FILE (único escritor)
   // ─────────────────────────────────────────────
 
   /**
-   * Exporta los datos actuales al bridge file.
-   * Se llama automáticamente al detectar 'data-saved'.
-   * Falla silenciosamente si no hay handle o si ya está syncing.
+   * Exporta los datos actuales al data file, preservando los acks existentes.
+   * Se llama al detectar 'data-saved'. Falla en silencio si no hay handle.
+   * NUNCA toca el queue file.
    *
-   * @param {object} oraculoData - Datos de Oráculo desde storage
+   * @param {object} oraculoData
    */
   async syncToBridge(oraculoData) {
-    if (!this._enabled || !this._fileHandle || this._syncing) return;
+    if (!this._enabled || !this._dirHandle || this._syncing) return;
 
     this._syncing = true;
     try {
-      // Leer la queue existente (no queremos machacarla)
-      let existingQueue = [];
-      try {
-        const file = await this._fileHandle.getFile();
-        const text = await file.text();
-        const existing = JSON.parse(text);
-        existingQueue = existing.agentQueue || [];
-      } catch { /* bridge file nuevo o corrupto, ok */ }
+      const existing = await this._readDataFile();
+      const acks = this._pruneAcks(existing?.acks || []);
 
-      const bridge = {
+      const dataFile = {
         _bridge: {
           version: BRIDGE_VERSION,
           appVersion: oraculoData.version || '1.5',
           exportedAt: new Date().toISOString(),
-          agentQueueCount: existingQueue.filter(a => a.status === 'pending').length,
         },
         data: sanitizeForBridge(oraculoData),
-        agentQueue: existingQueue,
+        acks,
       };
 
-      const writable = await this._fileHandle.createWritable();
-      await writable.write(JSON.stringify(bridge, null, 2));
-      await writable.close();
-
-      this._emit('synced', { exportedAt: bridge._bridge.exportedAt });
+      await this._writeDataFile(dataFile);
+      this._emit('synced', { exportedAt: dataFile._bridge.exportedAt });
     } catch (err) {
-      // Perder permisos es normal (ventana cerrada, etc.) — notificar a la UI
       console.warn('[McpBridge] Error al sincronizar:', err.message);
       if (err.name === 'NotAllowedError') {
-        // El handle ha perdido permisos — pedir de nuevo al usuario
         this._hasStaleState = true;
-        this._fileHandle = null;
+        this._dirHandle = null;
         this._enabled = false;
         this._saveSettings();
         this._emit('permission-lost');
       } else {
-        // Otros errores (archivo corrupto, ruta inaccesible, etc.) — no reseteamos
-        // el handle porque puede ser transitorio, pero avisamos a la UI.
         this._emit('sync-error', { message: err.message });
       }
     } finally {
@@ -277,27 +274,44 @@ export class McpBridge {
     }
   }
 
+  /** Escribe el data file (createWritable es atómico: swap de temporal). */
+  async _writeDataFile(dataFile) {
+    const handle = await this._getDataHandle(true);
+    const writable = await handle.createWritable();
+    await writable.write(JSON.stringify(dataFile, null, 2));
+    await writable.close();
+  }
+
+  /** Poda acks más viejos que ACK_MAX_AGE_MS. */
+  _pruneAcks(acks) {
+    const cutoff = Date.now() - ACK_MAX_AGE_MS;
+    return acks.filter(a => new Date(a.processedAt || 0).getTime() > cutoff);
+  }
+
   // ─────────────────────────────────────────────
-  // LECTURA: BRIDGE FILE → APP (cambios del agente)
+  // LECTURA: QUEUE FILE → APP (cambios del agente)
   // ─────────────────────────────────────────────
 
   /**
-   * Lee la agentQueue del bridge file y devuelve las acciones pendientes.
-   * NO modifica localStorage — solo lee.
-   *
+   * Lee la cola del servidor y devuelve las acciones pendientes (no acuseadas).
+   * NO modifica nada.
    * @returns {{ pending: Action[], total: number }}
    */
   async readAgentQueue() {
-    if (!this._enabled || !this._fileHandle) return { pending: [], total: 0 };
+    if (!this._enabled || !this._dirHandle) return { pending: [], total: 0 };
 
     try {
-      const file = await this._fileHandle.getFile();
-      const text = await file.text();
-      const bridge = JSON.parse(text);
+      const queueHandle = await this._getQueueHandle(false).catch(() => null);
+      if (!queueHandle) return { pending: [], total: 0 };
 
-      const queue = bridge.agentQueue || [];
-      const pending = queue.filter(a => a.status === 'pending');
+      const queueText = await (await queueHandle.getFile()).text();
+      const queue = JSON.parse(queueText).agentQueue || [];
 
+      // Acuses ya registrados por la app (para no mostrar acciones procesadas)
+      const dataFile = await this._readDataFile();
+      const acked = new Set((dataFile?.acks || []).map(a => a.id));
+
+      const pending = queue.filter(a => a.status === 'pending' && !acked.has(a.id));
       return { pending, total: queue.length };
     } catch (err) {
       console.warn('[McpBridge] Error leyendo queue:', err.message);
@@ -307,7 +321,6 @@ export class McpBridge {
 
   /**
    * Verifica si hay acciones pendientes del agente y emite un evento.
-   * Se llama al iniciar la app.
    */
   async checkPendingActions() {
     const { pending } = await this.readAgentQueue();
@@ -318,45 +331,37 @@ export class McpBridge {
   }
 
   /**
-   * Marca acciones de la queue como 'applied' o 'rejected'.
-   * Se llama desde la UI después de que el usuario apruebe/rechace.
-   *
-   * @param {string[]} actionIds - IDs a marcar
+   * Registra acuses (applied/rejected) en el data file. NO toca el queue file.
+   * El servidor leerá estos acks y podará su cola.
+   * @param {string[]} actionIds
    * @param {'applied'|'rejected'} status
    */
   async updateQueueStatus(actionIds, status) {
-    if (!this._fileHandle) return;
+    if (!this._dirHandle || actionIds.length === 0) return;
 
     try {
-      const file = await this._fileHandle.getFile();
-      const text = await file.text();
-      const bridge = JSON.parse(text);
+      const existing = await this._readDataFile();
+      if (!existing) return; // sin data file aún no hay nada que acusar
 
-      bridge.agentQueue = (bridge.agentQueue || []).map(action =>
-        actionIds.includes(action.id)
-          ? { ...action, status, processedAt: new Date().toISOString() }
-          : action
-      );
+      const acks = this._pruneAcks(existing.acks || []);
+      const known = new Set(acks.map(a => a.id));
+      const processedAt = new Date().toISOString();
 
-      // Limpiar acciones procesadas con más de 7 días (housekeeping)
-      const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      bridge.agentQueue = bridge.agentQueue.filter(a => {
-        if (a.status === 'pending') return true;
-        return new Date(a.processedAt || a.createdAt).getTime() > cutoff;
-      });
+      for (const id of actionIds) {
+        if (!known.has(id)) {
+          acks.push({ id, status, processedAt });
+        }
+      }
 
-      bridge._bridge.agentQueueCount = bridge.agentQueue.filter(a => a.status === 'pending').length;
-
-      const writable = await this._fileHandle.createWritable();
-      await writable.write(JSON.stringify(bridge, null, 2));
-      await writable.close();
+      existing.acks = acks;
+      await this._writeDataFile(existing);
     } catch (err) {
-      console.warn('[McpBridge] Error actualizando queue:', err.message);
+      console.warn('[McpBridge] Error registrando acks:', err.message);
     }
   }
 
   /**
-   * Rechaza acciones pendientes (las marca como rejected sin aplicarlas).
+   * Rechaza acciones pendientes (las acusa como rejected sin aplicarlas).
    * @param {string[]} actionIds
    */
   async rejectPendingActions(actionIds) {
@@ -366,8 +371,8 @@ export class McpBridge {
 
   /**
    * Aplica las acciones pendientes del agente a los datos de Oráculo.
-   * Las acciones aplicadas se marcan en el bridge file.
-   * IMPORTANTE: usa saveData() normal para que Drive sync las sincronice.
+   * Usa saveData() normal para que Drive sync las sincronice.
+   * Marca las aplicadas como acks en el data file.
    *
    * @param {object} data - Datos de Oráculo (se muta)
    * @param {Function} saveDataFn - Función saveData del storage
@@ -404,22 +409,21 @@ export class McpBridge {
 
   disable() {
     this._enabled = false;
-    this._fileHandle = null;
+    this._dirHandle = null;
     this._hasStaleState = false;
-    this._fileName = null;
+    this._folderName = null;
     this._saveSettings();
     this._emit('disconnected');
   }
 
   /**
    * Olvida completamente la configuración MCP: limpia localStorage, handle y todo.
-   * Llamar desde el botón "Olvidar MCP" para reset limpio sin bucles.
    */
   forget() {
     this._enabled = false;
-    this._fileHandle = null;
+    this._dirHandle = null;
     this._hasStaleState = false;
-    this._fileName = null;
+    this._folderName = null;
     try {
       localStorage.removeItem(BRIDGE_SETTINGS_KEY);
     } catch { /* noop */ }
@@ -455,8 +459,7 @@ export const mcpBridge = new McpBridge();
 
 /**
  * Aplica una acción del agente a los datos de Oráculo.
- * Lanza error si la acción no es válida.
- * NO guarda en localStorage — eso lo hace applyPendingActions.
+ * Lanza error si la acción no es válida. NO guarda en localStorage.
  */
 function applyAgentAction(data, action) {
   const params = action.params || {};
@@ -604,10 +607,10 @@ function setRocaPrincipal(data, params) {
 
 /**
  * Inicializa el bridge y conecta al evento 'data-saved' de storage.
- * Debe llamarse en el bootstrap de la app, después de cargar el storage.
+ * Debe llamarse en el bootstrap, después de cargar el storage.
  *
- * IMPORTANTE: Solo escucha 'data-saved', NUNCA lo emite.
- * Esto garantiza que Drive sync no sea afectado por las escrituras del bridge.
+ * IMPORTANTE: Solo escucha 'data-saved', NUNCA lo emite. Esto garantiza que
+ * Drive sync no sea afectado por las escrituras del bridge.
  *
  * @param {Function} loadDataFn - Función loadData() del módulo de storage activo
  */
@@ -619,17 +622,15 @@ export function initMcpBridge(loadDataFn) {
 
   if (!mcpBridge.isEnabled) return;
 
-  // Sincronizar al bridge file cada vez que se guardan datos en Oráculo.
+  // Sincronizar al data file cada vez que se guardan datos en Oráculo.
   // Drive sync también escucha 'data-saved' — no hay conflicto porque
-  // nosotros solo escribimos al archivo externo, no a localStorage.
+  // nosotros solo escribimos archivos externos, no localStorage.
   window.addEventListener('data-saved', () => {
     const data = loadDataFn();
-    // No await — fire and forget para no bloquear el save path
     mcpBridge.syncToBridge(data).catch(() => { /* silencioso */ });
   });
 
   // También sincronizar cuando Drive trae datos remotos
-  // (la app emite 'data-synced-from-cloud' tras applyRemoteData)
   window.addEventListener('data-synced-from-cloud', (e) => {
     if (e.detail?.data) {
       mcpBridge.syncToBridge(e.detail.data).catch(() => { /* silencioso */ });
@@ -639,5 +640,5 @@ export function initMcpBridge(loadDataFn) {
   // Verificar si hay acciones pendientes del agente al iniciar
   mcpBridge.checkPendingActions().catch(() => { /* silencioso */ });
 
-  console.log('[McpBridge] Inicializado. Bridge file:', mcpBridge.fileName);
+  console.log('[McpBridge] Inicializado. Carpeta:', mcpBridge.folderName);
 }

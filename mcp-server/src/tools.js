@@ -345,12 +345,12 @@ export const TOOL_DEFINITIONS = [
 // HANDLERS DE TOOLS
 // ─────────────────────────────────────────────────
 
-export async function handleTool(toolName, args, bridgePath) {
+export async function handleTool(toolName, args, bridgeDir) {
   switch (toolName) {
 
     // ── get_bridge_status ──────────────────────────
     case 'get_bridge_status': {
-      const info = await getBridgeInfo(bridgePath);
+      const info = await getBridgeInfo(bridgeDir);
       if (!info) {
         return {
           content: [{
@@ -373,7 +373,7 @@ export async function handleTool(toolName, args, bridgePath) {
 
     // ── get_daily_overview ─────────────────────────
     case 'get_daily_overview': {
-      const data = await getOraculoData(bridgePath);
+      const data = await getOraculoData(bridgeDir);
       const today = new Date().toISOString().split('T')[0];
 
       const dailySetup = data.dailySetup;
@@ -425,7 +425,7 @@ export async function handleTool(toolName, args, bridgePath) {
 
     // ── get_tasks ──────────────────────────────────
     case 'get_tasks': {
-      const data = await getOraculoData(bridgePath);
+      const data = await getOraculoData(bridgeDir);
       const horizon = args.horizon || 'all';
       const objectives = data.objectives || {};
 
@@ -455,7 +455,7 @@ export async function handleTool(toolName, args, bridgePath) {
 
     // ── get_projects ───────────────────────────────
     case 'get_projects': {
-      const data = await getOraculoData(bridgePath);
+      const data = await getOraculoData(bridgeDir);
       const statusFilter = args.status || 'active';
 
       let projects = data.projects || [];
@@ -491,7 +491,7 @@ export async function handleTool(toolName, args, bridgePath) {
 
     // ── get_active_habit ───────────────────────────
     case 'get_active_habit': {
-      const data = await getOraculoData(bridgePath);
+      const data = await getOraculoData(bridgeDir);
       const habit = data.habits?.active;
 
       if (!habit) {
@@ -526,7 +526,7 @@ export async function handleTool(toolName, args, bridgePath) {
 
     // ── get_journal_entries ────────────────────────
     case 'get_journal_entries': {
-      const data = await getOraculoData(bridgePath);
+      const data = await getOraculoData(bridgeDir);
       const typeFilter = args.type || 'all';
       const limit = args.limit || 10;
       const since = args.since ? new Date(args.since) : null;
@@ -551,7 +551,7 @@ export async function handleTool(toolName, args, bridgePath) {
 
     // ── get_values ─────────────────────────────────
     case 'get_values': {
-      const data = await getOraculoData(bridgePath);
+      const data = await getOraculoData(bridgeDir);
       const values = (data.values || []).map(v => ({
         id: v.id,
         nombre: v.name,
@@ -564,7 +564,7 @@ export async function handleTool(toolName, args, bridgePath) {
 
     // ── get_achievements ───────────────────────────
     case 'get_achievements': {
-      const data = await getOraculoData(bridgePath);
+      const data = await getOraculoData(bridgeDir);
       const period = args.period || 'week';
 
       const now = new Date();
@@ -616,7 +616,7 @@ export async function handleTool(toolName, args, bridgePath) {
 
     // ── get_life_wheel ─────────────────────────────
     case 'get_life_wheel': {
-      const data = await getOraculoData(bridgePath);
+      const data = await getOraculoData(bridgeDir);
       const lifeWheel = data.lifeWheel;
 
       if (!lifeWheel || !lifeWheel.evaluations?.length) {
@@ -643,7 +643,7 @@ export async function handleTool(toolName, args, bridgePath) {
 
     // ── get_burkeman_context ───────────────────────
     case 'get_burkeman_context': {
-      const data = await getOraculoData(bridgePath);
+      const data = await getOraculoData(bridgeDir);
       const today = new Date().toISOString().split('T')[0];
       const setup = data.dailySetup;
       const isToday = setup?.date === today;
@@ -682,7 +682,7 @@ export async function handleTool(toolName, args, bridgePath) {
       if (!args.type || !args.content) {
         throw new Error('Se requieren los campos "type" y "content"');
       }
-      const actionId = await enqueueAgentAction(bridgePath, 'add_journal_entry', {
+      const actionId = await enqueueAgentAction(bridgeDir, 'add_journal_entry', {
         type: args.type,
         content: args.content,
         createdAt: new Date().toISOString(),
@@ -702,7 +702,7 @@ export async function handleTool(toolName, args, bridgePath) {
       if (!args.text || !args.horizon) {
         throw new Error('Se requieren los campos "text" y "horizon"');
       }
-      const actionId = await enqueueAgentAction(bridgePath, 'add_task', {
+      const actionId = await enqueueAgentAction(bridgeDir, 'add_task', {
         text: args.text,
         horizon: args.horizon,
         projectId: args.projectId || null,
@@ -723,7 +723,7 @@ export async function handleTool(toolName, args, bridgePath) {
       if (!args.taskId || !args.horizon) {
         throw new Error('Se requieren los campos "taskId" y "horizon"');
       }
-      const actionId = await enqueueAgentAction(bridgePath, 'complete_task', {
+      const actionId = await enqueueAgentAction(bridgeDir, 'complete_task', {
         taskId: args.taskId,
         horizon: args.horizon,
       });
@@ -740,7 +740,7 @@ export async function handleTool(toolName, args, bridgePath) {
       if (!args.text || !args.mood) {
         throw new Error('Se requieren los campos "text" y "mood"');
       }
-      const actionId = await enqueueAgentAction(bridgePath, 'add_spontaneous_achievement', {
+      const actionId = await enqueueAgentAction(bridgeDir, 'add_spontaneous_achievement', {
         text: args.text,
         mood: args.mood,
         createdAt: new Date().toISOString(),
@@ -759,7 +759,7 @@ export async function handleTool(toolName, args, bridgePath) {
       if (!args.taskId) {
         throw new Error('Se requiere el campo "taskId"');
       }
-      const actionId = await enqueueAgentAction(bridgePath, 'set_roca_principal', {
+      const actionId = await enqueueAgentAction(bridgeDir, 'set_roca_principal', {
         taskId: args.taskId,
       });
       return {

@@ -908,12 +908,12 @@ const renderMcpSection = () => {
   const isConnected = mcpBridge.isConnected;
   const isEnabled = mcpBridge.isEnabled;
   const hasStale = mcpBridge.hasStaleState;  // Solo true tras NotAllowedError real
-  const lastFileName = mcpBridge.lastFileName;
-  const fileName = mcpBridge.fileName;
+  const lastFolderName = mcpBridge.lastFolderName;
+  const folderName = mcpBridge.folderName;
   // "Esperando reconexión" = usuario activó MCP pero Chrome perdió el handle.
   // Esto es NORMAL tras recarga — NO es un error, solo requiere que la usuaria
   // haga click en "Reconectar" una vez por sesión.
-  const waitingReconnect = isEnabled && !isConnected && !hasStale && !!(lastFileName || fileName);
+  const waitingReconnect = isEnabled && !isConnected && !hasStale && !!(lastFolderName || folderName);
 
   // ── Estado 1: navegador sin soporte ────────────────────────────────────
   if (!isSupported) {
@@ -924,7 +924,7 @@ const renderMcpSection = () => {
           Agente IA
         </h2>
         <p class="section-description">
-          Conecta Oráculo con tu asistente de IA mediante un archivo
+          Conecta Oráculo con tu asistente de IA mediante una carpeta
           <em>bridge</em> en tu ordenador.
         </p>
         <div class="mcp-not-supported">
@@ -949,7 +949,7 @@ const renderMcpSection = () => {
         Agente IA
       </h2>
       <p class="section-description">
-        Conecta Oráculo con tu asistente de IA (Claude, MiniMax, Hermes, Gemini, OpenAI) mediante un archivo
+        Conecta Oráculo con tu asistente de IA (Claude, MiniMax, Hermes, Gemini, OpenAI) mediante una carpeta
         <em>bridge</em> en tu ordenador. El agente puede leer tu día y proponerte cambios, pero
         <strong>tus datos nunca salen de tu dispositivo</strong> y nada se aplica sin tu aprobación.
       </p>
@@ -961,11 +961,12 @@ const renderMcpSection = () => {
         </summary>
         <div class="mcp-help__body">
           <ol class="mcp-help__steps">
-            <li><strong>Activa la sincronización</strong> con el interruptor de abajo y elige (o crea) el archivo
-              <code>oraculo-bridge.json</code> en tu ordenador. Oráculo escribirá ahí tus datos automáticamente.</li>
-            <li><strong>Configura tu agente</strong> para que use ese archivo. Necesitas el servidor MCP de Oráculo
-              corriendo en tu ordenador (carpeta <code>mcp-server/</code> del proyecto). Cada cliente tiene su archivo
-              de configuración — las instrucciones completas están en el <code>README</code> del servidor MCP.</li>
+            <li><strong>Activa la sincronización</strong> con el interruptor de abajo y elige una <strong>carpeta</strong>
+              para el Agente IA en tu ordenador. Oráculo creará ahí <code>oraculo-bridge.json</code> (tus datos) y leerá
+              <code>oraculo-queue.json</code> (las propuestas del agente).</li>
+            <li><strong>Configura tu agente</strong> apuntando a esa misma carpeta. Necesitas el servidor MCP de Oráculo
+              corriendo en tu ordenador (carpeta <code>mcp-server/</code> del proyecto), lanzado con
+              <code>--bridge-dir &lt;tu-carpeta&gt;</code>. Las instrucciones completas están en el <code>README</code> del servidor MCP.</li>
             <li><strong>El agente lee tu información</strong>: tareas, hábitos, diario, proyectos, valores y tu contexto
               del día (tiempo, energía, roca principal).</li>
             <li><strong>Tú apruebas los cambios.</strong> Cuando el agente propone añadir una tarea, una entrada de
@@ -976,7 +977,7 @@ const renderMcpSection = () => {
             <span class="material-symbols-outlined icon-sm">verified_user</span>
             Compatible con <strong>Claude</strong> (Desktop y Code), <strong>MiniMax</strong>, <strong>Hermes</strong>,
             <strong>Gemini</strong> (CLI) y <strong>OpenAI</strong> (Agents SDK). Requiere Chrome o Edge, y que el
-            agente se ejecute en este mismo ordenador (el archivo bridge es local).
+            agente se ejecute en este mismo ordenador (la carpeta bridge es local).
           </p>
         </div>
       </details>
@@ -992,7 +993,7 @@ const renderMcpSection = () => {
             <span class="material-symbols-outlined status-icon status-icon--warning">lock_reset</span>
             <div class="mcp-info">
               <strong>Reconexión necesaria</strong>
-              <span class="mcp-file">El archivo <code>${escapeHTML(lastFileName || fileName || 'anterior')}</code> necesita que re-otorgues el permiso.
+              <span class="mcp-file">La carpeta <code>${escapeHTML(lastFolderName || folderName || 'anterior')}</code> necesita que re-otorgues el permiso.
               Esto es normal — Chrome lo requiere cada vez que reinicias.</span>
             </div>
             <div class="mcp-banner-actions">
@@ -1000,7 +1001,7 @@ const renderMcpSection = () => {
                 <span class="material-symbols-outlined">refresh</span>
                 Reconectar
               </button>
-              <button class="btn btn--outline" id="mcp-forget-btn" title="Olvidar este archivo MCP y empezar de cero">
+              <button class="btn btn--outline" id="mcp-forget-btn" title="Olvidar esta carpeta MCP y empezar de cero">
                 <span class="material-symbols-outlined">link_off</span>
                 Olvidar MCP
               </button>
@@ -1013,13 +1014,13 @@ const renderMcpSection = () => {
             <span class="material-symbols-outlined status-icon status-icon--success">check_circle</span>
             <div class="mcp-info">
               <strong>Conectado</strong>
-              <span class="mcp-file">${escapeHTML(fileName)}</span>
+              <span class="mcp-file">${escapeHTML(folderName)}</span>
             </div>
           </div>
           <div class="settings-actions">
-            <button class="btn btn--secondary" id="mcp-select-file-btn">
+            <button class="btn btn--secondary" id="mcp-select-folder-btn">
               <span class="material-symbols-outlined">folder_open</span>
-              Cambiar archivo
+              Cambiar carpeta
             </button>
             <button class="btn btn--outline btn--warning" id="mcp-disable-btn">
               <span class="material-symbols-outlined">link_off</span>
@@ -1031,7 +1032,7 @@ const renderMcpSection = () => {
             <span class="material-symbols-outlined status-icon status-icon--info">sync</span>
             <div class="mcp-info">
               <strong>Activado — esperando reconexión</strong>
-              <span class="mcp-file">Archivo: <code>${escapeHTML(lastFileName || fileName)}</code>.
+              <span class="mcp-file">Carpeta: <code>${escapeHTML(lastFolderName || folderName)}</code>.
               Cada sesión requiere re-otorgar el permiso a Chrome.</span>
             </div>
             <div class="mcp-banner-actions">
@@ -1049,18 +1050,14 @@ const renderMcpSection = () => {
           <div class="mcp-status mcp-status--disconnected">
             <span class="material-symbols-outlined status-icon status-icon--warning">link_off</span>
             <div class="mcp-info">
-              <strong>Sin archivo bridge</strong>
-              <span class="mcp-file">Selecciona o crea el archivo que usarán los agentes</span>
+              <strong>Sin carpeta bridge</strong>
+              <span class="mcp-file">Elige la carpeta que usará el Agente IA. Oráculo creará los archivos dentro.</span>
             </div>
           </div>
           <div class="settings-actions">
-            <button class="btn btn--primary" id="mcp-select-file-btn">
+            <button class="btn btn--primary" id="mcp-select-folder-btn">
               <span class="material-symbols-outlined">folder_open</span>
-              Seleccionar archivo existente
-            </button>
-            <button class="btn btn--secondary" id="mcp-create-file-btn">
-              <span class="material-symbols-outlined">create_new_folder</span>
-              Crear oraculo-bridge.json
+              Elegir carpeta del Agente IA
             </button>
           </div>
         `}
@@ -1421,8 +1418,7 @@ function initMcpUI(data) {
   };
 
   const configPanel = document.getElementById('mcp-config-panel');
-  const selectBtn = document.getElementById('mcp-select-file-btn');
-  const createBtn = document.getElementById('mcp-create-file-btn');
+  const selectBtn = document.getElementById('mcp-select-folder-btn');
   const disableBtn = document.getElementById('mcp-disable-btn');
   const reconnectBtn = document.getElementById('mcp-reconnect-btn');
   const forgetBtn = document.getElementById('mcp-forget-btn');
@@ -1440,12 +1436,12 @@ function initMcpUI(data) {
   // "esperando reconexión" inmediatamente, dando sensación de bug.
   // En su lugar, refrescamos solo la sección MCP in-place.
   const handleSelectSuccess = () => {
-    showNotification('Archivo bridge configurado', 'success');
+    showNotification('Carpeta del Agente IA configurada', 'success');
     refreshMcpPanel();
   };
 
   const handlePickerCancel = () => {
-    showNotification('No se seleccionó archivo. Sincronización MCP desactivada.', 'warning');
+    showNotification('No se seleccionó carpeta. Sincronización MCP desactivada.', 'warning');
   };
 
   const handlePickerError = (err) => {
@@ -1465,9 +1461,9 @@ function initMcpUI(data) {
         // la usuaria lo necesite.
         return;
       }
-      // Si NO estaba enabled, sí abrimos el picker para seleccionar archivo.
+      // Si NO estaba enabled, sí abrimos el picker para elegir carpeta.
       try {
-        await mcpBridge.selectBridgeFile();
+        await mcpBridge.selectBridgeFolder();
         if (!mcpBridge.isConnected) {
           toggle.checked = false;
           handlePickerCancel();
@@ -1484,24 +1480,10 @@ function initMcpUI(data) {
     }
   });
 
-  // ── Botón "Seleccionar archivo existente" ─────────────────────────────
+  // ── Botón "Elegir carpeta del Agente IA" ──────────────────────────────
   selectBtn?.addEventListener('click', async () => {
     try {
-      await mcpBridge.selectBridgeFile();
-      if (mcpBridge.isConnected) {
-        handleSelectSuccess();
-      } else {
-        handlePickerCancel();
-      }
-    } catch (err) {
-      handlePickerError(err);
-    }
-  });
-
-  // ── Botón "Crear oraculo-bridge.json" ─────────────────────────────────
-  createBtn?.addEventListener('click', async () => {
-    try {
-      await mcpBridge.createBridgeFile();
+      await mcpBridge.selectBridgeFolder();
       if (mcpBridge.isConnected) {
         handleSelectSuccess();
       } else {
@@ -1524,7 +1506,7 @@ function initMcpUI(data) {
   // ── Botón "Reconectar" del banner ─────────────────────────────────────
   reconnectBtn?.addEventListener('click', async () => {
     // Intentar primero re-validar el handle existente (sin prompt)
-    if (mcpBridge._fileHandle) {
+    if (mcpBridge._dirHandle) {
       const valid = await mcpBridge.verifyHandle();
       if (valid) {
         showNotification('Permiso restaurado. Sincronización reactivada.', 'success');
@@ -1532,9 +1514,9 @@ function initMcpUI(data) {
         return;
       }
     }
-    // Si no hay handle o la re-validación falló, pedir nuevo archivo
+    // Si no hay handle o la re-validación falló, pedir carpeta de nuevo
     try {
-      await mcpBridge.selectBridgeFile();
+      await mcpBridge.selectBridgeFolder();
       if (mcpBridge.isConnected) {
         handleSelectSuccess();
       } else {
@@ -1559,7 +1541,7 @@ function initMcpUI(data) {
   // Bug 2: permission-lost ya se emite pero nadie lo escuchaba.
   // Ahora actualizamos la UI para que la usuaria sepa qué pasó.
   mcpBridge.on('permission-lost', () => {
-    showNotification('Permiso MCP perdido. Vuelve a seleccionar el archivo.', 'error');
+    showNotification('Permiso MCP perdido. Vuelve a elegir la carpeta.', 'error');
     // Marcar para que al recargar (si la usuaria lo hace) o al volver
     // a esta vista se muestre el banner. El toggle se desmarca visualmente.
     if (toggle) toggle.checked = false;
@@ -1569,11 +1551,11 @@ function initMcpUI(data) {
   mcpBridge.on('stale-state', (e) => {
     if (permissionLostBanner) {
       permissionLostBanner.style.display = '';
-      // Actualizar el nombre del archivo mostrado en el banner si vino en el evento
+      // Actualizar el nombre de la carpeta mostrada en el banner si vino en el evento
       const fileSpan = permissionLostBanner.querySelector('.mcp-file');
-      if (fileSpan && e?.fileName) {
-        fileSpan.innerHTML = `Tu navegador ha olvidado el acceso a <code>${escapeHTML(e.fileName)}</code>.
-        Vuelve a seleccionarlo para seguir sincronizando.`;
+      if (fileSpan && e?.folderName) {
+        fileSpan.innerHTML = `Tu navegador ha olvidado el acceso a <code>${escapeHTML(e.folderName)}</code>.
+        Vuelve a elegirla para seguir sincronizando.`;
       }
     }
     if (toggle) toggle.checked = false;

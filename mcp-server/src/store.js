@@ -1,141 +1,168 @@
 /**
- * Oráculo MCP Server — Store
+ * Oráculo MCP Server — Store (modelo de 2 archivos, dueño único)
  *
- * Gestiona la lectura y escritura del bridge file (oraculo-bridge.json).
- * Este archivo es el canal bidireccional entre la app Oráculo y los agentes LLM.
+ * El canal con la app son DOS archivos dentro de una carpeta, cada uno con
+ * un único escritor. Esto elimina de raíz la race condition del modelo de un
+ * solo archivo (donde app y servidor reescribían el archivo completo y podían
+ * pisarse la cola del agente o los datos de la usuaria):
  *
- * Estructura del bridge file:
- * {
- *   _bridge: { version, appVersion, exportedAt, agentQueueCount },
- *   data: { ...oraculoData (sin datos efímeros) },
- *   agentQueue: [ { id, tool, params, createdAt, status } ]
- * }
+ *   oraculo-bridge.json  → escribe SOLO la app.   El servidor solo LEE.
+ *   { _bridge, data, acks }
  *
- * IMPORTANTE: El bridge file NUNCA incluye:
- *   - muevete.timerState (datos efímeros, cambian cada segundo)
- *   - _deletions tombstones (interno de Drive sync)
- *   - Backups/conflictos de Drive
- *   - oraculo_gcal_settings (key separada de localStorage)
+ *   oraculo-queue.json   → escribe SOLO el servidor. La app solo LEE.
+ *   { _queue, agentQueue }
+ *
+ * La app informa qué acciones aplicó/rechazó vía `acks` en SU archivo; el
+ * servidor lee esos acks y poda su cola. Cada quien escribe solo lo suyo →
+ * ninguna escritura concurrente puede perder datos del otro.
+ *
+ * El data file NUNCA incluye datos efímeros/internos (muevete.timerState,
+ * _deletions, _sectionMeta, oraculo_gcal_settings); eso lo garantiza la app.
  */
 
 import { readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, join } from 'node:path';
 
-const BRIDGE_VERSION = '1.0';
+const QUEUE_VERSION = '1.0';
+
+// Nombres de archivo dentro de la carpeta del bridge (--bridge-dir)
+export const DATA_FILE = 'oraculo-bridge.json';
+export const QUEUE_FILE = 'oraculo-queue.json';
+
+function dataPath(bridgeDir) {
+  return resolve(join(bridgeDir, DATA_FILE));
+}
+
+function queuePath(bridgeDir) {
+  return resolve(join(bridgeDir, QUEUE_FILE));
+}
 
 /**
- * Carga el bridge file desde disco.
- * @param {string} bridgePath - Ruta absoluta al bridge file
- * @returns {{ _bridge, data, agentQueue } | null}
+ * Carga el data file (escrito por la app). Solo lectura desde el servidor.
+ * @returns {{ _bridge, data, acks } | null}
  */
-export async function loadBridge(bridgePath) {
-  const absPath = resolve(bridgePath);
+export async function loadDataFile(bridgeDir) {
+  const absPath = dataPath(bridgeDir);
+  if (!existsSync(absPath)) return null;
 
+  try {
+    const parsed = JSON.parse(await readFile(absPath, 'utf-8'));
+    if (!parsed._bridge || !parsed.data) {
+      throw new Error('Data file inválido: faltan campos _bridge o data');
+    }
+    return parsed;
+  } catch (err) {
+    throw new Error(`Error leyendo ${DATA_FILE}: ${err.message}`);
+  }
+}
+
+/**
+ * Carga el queue file (escrito por el servidor). Devuelve estructura vacía
+ * si aún no existe.
+ * @returns {{ _queue, agentQueue }}
+ */
+export async function loadQueueFile(bridgeDir) {
+  const absPath = queuePath(bridgeDir);
   if (!existsSync(absPath)) {
-    return null;
+    return { _queue: { version: QUEUE_VERSION }, agentQueue: [] };
   }
 
   try {
-    const raw = await readFile(absPath, 'utf-8');
-    const parsed = JSON.parse(raw);
-
-    // Validación mínima
-    if (!parsed._bridge || !parsed.data) {
-      throw new Error('Bridge file inválido: faltan campos _bridge o data');
-    }
-
-    return parsed;
+    const parsed = JSON.parse(await readFile(absPath, 'utf-8'));
+    return {
+      _queue: parsed._queue || { version: QUEUE_VERSION },
+      agentQueue: parsed.agentQueue || [],
+    };
   } catch (err) {
-    throw new Error(`Error leyendo bridge file: ${err.message}`);
+    throw new Error(`Error leyendo ${QUEUE_FILE}: ${err.message}`);
   }
 }
 
 /**
- * Guarda el bridge file en disco (solo la queue y metadata del agente).
- * Nunca sobreescribe data[] — eso lo hace la app.
- * @param {string} bridgePath
- * @param {object} bridge - Objeto bridge completo
+ * Guarda el queue file. ÚNICO escritor de este archivo es el servidor.
  */
-export async function saveBridge(bridgePath, bridge) {
-  const absPath = resolve(bridgePath);
-
+export async function saveQueueFile(bridgeDir, queue) {
   const toWrite = {
-    ...bridge,
-    _bridge: {
-      ...bridge._bridge,
-      agentQueueCount: (bridge.agentQueue || []).length,
+    _queue: {
+      version: QUEUE_VERSION,
       lastAgentWriteAt: new Date().toISOString(),
-    }
+    },
+    agentQueue: queue.agentQueue || [],
   };
-
-  await writeFile(absPath, JSON.stringify(toWrite, null, 2), 'utf-8');
+  await writeFile(queuePath(bridgeDir), JSON.stringify(toWrite, null, 2), 'utf-8');
 }
 
 /**
- * Añade una acción a la agentQueue del bridge file.
+ * Lee los IDs de acciones ya acuseadas por la app (aplicadas o rechazadas).
+ * El servidor usa esto para podar su cola sin escribir el data file.
+ */
+async function ackedIds(bridgeDir) {
+  const dataFile = await loadDataFile(bridgeDir).catch(() => null);
+  const acks = dataFile?.acks || [];
+  return new Set(acks.map(a => a.id));
+}
+
+/**
+ * Añade una acción a la cola y poda las ya acuseadas por la app.
  * El agente escribe aquí; la app lo lee y aprueba.
- * @param {string} bridgePath
- * @param {string} tool - Nombre de la tool MCP
- * @param {object} params - Parámetros de la tool
  * @returns {string} ID de la acción encolada
  */
-export async function enqueueAgentAction(bridgePath, tool, params) {
-  const bridge = await loadBridge(bridgePath);
-  if (!bridge) throw new Error('Bridge file no encontrado. ¿Está la app sincronizada?');
+export async function enqueueAgentAction(bridgeDir, tool, params) {
+  const queue = await loadQueueFile(bridgeDir);
+  const acked = await ackedIds(bridgeDir);
+
+  // Poda: quitar de la cola lo que la app ya procesó (acuseó vía acks)
+  queue.agentQueue = (queue.agentQueue || []).filter(a => !acked.has(a.id));
 
   const actionId = `agent_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-
-  const action = {
+  queue.agentQueue.push({
     id: actionId,
     tool,
     params,
     createdAt: new Date().toISOString(),
-    status: 'pending'
-  };
+    status: 'pending',
+  });
 
-  bridge.agentQueue = bridge.agentQueue || [];
-  bridge.agentQueue.push(action);
-
-  await saveBridge(bridgePath, bridge);
-
+  await saveQueueFile(bridgeDir, queue);
   return actionId;
 }
 
+const NOT_CONNECTED_MSG =
+  'Bridge no encontrado.\n\n' +
+  'Para conectar tu agente con Oráculo:\n' +
+  '1. Abre la app Oráculo en Chrome/Edge\n' +
+  '2. Ve a Configuración → Agente IA\n' +
+  '3. Activa la sincronización y elige la CARPETA del Agente IA\n' +
+  '4. Pasa esa misma carpeta al servidor con --bridge-dir';
+
 /**
- * Obtiene los datos de Oráculo del bridge file.
- * @param {string} bridgePath
+ * Obtiene los datos de Oráculo del data file (escrito por la app).
  * @returns {object} oraculoData
  */
-export async function getOraculoData(bridgePath) {
-  const bridge = await loadBridge(bridgePath);
-  if (!bridge) {
-    throw new Error(
-      'Bridge file no encontrado.\n\n' +
-      'Para conectar tu agente con Oráculo:\n' +
-      '1. Abre la app Oráculo en Chrome/Edge\n' +
-      '2. Ve a Configuración → Agente IA\n' +
-      '3. Activa "Sincronización MCP" y selecciona la ubicación del bridge file\n' +
-      '4. La app sincronizará automáticamente tus datos'
-    );
-  }
-
-  return bridge.data;
+export async function getOraculoData(bridgeDir) {
+  const dataFile = await loadDataFile(bridgeDir);
+  if (!dataFile) throw new Error(NOT_CONNECTED_MSG);
+  return dataFile.data;
 }
 
 /**
- * Obtiene la info del bridge (metadata).
- * @param {string} bridgePath
+ * Metadata combinada: info del data file + pendientes reales de la cola.
+ * Pendientes = acciones de la cola que la app aún no ha acuseado.
  */
-export async function getBridgeInfo(bridgePath) {
-  const bridge = await loadBridge(bridgePath);
-  if (!bridge) return null;
+export async function getBridgeInfo(bridgeDir) {
+  const dataFile = await loadDataFile(bridgeDir);
+  if (!dataFile) return null;
+
+  const queue = await loadQueueFile(bridgeDir);
+  const acked = await ackedIds(bridgeDir);
+  const pendingActions = (queue.agentQueue || []).filter(a => !acked.has(a.id));
 
   return {
-    bridgeVersion: bridge._bridge.version,
-    appVersion: bridge._bridge.appVersion,
-    exportedAt: bridge._bridge.exportedAt,
-    agentQueueCount: (bridge.agentQueue || []).length,
-    pendingActions: (bridge.agentQueue || []).filter(a => a.status === 'pending')
+    bridgeVersion: dataFile._bridge.version,
+    appVersion: dataFile._bridge.appVersion,
+    exportedAt: dataFile._bridge.exportedAt,
+    agentQueueCount: pendingActions.length,
+    pendingActions,
   };
 }

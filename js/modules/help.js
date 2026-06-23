@@ -531,9 +531,9 @@ export const render = (data) => {
 
             <h4>Cómo activarlo (3 pasos):</h4>
             <ol>
-              <li>Ve a <strong>Configuración → Agente IA</strong> y activa la sincronización. Elige dónde crear el
-                archivo <code>oraculo-bridge.json</code>.</li>
-              <li>Configura tu asistente para que use ese archivo (instrucciones técnicas en el servidor MCP del
+              <li>Ve a <strong>Configuración → Agente IA</strong> y activa la sincronización. Elige una
+                <strong>carpeta</strong> para el Agente IA en tu ordenador.</li>
+              <li>Configura tu asistente para que use esa misma carpeta (instrucciones técnicas en el servidor MCP del
                 proyecto). Necesita ejecutarse en este mismo ordenador.</li>
               <li>Revisa los <strong>cambios pendientes</strong> en esa misma sección y aplica solo los que quieras.</li>
             </ol>
