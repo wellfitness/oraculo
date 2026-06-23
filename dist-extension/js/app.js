@@ -44,7 +44,7 @@ import {
 import { getSpeechHandler, isSpeechSupported } from './utils/speech-handler.js';
 import * as autoBackup from './utils/auto-backup.js';
 import { initMueveteTimer } from './components/muevete-timer.js';
-import { initMcpBridge } from './utils/mcp-bridge.js';
+import { initMcpBridge, mcpBridge } from './utils/mcp-bridge.js';
 
 // Exportar módulo de auto-backup para uso en settings
 export { autoBackup };
@@ -1126,6 +1126,9 @@ const bootstrap = async () => {
   if (!isExtension && !isCapacitor) {
     try {
       initMcpBridge(loadData);
+      // NO emitimos notificaciones en bootstrap. Si enabled=true pero no hay handle
+      // (caso normal tras recarga), la UI de Configuración mostrará el banner
+      // "Reconectar" cuando la usuaria entre. No spameamos notificaciones globales.
     } catch (e) {
       console.warn('[McpBridge] No disponible:', e.message);
     }

@@ -1,5 +1,13 @@
 apply plugin: 'com.android.application'
 
+// Credenciales de firma desde keystore.properties (fuera del repo, gitignored).
+// NUNCA hardcodear contraseñas aquí: el repo es público.
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "app.movimientofuncional.oraculo"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -18,10 +26,14 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file(System.getenv('ORACULO_KEYSTORE_PATH') ?: '../../oraculo-upload.keystore')
-            storePassword System.getenv('ORACULO_KEYSTORE_PASSWORD') ?: 'oraculo2025'
-            keyAlias System.getenv('ORACULO_KEY_ALIAS') ?: 'oraculo-upload'
-            keyPassword System.getenv('ORACULO_KEY_PASSWORD') ?: 'oraculo2025'
+            // Lee de keystore.properties (gitignored). Si no existe, el build de
+            // release fallará al firmar — intencional: nunca firmar con datos por defecto.
+            if (keystorePropertiesFile.exists()) {
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
         }
     }
     buildTypes {

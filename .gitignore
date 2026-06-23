@@ -60,6 +60,7 @@ android/local.properties
 *.aab
 *.keystore
 *.jks
+keystore.properties
 
 # Google OAuth secrets (nunca commitear)
 client_secret_*.json
@@ -67,7 +68,9 @@ google-services.json
 
 # MCP bridge files (datos personales de la usuaria — backups locales)
 oraculo-bridge.json
+oraculo-queue.json
 *-bridge.json
+*-queue.json
 test-bridge.json
 
 # Scripts de testing local (no forman parte del repo)
