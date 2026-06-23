@@ -24,9 +24,7 @@ const FILES = [
   'favicon.svg',
   'favicon.ico',
   '.htaccess',
-  '404.html',
-  'auth.html',
-  'auth-callback.html'
+  '404.html'
 ];
 
 // Directorios completos

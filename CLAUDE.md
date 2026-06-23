@@ -44,8 +44,7 @@ El `app.js` usa **dynamic import** en `bootstrap()` para cargar el módulo de st
 
 - **Solo localStorage** — sin backend, sin cuentas, sin sincronización cloud
 - `storage-hybrid.js` y `storage-local.js` son idénticos (ambos solo localStorage)
-- La app no requiere registro ni autenticación
-- `auth.html` y `auth-callback.html` redirigen a `app.html` (legacy de Supabase, ya eliminado)
+- La app no requiere registro ni autenticación (legacy de Supabase eliminado)
 
 ### Extensión Chrome
 
@@ -124,8 +123,6 @@ cp dist/js/archivo.js js/
 oraculo/
 ├── index.html              # Landing page
 ├── app.html                # App principal (SPA)
-├── auth.html               # Redirect a app.html (legacy)
-├── auth-callback.html      # Redirect a app.html (legacy)
 ├── favicon.svg             # Favicon vectorial
 ├── build-extension.mjs     # Genera dist-extension/ y ZIP
 ├── css/

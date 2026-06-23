@@ -28,8 +28,6 @@ const INCLUDE = [
   '.htaccess',
   'index.html',
   'app.html',
-  'auth.html',
-  'auth-callback.html',
   'aviso-legal.html',
   'privacidad.html',
   'css',
