@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+# Seguridad: bloquear secretos antes de commitear (gitleaks).
+# Motivo: .mcp.json con tokens estuvo en el repo público desde v1.0 (jun 2026).
+# Esto NO puede repetirse: el commit se aborta si gitleaks detecta un secreto.
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --staged --redact --no-banner || {
+    echo ""
+    echo "❌ gitleaks detectó un posible secreto en los cambios staged. Commit ABORTADO."
+    echo "   - Si es real: quita el secreto, usa una variable de entorno o un placeholder."
+    echo "   - Si es falso positivo: añádelo al allowlist en .gitleaks.toml."
+    exit 1
+  }
+else
+  echo "❌ gitleaks NO está instalado y este repo lo exige para evitar fugas de secretos."
+  echo "   Instálalo:  scoop install gitleaks   (o choco install gitleaks / brew install gitleaks)"
+  echo "   Commit ABORTADO."
+  exit 1
+fi

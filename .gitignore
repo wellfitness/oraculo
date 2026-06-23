@@ -39,8 +39,8 @@ design-system/scripts/
 design-system/hooks/
 design-system/config/
 
-# Husky hooks
-.husky/
+# Husky: versionar los hooks, ignorar solo los internos generados
+.husky/_/
 
 # Reference HTML files
 Analiza*.html
