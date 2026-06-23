@@ -74,6 +74,8 @@ test-bridge.json
 test-mcp-fixes.mjs
 test-e2e-mcp.mjs
 test-fix-bucle.mjs
+test-mcp-completo.mjs
+test-render-html.mjs
 
 # Documentación de referencia personal
 CLAUDE-ORACULO-REF.md

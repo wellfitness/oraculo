@@ -1402,6 +1402,24 @@ function initMcpUI(data) {
   const toggle = document.getElementById('mcp-enabled-toggle');
   if (!toggle) return;
 
+  // ── Refrescar panel MCP in-place (sin recargar la página) ─────────────
+  // CRÍTICO: NO usamos location.reload() tras conectar. El FileHandle vive
+  // mientras la página esté abierta. Recargar destruiría el handle y volvería
+  // a estado "esperando reconexión" inmediatamente tras conectar, dando
+  // sensación de bug. En su lugar, re-renderizamos solo la sección MCP.
+  const refreshMcpPanel = () => {
+    const oldSection = document.querySelector('.settings-section--mcp');
+    if (!oldSection) return;
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = renderMcpSection();
+    const newSection = wrapper.firstElementChild;
+    if (newSection) {
+      oldSection.replaceWith(newSection);
+      // Re-vincular listeners de la nueva sección
+      initMcpUI(data);
+    }
+  };
+
   const configPanel = document.getElementById('mcp-config-panel');
   const selectBtn = document.getElementById('mcp-select-file-btn');
   const createBtn = document.getElementById('mcp-create-file-btn');
@@ -1417,9 +1435,13 @@ function initMcpUI(data) {
   const refreshBtn = document.getElementById('mcp-refresh-queue-btn');
 
   // ── Handlers compartidos ──────────────────────────────────────────────
+  // NO usamos location.reload() tras conectar: el handle FileHandle vive mientras
+  // la página esté abierta. Recargar destruiría el handle y volvería a estado
+  // "esperando reconexión" inmediatamente, dando sensación de bug.
+  // En su lugar, refrescamos solo la sección MCP in-place.
   const handleSelectSuccess = () => {
     showNotification('Archivo bridge configurado', 'success');
-    location.reload();
+    refreshMcpPanel();
   };
 
   const handlePickerCancel = () => {
@@ -1495,7 +1517,7 @@ function initMcpUI(data) {
     if (confirm('¿Desconectar el agente IA? Tus datos locales se mantendrán.')) {
       mcpBridge.disable();
       showNotification('Agente IA desconectado', 'info');
-      location.reload();
+      refreshMcpPanel(data);
     }
   });
 
@@ -1506,7 +1528,7 @@ function initMcpUI(data) {
       const valid = await mcpBridge.verifyHandle();
       if (valid) {
         showNotification('Permiso restaurado. Sincronización reactivada.', 'success');
-        location.reload();
+        refreshMcpPanel(data);
         return;
       }
     }
@@ -1530,7 +1552,7 @@ function initMcpUI(data) {
     }
     mcpBridge.forget();
     showNotification('Configuración MCP olvidada', 'info');
-    location.reload();
+    refreshMcpPanel(data);
   });
 
   // ── Listeners de eventos del bridge ──────────────────────────────────
