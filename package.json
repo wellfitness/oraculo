@@ -1,9 +1,10 @@
 {
   "name": "oraculo",
-  "version": "2.1.2",
+  "version": "2.4.0",
   "description": "Sistema de gestión personal consciente para mujeres +40 que quieren organizarse para cuidarse",
   "type": "module",
   "scripts": {
+    "prepare": "git config core.hooksPath .husky || true",
     "start": "npx http-server dist -p 8000",
     "deploy": "node deploy.mjs",
     "deploy:dry": "node deploy.mjs --dry-run",
