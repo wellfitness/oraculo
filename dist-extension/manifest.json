@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Oráculo - Gestión Personal Consciente",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Gestión personal consciente para organizarte y cuidarte. Basado en Hábitos Atómicos y filosofía Burkeman (4000 Semanas).",
   "permissions": [
     "sidePanel",

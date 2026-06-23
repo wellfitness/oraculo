@@ -1,0 +1,32 @@
+{
+  "name": "@oraculo/mcp",
+  "version": "1.0.0",
+  "description": "MCP Server para conectar agentes LLM (Claude Desktop, Claude Code, OpenAI, Gemini, Hermes, OpenCode) con Oráculo",
+  "type": "module",
+  "bin": {
+    "oraculo-mcp": "./src/index.js"
+  },
+  "main": "./src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.76"
+  },
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "keywords": [
+    "mcp",
+    "oraculo",
+    "productivity",
+    "burkeman",
+    "agenda",
+    "ai-agent"
+  ],
+  "license": "MIT"
+}

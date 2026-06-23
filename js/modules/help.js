@@ -491,6 +491,68 @@ export const render = (data) => {
       </section>
       `}
 
+      ${(!window.__ORACULO_CAPACITOR__ && !window.__ORACULO_EXTENSION__) ? `
+      <!-- Agente IA (MCP) — solo web (el bridge no se inicializa en extensión ni Android) -->
+      <section class="help-section">
+        <h2 class="help-section-title">
+          <span class="material-symbols-outlined">smart_toy</span>
+          Agente IA (nuevo)
+        </h2>
+        <div class="help-card" data-card="agente-ia">
+          <button class="help-card-header" aria-expanded="false" aria-controls="agente-ia-content">
+            <div class="help-card-title">
+              <span class="material-symbols-outlined icon-primary">smart_toy</span>
+              <h2>Conecta Oráculo con tu asistente de IA</h2>
+            </div>
+            <span class="material-symbols-outlined help-card-toggle">expand_more</span>
+          </button>
+          <div class="help-card-content" id="agente-ia-content" hidden>
+            <p>
+              Puedes conectar Oráculo con un asistente de IA (Claude, MiniMax, Hermes, Gemini u OpenAI) para que
+              te ayude a organizarte desde una conversación: leer tu día, sugerir prioridades o anotar reflexiones
+              por ti. <strong>Tú sigues teniendo el control absoluto.</strong>
+            </p>
+
+            <h4>Lo más importante (tu privacidad):</h4>
+            <ul>
+              <li><strong>Tus datos nunca salen de tu dispositivo.</strong> La conexión es un archivo local en tu
+                ordenador (el <em>bridge</em>), no un servicio en la nube.</li>
+              <li><strong>El agente no puede cambiar nada por su cuenta.</strong> Cuando propone algo (una tarea, una
+                entrada de diario, un logro), queda como <em>cambio pendiente</em> y tú decides si lo aceptas.</li>
+            </ul>
+
+            <h4>Qué puede hacer el agente:</h4>
+            <ul>
+              <li><strong>Leer:</strong> tus tareas, hábito activo, diario, proyectos, valores y tu contexto del día
+                (tiempo disponible, energía, roca principal).</li>
+              <li><strong>Proponer (con tu aprobación):</strong> añadir una tarea, completar una, escribir en el
+                diario, registrar un logro espontáneo o marcar tu roca principal.</li>
+            </ul>
+
+            <h4>Cómo activarlo (3 pasos):</h4>
+            <ol>
+              <li>Ve a <strong>Configuración → Agente IA</strong> y activa la sincronización. Elige dónde crear el
+                archivo <code>oraculo-bridge.json</code>.</li>
+              <li>Configura tu asistente para que use ese archivo (instrucciones técnicas en el servidor MCP del
+                proyecto). Necesita ejecutarse en este mismo ordenador.</li>
+              <li>Revisa los <strong>cambios pendientes</strong> en esa misma sección y aplica solo los que quieras.</li>
+            </ol>
+
+            <div class="help-card-tip">
+              <span class="material-symbols-outlined">tips_and_updates</span>
+              <p>Esto es una función avanzada y opcional. Si no usas asistentes de IA, puedes ignorarla por completo:
+                Oráculo funciona igual sin ella. Requiere Chrome o Edge.</p>
+            </div>
+
+            <button class="help-nav-link btn btn--tertiary" data-view="settings">
+              <span class="material-symbols-outlined">arrow_forward</span>
+              Ir a Configuración
+            </button>
+          </div>
+        </div>
+      </section>
+      ` : ''}
+
       <!-- NUEVO: FAQ Conceptual -->
       ${renderConceptualFaq()}
 

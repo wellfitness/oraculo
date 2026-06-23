@@ -12,6 +12,14 @@
 
 export const CHANGELOG = [
   {
+    version: '2.4.0',
+    date: '2026-06-23',
+    title: 'Agente IA',
+    changes: [
+      { type: 'new', text: 'Conecta Oráculo con tu asistente de IA (Claude, MiniMax, Gemini, Hermes, OpenAI) para que lea tu día y te proponga cambios — siempre con tu aprobación y sin que tus datos salgan de tu dispositivo' }
+    ]
+  },
+  {
     version: '2.1.1',
     date: '2026-03-31',
     title: 'Correcciones de sincronización',

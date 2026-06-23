@@ -7,6 +7,7 @@ import { showNotification, autoBackup, reloadStateFromStorage, USAGE_MODES, open
 import {
   exportData,
   importData,
+  saveData,
   getStorageUsage,
   clearAllData,
   clearIdentityData,
@@ -19,6 +20,7 @@ import {
 } from '../storage.js';
 import { escapeHTML } from '../utils/sanitizer.js';
 import * as gcalSettings from '../gcal/gcal-settings.js';
+import { mcpBridge, McpBridge } from '../utils/mcp-bridge.js';
 
 let updateDataCallback = null;
 let archivedYearData = null; // Para el visor de años anteriores
@@ -139,6 +141,9 @@ export const render = (data) => {
 
       <!-- Respaldo Automático (local) -->
       ${renderAutoBackupSection()}
+
+      <!-- Agente IA (MCP) -->
+      ${renderMcpSection()}
 
       <!-- Datos -->
       <section class="settings-section">
@@ -368,6 +373,9 @@ export const init = (data, updateData) => {
 
   // === Google Drive Sync ===
   initGDriveSyncUI();
+
+  // === Agente IA (MCP) ===
+  initMcpUI(data);
 
   // === Google Calendar (solo lectura) ===
   // gcal-settings usa su propio local store (clave aparte de oraculo_data),
@@ -879,6 +887,136 @@ const renderSyncSection = (data) => {
 };
 
 /**
+ * Renderiza la sección del Agente IA (MCP)
+ */
+const renderMcpSection = () => {
+  // Solo en web: el bridge se inicializa únicamente con (!isExtension && !isCapacitor) en app.js.
+  // No mostrar en extensión Chrome ni Android (Capacitor), ni en navegadores sin File System Access API.
+  if (!McpBridge.isSupported() || window.__ORACULO_EXTENSION__ || window.__ORACULO_CAPACITOR__) {
+    return '';
+  }
+
+  const isEnabled = mcpBridge.isEnabled;
+  const isConnected = mcpBridge.isConnected;
+  const fileName = mcpBridge.fileName;
+
+  return `
+    <section class="settings-section settings-section--mcp">
+      <h2>
+        <span class="material-symbols-outlined">smart_toy</span>
+        Agente IA
+      </h2>
+      <p class="section-description">
+        Conecta Oráculo con tu asistente de IA (Claude, MiniMax, Hermes, Gemini, OpenAI) mediante un archivo
+        <em>bridge</em> en tu ordenador. El agente puede leer tu día y proponerte cambios, pero
+        <strong>tus datos nunca salen de tu dispositivo</strong> y nada se aplica sin tu aprobación.
+      </p>
+
+      <details class="mcp-help">
+        <summary>
+          <span class="material-symbols-outlined icon-sm">help</span>
+          ¿Cómo conectar mi agente de IA?
+        </summary>
+        <div class="mcp-help__body">
+          <ol class="mcp-help__steps">
+            <li><strong>Activa la sincronización</strong> con el interruptor de abajo y elige (o crea) el archivo
+              <code>oraculo-bridge.json</code> en tu ordenador. Oráculo escribirá ahí tus datos automáticamente.</li>
+            <li><strong>Configura tu agente</strong> para que use ese archivo. Necesitas el servidor MCP de Oráculo
+              corriendo en tu ordenador (carpeta <code>mcp-server/</code> del proyecto). Cada cliente tiene su archivo
+              de configuración — las instrucciones completas están en el <code>README</code> del servidor MCP.</li>
+            <li><strong>El agente lee tu información</strong>: tareas, hábitos, diario, proyectos, valores y tu contexto
+              del día (tiempo, energía, roca principal).</li>
+            <li><strong>Tú apruebas los cambios.</strong> Cuando el agente propone añadir una tarea, una entrada de
+              diario o un logro, aparecen aquí abajo como <em>cambios pendientes</em>. Decides cuáles aceptar y cuáles
+              rechazar. Nada se modifica solo.</li>
+          </ol>
+          <p class="mcp-help__note">
+            <span class="material-symbols-outlined icon-sm">verified_user</span>
+            Compatible con <strong>Claude</strong> (Desktop y Code), <strong>MiniMax</strong>, <strong>Hermes</strong>,
+            <strong>Gemini</strong> (CLI) y <strong>OpenAI</strong> (Agents SDK). Requiere Chrome o Edge, y que el
+            agente se ejecute en este mismo ordenador (el archivo bridge es local).
+          </p>
+        </div>
+      </details>
+
+      <label class="toggle-label">
+        <input type="checkbox" id="mcp-enabled-toggle" ${isEnabled ? 'checked' : ''}>
+        <span>Habilitar sincronización MCP</span>
+      </label>
+
+      <div id="mcp-config-panel" style="${isEnabled ? '' : 'display:none;'} margin-top: var(--space-4);">
+        ${isConnected ? `
+          <div class="mcp-status mcp-status--connected">
+            <span class="material-symbols-outlined status-icon status-icon--success">check_circle</span>
+            <div class="mcp-info">
+              <strong>Conectado</strong>
+              <span class="mcp-file">${escapeHTML(fileName)}</span>
+            </div>
+          </div>
+          <div class="settings-actions">
+            <button class="btn btn--secondary" id="mcp-select-file-btn">
+              <span class="material-symbols-outlined">folder_open</span>
+              Cambiar archivo
+            </button>
+            <button class="btn btn--outline btn--warning" id="mcp-disable-btn">
+              <span class="material-symbols-outlined">link_off</span>
+              Desconectar
+            </button>
+          </div>
+        ` : `
+          <div class="mcp-status mcp-status--disconnected">
+            <span class="material-symbols-outlined status-icon status-icon--warning">link_off</span>
+            <div class="mcp-info">
+              <strong>Sin archivo bridge</strong>
+              <span class="mcp-file">Selecciona el archivo que usarán los agentes</span>
+            </div>
+          </div>
+          <div class="settings-actions">
+            <button class="btn btn--primary" id="mcp-select-file-btn">
+              <span class="material-symbols-outlined">create_new_folder</span>
+              Seleccionar o crear archivo
+            </button>
+          </div>
+        `}
+      </div>
+
+      <div id="mcp-pending-panel" style="display:none; margin-top: var(--space-4);">
+        <h3>
+          <span class="material-symbols-outlined">notifications</span>
+          Cambios pendientes del agente
+          <span class="badge" id="mcp-pending-count">0</span>
+        </h3>
+        <p class="text-muted">
+          El agente ha propuesto estas acciones. Tú decides cuáles aplicar.
+        </p>
+        <form id="mcp-pending-form" class="mcp-pending-list">
+          <!-- Se rellena dinámicamente -->
+        </form>
+        <div class="settings-actions">
+          <button class="btn btn--primary" id="mcp-apply-selected-btn" type="button">
+            <span class="material-symbols-outlined">check</span>
+            Aplicar seleccionados
+          </button>
+          <button class="btn btn--outline btn--warning" id="mcp-reject-selected-btn" type="button">
+            <span class="material-symbols-outlined">close</span>
+            Rechazar seleccionados
+          </button>
+          <button class="btn btn--secondary" id="mcp-refresh-queue-btn" type="button">
+            <span class="material-symbols-outlined">refresh</span>
+            Refrescar
+          </button>
+        </div>
+      </div>
+
+      <p class="action-hint">
+        <span class="material-symbols-outlined icon-sm">info</span>
+        Las escrituras del agente requieren tu aprobación y nunca modifican directamente tus datos.
+      </p>
+    </section>
+  `;
+};
+
+/**
  * Renderiza la sección de respaldo automático
  */
 const renderAutoBackupSection = () => {
@@ -1167,4 +1305,209 @@ function formatTimeAgo(isoString) {
   if (hours < 24) return `hace ${hours}h`;
   const days = Math.floor(hours / 24);
   return `hace ${days} día${days > 1 ? 's' : ''}`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Agente IA (MCP) UI
+// ═══════════════════════════════════════════════════════════════
+
+function initMcpUI(data) {
+  if (!McpBridge.isSupported()) return;
+
+  const toggle = document.getElementById('mcp-enabled-toggle');
+  const configPanel = document.getElementById('mcp-config-panel');
+  const selectBtn = document.getElementById('mcp-select-file-btn');
+  const disableBtn = document.getElementById('mcp-disable-btn');
+  const pendingPanel = document.getElementById('mcp-pending-panel');
+  const pendingForm = document.getElementById('mcp-pending-form');
+  const pendingCount = document.getElementById('mcp-pending-count');
+  const applyBtn = document.getElementById('mcp-apply-selected-btn');
+  const rejectBtn = document.getElementById('mcp-reject-selected-btn');
+  const refreshBtn = document.getElementById('mcp-refresh-queue-btn');
+
+  if (!toggle) return;
+
+  // Actualizar visibilidad del panel de config según toggle
+  const updateConfigVisibility = () => {
+    if (toggle.checked) {
+      configPanel.style.display = '';
+    } else {
+      configPanel.style.display = 'none';
+      pendingPanel.style.display = 'none';
+    }
+  };
+
+  toggle.addEventListener('change', async () => {
+    if (toggle.checked) {
+      // Al habilitar, intentar seleccionar archivo inmediatamente
+      try {
+        await mcpBridge.selectBridgeFile();
+        if (!mcpBridge.isConnected) {
+          toggle.checked = false;
+          showNotification('No se seleccionó archivo. Sincronización MCP desactivada.', 'warning');
+        } else {
+          showNotification('Sincronización MCP activada', 'success');
+          location.reload();
+        }
+      } catch (err) {
+        toggle.checked = false;
+        showNotification('Error: ' + err.message, 'error');
+      }
+    } else {
+      mcpBridge.disable();
+      showNotification('Sincronización MCP desactivada', 'info');
+      updateConfigVisibility();
+    }
+  });
+
+  selectBtn?.addEventListener('click', async () => {
+    try {
+      await mcpBridge.selectBridgeFile();
+      if (mcpBridge.isConnected) {
+        showNotification('Archivo bridge actualizado', 'success');
+        location.reload();
+      }
+    } catch (err) {
+      showNotification('Error: ' + err.message, 'error');
+    }
+  });
+
+  disableBtn?.addEventListener('click', () => {
+    if (confirm('¿Desconectar el agente IA? Tus datos locales se mantendrán.')) {
+      mcpBridge.disable();
+      showNotification('Agente IA desconectado', 'info');
+      location.reload();
+    }
+  });
+
+  // Renderizar lista de acciones pendientes
+  const renderPendingActions = (actions) => {
+    pendingForm.innerHTML = '';
+
+    if (!actions || actions.length === 0) {
+      pendingPanel.style.display = 'none';
+      return;
+    }
+
+    pendingPanel.style.display = '';
+    pendingCount.textContent = actions.length;
+
+    const toolLabels = {
+      add_journal_entry: 'Entrada de diario',
+      add_task: 'Nueva tarea',
+      complete_task: 'Completar tarea',
+      add_spontaneous_achievement: 'Logro espontáneo',
+      set_roca_principal: 'Roca principal',
+    };
+
+    actions.forEach(action => {
+      const label = toolLabels[action.tool] || action.tool;
+      const summary = getActionSummary(action);
+      const item = document.createElement('div');
+      item.className = 'mcp-pending-item';
+      item.innerHTML = `
+        <label class="mcp-pending-label">
+          <input type="checkbox" name="mcp-action" value="${escapeHTML(action.id)}" checked>
+          <div class="mcp-pending-content">
+            <strong>${label}</strong>
+            <span class="mcp-pending-summary">${escapeHTML(summary)}</span>
+            <span class="mcp-pending-date">${formatTimeAgo(action.createdAt)}</span>
+          </div>
+        </label>
+      `;
+      pendingForm.appendChild(item);
+    });
+  };
+
+  const getActionSummary = (action) => {
+    const p = action.params || {};
+    switch (action.tool) {
+      case 'add_journal_entry': return p.type + (p.content ? `: ${p.content.slice(0, 60)}` : '');
+      case 'add_task': return `${p.text || ''} → ${p.horizon || ''}`;
+      case 'complete_task': return `ID: ${p.taskId || ''}`;
+      case 'add_spontaneous_achievement': return `${p.text || ''} (${p.mood || ''})`;
+      case 'set_roca_principal': return `ID: ${p.taskId || ''}`;
+      default: return '';
+    }
+  };
+
+  // Refrescar queue
+  const refreshQueue = async () => {
+    try {
+      const { pending } = await mcpBridge.readAgentQueue();
+      renderPendingActions(pending);
+    } catch (err) {
+      console.warn('[McpUI] Error refrescando queue:', err);
+    }
+  };
+
+  refreshBtn?.addEventListener('click', refreshQueue);
+
+  // Aplicar seleccionados
+  applyBtn?.addEventListener('click', async () => {
+    const selected = Array.from(pendingForm.querySelectorAll('input[name="mcp-action"]:checked')).map(i => i.value);
+    if (selected.length === 0) {
+      showNotification('Selecciona al menos una acción', 'warning');
+      return;
+    }
+
+    applyBtn.disabled = true;
+    applyBtn.innerHTML = '<span class="material-symbols-outlined spin">sync</span> Aplicando...';
+
+    try {
+      // Aplicar solo las seleccionadas: marcar las no seleccionadas como rejected
+      const allIds = Array.from(pendingForm.querySelectorAll('input[name="mcp-action"]')).map(i => i.value);
+      const rejected = allIds.filter(id => !selected.includes(id));
+
+      // Primero rechazar las no seleccionadas para que no se apliquen
+      if (rejected.length > 0) {
+        await mcpBridge.rejectPendingActions(rejected);
+      }
+
+      const result = await mcpBridge.applyPendingActions(data, saveData);
+
+      if (result.applied.length > 0) {
+        showNotification(`${result.applied.length} cambio(s) aplicado(s)`, 'success');
+        window.oraculoSkipUnloadWarning = true;
+        location.reload();
+      } else if (result.failed.length > 0) {
+        showNotification('No se pudo aplicar ningún cambio', 'warning');
+      }
+    } catch (err) {
+      showNotification('Error aplicando cambios: ' + err.message, 'error');
+    } finally {
+      applyBtn.disabled = false;
+      applyBtn.innerHTML = '<span class="material-symbols-outlined">check</span> Aplicar seleccionados';
+    }
+  });
+
+  // Rechazar seleccionados
+  rejectBtn?.addEventListener('click', async () => {
+    const selected = Array.from(pendingForm.querySelectorAll('input[name="mcp-action"]:checked')).map(i => i.value);
+    if (selected.length === 0) {
+      showNotification('Selecciona al menos una acción', 'warning');
+      return;
+    }
+
+    rejectBtn.disabled = true;
+    try {
+      await mcpBridge.rejectPendingActions(selected);
+      showNotification(`${selected.length} acción(es) rechazada(s)`, 'info');
+      await refreshQueue();
+    } catch (err) {
+      showNotification('Error rechazando acciones: ' + err.message, 'error');
+    } finally {
+      rejectBtn.disabled = false;
+    }
+  });
+
+  // Escuchar eventos del bridge
+  mcpBridge.on('connected', refreshQueue);
+  mcpBridge.on('queue-pending', (e) => renderPendingActions(e.actions));
+
+  // Carga inicial
+  updateConfigVisibility();
+  if (mcpBridge.isEnabled) {
+    refreshQueue();
+  }
 }

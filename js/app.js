@@ -44,6 +44,7 @@ import {
 import { getSpeechHandler, isSpeechSupported } from './utils/speech-handler.js';
 import * as autoBackup from './utils/auto-backup.js';
 import { initMueveteTimer } from './components/muevete-timer.js';
+import { initMcpBridge } from './utils/mcp-bridge.js';
 
 // Exportar módulo de auto-backup para uso en settings
 export { autoBackup };
@@ -1117,6 +1118,17 @@ const bootstrap = async () => {
     initSyncButton(gdriveSync);
   } catch (e) {
     console.warn('[GDrive] Sync no disponible:', e.message);
+  }
+
+  // Inicializar MCP Bridge (solo web, solo si el usuario lo activó)
+  // Se inicializa DESPUÉS de GDrive para que ambos escuchen data-saved sin conflicto.
+  // El bridge escribe al archivo externo; nunca emite data-saved ni toca localStorage.
+  if (!isExtension && !isCapacitor) {
+    try {
+      initMcpBridge(loadData);
+    } catch (e) {
+      console.warn('[McpBridge] No disponible:', e.message);
+    }
   }
 };
 
