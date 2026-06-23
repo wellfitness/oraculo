@@ -1,0 +1,4 @@
+# Los hooks de git y scripts shell DEBEN tener saltos LF.
+# sh no tolera CRLF (rompería el shebang y el hook de gitleaks en clones Windows).
+.husky/** text eol=lf
+*.sh text eol=lf
