@@ -72,16 +72,14 @@ export class McpBridge {
       }
     } catch { /* noop */ }
 
-    // Detectar estado obsoleto: enabled=true pero sin handle vivo.
-    // Esto ocurre siempre al recargar la página (los FileHandles no se serializan).
-    // La UI lo usa para mostrar el banner "permiso perdido" en lugar del toggle fantasma.
-    this._hasStaleState = this._enabled && this._fileHandle === null && !!this._fileName;
-    if (this._hasStaleState) {
-      // NO reseteamos _enabled aquí — la UI decide qué hacer y mantiene
-      // el fileName conocido para mostrarlo al usuario.
-      this._enabled = false;
-      this._saveSettings();
-    }
+    // NOTA: NO marcamos stale state aquí. Los FileHandles NUNCA se restauran entre
+    // sesiones (limitación de File System Access API), por lo que cada recarga
+    // tiene enabled=true pero _fileHandle=null. Eso NO es un error — es el
+    // comportamiento normal. La UI debe mostrar "Reconectar" y el usuario decide.
+    //
+    // El flag _hasStaleState SOLO se activa cuando el bridge pierde permisos
+    // durante la sesión actual (NotAllowedError en syncToBridge o verifyHandle).
+    this._hasStaleState = false;
   }
 
   _saveSettings() {
@@ -209,6 +207,7 @@ export class McpBridge {
       return false;
     } catch (err) {
       console.warn('[McpBridge] Error verificando handle:', err.message);
+      this._hasStaleState = true;
       this._emit('permission-lost');
       this._fileHandle = null;
       this._enabled = false;
@@ -263,6 +262,7 @@ export class McpBridge {
       console.warn('[McpBridge] Error al sincronizar:', err.message);
       if (err.name === 'NotAllowedError') {
         // El handle ha perdido permisos — pedir de nuevo al usuario
+        this._hasStaleState = true;
         this._fileHandle = null;
         this._enabled = false;
         this._saveSettings();
@@ -408,6 +408,21 @@ export class McpBridge {
     this._hasStaleState = false;
     this._fileName = null;
     this._saveSettings();
+    this._emit('disconnected');
+  }
+
+  /**
+   * Olvida completamente la configuración MCP: limpia localStorage, handle y todo.
+   * Llamar desde el botón "Olvidar MCP" para reset limpio sin bucles.
+   */
+  forget() {
+    this._enabled = false;
+    this._fileHandle = null;
+    this._hasStaleState = false;
+    this._fileName = null;
+    try {
+      localStorage.removeItem(BRIDGE_SETTINGS_KEY);
+    } catch { /* noop */ }
     this._emit('disconnected');
   }
 

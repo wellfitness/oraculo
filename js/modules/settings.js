@@ -889,11 +889,13 @@ const renderSyncSection = (data) => {
 /**
  * Renderiza la sección del Agente IA (MCP)
  *
- * Cuatro estados visuales posibles:
+ * Cinco estados visuales posibles:
  *  - not-supported: navegador sin File System Access API (Firefox, Safari, móvil)
- *  - stale:        enabled estaba activo pero el FileHandle se perdió (recarga/Cierre de Chrome)
- *  - connected:    handle vivo, todo OK
- *  - idle:         desactivado o sin archivo
+ *  - needs-reconnect: el usuario tenía MCP activo pero el handle se perdió
+ *                     (normal tras recarga — Chrome requiere re-otorgar permisos)
+ *  - stale:          hubo un error de permisos en esta sesión (permission-lost)
+ *  - connected:      handle vivo, todo OK
+ *  - idle:           desactivado o sin archivo
  *
  * La extensión Chrome y Capacitor no muestran esta sección (no soportan File System Access API).
  */
@@ -905,9 +907,14 @@ const renderMcpSection = () => {
 
   const isSupported = McpBridge.isSupported();
   const isConnected = mcpBridge.isConnected;
-  const hasStale = mcpBridge.hasStaleState;
+  const isEnabled = mcpBridge.isEnabled;
   const lastFileName = mcpBridge.lastFileName;
   const fileName = mcpBridge.fileName;
+  // Mostrar banner "Reconectar" si:
+  //   - enabled=true (usuario quiere sincronizar)
+  //   - !isConnected (no hay handle vivo, normal tras recarga)
+  //   - hay un fileName previo (sabemos qué archivo era)
+  const needsReconnect = isEnabled && !isConnected && !!(lastFileName || fileName);
 
   // ── Estado 1: navegador sin soporte ────────────────────────────────────
   if (!isSupported) {
@@ -981,18 +988,24 @@ const renderMcpSection = () => {
       </label>
 
       <div id="mcp-config-panel" style="margin-top: var(--space-4);">
-        ${hasStale ? `
+        ${needsReconnect ? `
           <div class="mcp-status mcp-status--warning" id="mcp-permission-lost-banner">
             <span class="material-symbols-outlined status-icon status-icon--warning">lock_reset</span>
             <div class="mcp-info">
-              <strong>Permiso perdido</strong>
-              <span class="mcp-file">Tu navegador ha olvidado el acceso a <code>${escapeHTML(lastFileName || 'el archivo')}</code>.
-              Vuelve a seleccionarlo para seguir sincronizando.</span>
+              <strong>Reconexión necesaria</strong>
+              <span class="mcp-file">El archivo <code>${escapeHTML(lastFileName || fileName || 'anterior')}</code> necesita que re-otorgues el permiso.
+              Esto es normal — Chrome lo requiere cada vez que reinicias.</span>
             </div>
-            <button class="btn btn--primary" id="mcp-reconnect-btn">
-              <span class="material-symbols-outlined">refresh</span>
-              Reconectar
-            </button>
+            <div class="mcp-banner-actions">
+              <button class="btn btn--primary" id="mcp-reconnect-btn">
+                <span class="material-symbols-outlined">refresh</span>
+                Reconectar
+              </button>
+              <button class="btn btn--outline" id="mcp-forget-btn" title="Olvidar este archivo MCP y empezar de cero">
+                <span class="material-symbols-outlined">link_off</span>
+                Olvidar MCP
+              </button>
+            </div>
           </div>
         ` : ''}
 
@@ -1014,7 +1027,7 @@ const renderMcpSection = () => {
               Desconectar
             </button>
           </div>
-        ` : !hasStale ? `
+        ` : !needsReconnect ? `
           <div class="mcp-status mcp-status--disconnected">
             <span class="material-symbols-outlined status-icon status-icon--warning">link_off</span>
             <div class="mcp-info">
@@ -1376,6 +1389,7 @@ function initMcpUI(data) {
   const createBtn = document.getElementById('mcp-create-file-btn');
   const disableBtn = document.getElementById('mcp-disable-btn');
   const reconnectBtn = document.getElementById('mcp-reconnect-btn');
+  const forgetBtn = document.getElementById('mcp-forget-btn');
   const permissionLostBanner = document.getElementById('mcp-permission-lost-banner');
   const pendingPanel = document.getElementById('mcp-pending-panel');
   const pendingForm = document.getElementById('mcp-pending-form');
@@ -1458,7 +1472,7 @@ function initMcpUI(data) {
     }
   });
 
-  // ── Botón "Reconectar" del banner de permiso perdido ──────────────────
+  // ── Botón "Reconectar" del banner ─────────────────────────────────────
   reconnectBtn?.addEventListener('click', async () => {
     // Intentar primero re-validar el handle existente (sin prompt)
     if (mcpBridge._fileHandle) {
@@ -1480,6 +1494,16 @@ function initMcpUI(data) {
     } catch (err) {
       handlePickerError(err);
     }
+  });
+
+  // ── Botón "Olvidar MCP" — resetea completamente el estado MCP ─────────
+  forgetBtn?.addEventListener('click', () => {
+    if (!confirm('¿Olvidar la configuración MCP? Tu agente IA se desconectará y tendrás que volver a vincularlo desde cero.')) {
+      return;
+    }
+    mcpBridge.forget();
+    showNotification('Configuración MCP olvidada', 'info');
+    location.reload();
   });
 
   // ── Listeners de eventos del bridge ──────────────────────────────────

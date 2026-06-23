@@ -5431,6 +5431,13 @@ a.entry-type-btn {
   word-break: break-all;
 }
 
+.mcp-banner-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
 /* Estado de navegador no compatible (Firefox, Safari, móvil sin Chrome) */
 .mcp-not-supported {
   display: flex;

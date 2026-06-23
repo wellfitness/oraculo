@@ -72,6 +72,8 @@ test-bridge.json
 
 # Scripts de testing local (no forman parte del repo)
 test-mcp-fixes.mjs
+test-e2e-mcp.mjs
+test-fix-bucle.mjs
 
 # Documentación de referencia personal
 CLAUDE-ORACULO-REF.md

@@ -1126,17 +1126,9 @@ const bootstrap = async () => {
   if (!isExtension && !isCapacitor) {
     try {
       initMcpBridge(loadData);
-
-      // Bug 1: si al cargar detectamos estado obsoleto (enabled=true pero FileHandle
-      // perdido tras cerrar Chrome), emitir el evento y notificar a la usuaria.
-      // La UI de Configuración también escucha este evento para mostrar el banner.
-      if (mcpBridge.hasStaleState) {
-        showNotification(
-          'Tu agente IA perdió el permiso del archivo. Ve a Configuración para reconectar.',
-          'warning'
-        );
-        mcpBridge.emitStaleStateIfNeeded();
-      }
+      // NO emitimos notificaciones en bootstrap. Si enabled=true pero no hay handle
+      // (caso normal tras recarga), la UI de Configuración mostrará el banner
+      // "Reconectar" cuando la usuaria entre. No spameamos notificaciones globales.
     } catch (e) {
       console.warn('[McpBridge] No disponible:', e.message);
     }
