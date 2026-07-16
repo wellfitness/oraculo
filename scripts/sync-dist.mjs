@@ -23,6 +23,18 @@ const FILES = [
   'service-worker.js',
   'favicon.svg',
   'favicon.ico',
+  'apple-touch-icon.png',
+  'favicon-16x16.png',
+  'favicon-32x32.png',
+  'favicon-192x192.png',
+  'favicon-512x512.png',
+  'portada.webp',
+  'aviso-legal.html',
+  'privacidad.html',
+  'terminos.html',
+  'landing.css',
+  'robots.txt',
+  'sitemap.xml',
   '.htaccess',
   '404.html'
 ];

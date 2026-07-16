@@ -23,7 +23,7 @@ Sistema de gestión personal consciente para mujeres +40 que quieren organizarse
 HTML5 + CSS3 + JavaScript (vanilla ES6 modules)
 Almacenamiento: localStorage (offline-first, sin backend)
 Iconos: Material Symbols Outlined (Google Fonts CDN)
-Deploy: Vercel (hosting estático, auto-deploy en git push)
+Deploy: Hostinger (hosting compartido, deploy vía FTP con `pnpm run deploy:all`)
 Extensión Chrome: Manifest V3, side panel
 ```
 
@@ -74,13 +74,13 @@ El input de captura global parsea sintaxis especial:
 
 ### Deploy
 
-**Hosting: Vercel** — Dominio: `oraculo.movimientofuncional.app`
+**Hosting: Hostinger (compartido)** — Dominio: `oraculo.movimientofuncional.app`
 
-- Deploy automático al hacer push a GitHub
-- Sirve la carpeta `dist/` como sitio estático
-- CDN global con edge caching + SSL automático
+- Deploy manual vía FTP con `pnpm run deploy:all` (sincroniza src → dist → construye extensión → sube a `public_html/`)
+- SSL gestionado por el panel de Hostinger (Let's Encrypt)
+- Pipeline local: `pnpm run sync` → `pnpm run build:extension` → `pnpm run deploy`
 
-> **Legacy**: El archivo `deploy.mjs` contiene el script FTP anterior (Hostinger). Ya no se usa.
+> **Diagnóstico**: `pnpm run deploy:check` conecta sin subir archivos, útil para validar credenciales y ver el estado de `public_html/`.
 
 ### Desarrollo Local
 
@@ -173,7 +173,7 @@ oraculo/
 │   └── store/              # Assets Chrome Web Store
 ├── landing/                # Landing page assets
 │   └── images/
-├── dist/                   # Producción web (Vercel sirve esto)
+├── dist/                   # Producción web (subido a Hostinger vía FTP)
 ├── dist-extension/         # Producción extensión (generado por build-extension.mjs)
 └── CLAUDE.md               # Este archivo
 ```
