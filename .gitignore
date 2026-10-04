@@ -34,11 +34,6 @@ build/
 .claude/
 .mcp.json
 
-# Design system scripts (local tooling)
-design-system/scripts/
-design-system/hooks/
-design-system/config/
-
 # Husky: versionar los hooks, ignorar solo los internos generados
 .husky/_/
 
