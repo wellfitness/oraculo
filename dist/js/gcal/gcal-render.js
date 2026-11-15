@@ -8,7 +8,7 @@
  * Click → abre el evento en Google Calendar (nueva pestaña).
  */
 
-import { escapeHTML } from '../utils/sanitizer.js';
+import { escapeHTML, colorSeguro } from '../utils/sanitizer.js';
 
 /**
  * Devuelve el HTML de un evento Google para inyectar en .day-events.
@@ -17,7 +17,9 @@ import { escapeHTML } from '../utils/sanitizer.js';
 export function renderGcalEventItem(event) {
   const timeLabel = event.allDay ? 'Todo el día' : (event.startTime || '');
   const calName = event.calendarName || '';
-  const calColor = event.calendarColor || '#4285F4';
+  // Solo un hexadecimal: el color viene de calendarios de terceros y escapar
+  // el HTML no impide añadir declaraciones CSS dentro del atributo style.
+  const calColor = colorSeguro(event.calendarColor, '#4285F4');
 
   const tooltip = calName
     ? `${calName} · click abre Google Calendar`
@@ -27,7 +29,7 @@ export function renderGcalEventItem(event) {
     <div class="event-item event--google"
          data-id="${escapeHTML(event.id)}"
          data-htmllink="${escapeHTML(event.htmlLink || '')}"
-         style="--gcal-color: ${escapeHTML(calColor)}"
+         style="--gcal-color: ${calColor}"
          title="${escapeHTML(tooltip)}">
       <div class="event-item__content">
         <span class="material-symbols-outlined event--google__source" aria-hidden="true">calendar_month</span>

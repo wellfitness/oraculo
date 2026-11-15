@@ -5,7 +5,7 @@
  * con Drive — así la selección de calendarios es local por dispositivo.
  */
 
-import { escapeHTML } from '../utils/sanitizer.js';
+import { escapeHTML, colorSeguro } from '../utils/sanitizer.js';
 import { confirmDangerAsync } from '../utils/confirm-modal.js';
 import * as gcalService from './gcal-service.js';
 import { getGcalSettings, setGcalSettings, patchGcalSettings } from './gcal-local-store.js';
@@ -137,7 +137,7 @@ async function loadCalendarList() {
         <input type="checkbox" class="gcal-cal-toggle"
                data-cal-id="${escapeHTML(c.id)}"
                ${enabled.has(c.id) ? 'checked' : ''}>
-        <span class="gcal-checkbox-dot" style="background: ${escapeHTML(c.backgroundColor)}"></span>
+        <span class="gcal-checkbox-dot" style="background: ${colorSeguro(c.backgroundColor, '#4285F4')}"></span>
         <span class="gcal-checkbox-label">${escapeHTML(c.summary)}</span>
         ${c.primary ? '<span class="gcal-checkbox-primary">primario</span>' : ''}
       </label>
