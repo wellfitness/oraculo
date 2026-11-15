@@ -8,7 +8,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 
-import { validateDataStructure, sanearIdentificadores, descartarElementosInvalidos, normalizarHorizontes, normalizarContadores } from '../js/utils/validator.js';
+import { validateDataStructure, sanearIdentificadores, descartarElementosInvalidos, normalizarHorizontes, normalizarContadores, comprobarBackupCopiable } from '../js/utils/validator.js';
 
 // ============================================================
 // Tests para validateDataStructure
@@ -479,5 +479,138 @@ describe('normalizarContadores', () => {
     assert.strictEqual(normalizarContadores(null), 0);
     assert.strictEqual(normalizarContadores('texto'), 0);
     assert.strictEqual(normalizarContadores({}), 0);
+  });
+});
+
+// ============================================================
+// Tests para comprobarBackupCopiable
+// ============================================================
+
+describe('comprobarBackupCopiable', () => {
+  // Backup mínimo con la forma de Oráculo y sin nada escrito.
+  const backupVacio = () => ({
+    version: '1.5',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    values: [],
+    objectives: { backlog: [], quarterly: [], monthly: [], weekly: [], daily: [] },
+    habits: { active: null, graduated: [], history: [] },
+    calendar: { events: [], recurring: [] },
+    journal: [],
+    projects: [],
+    settings: {},
+    lifeWheel: { areas: [], evaluations: [] },
+    objectiveEvaluation: { criteria: [], evaluations: [] },
+    archivedNotebooks: [],
+    spontaneousAchievements: [],
+    atelicActivities: [],
+    dailySetup: { date: null },
+    muevete: { activityLog: { entries: [] } }
+  });
+
+  it('rechaza lo que no está guardado', () => {
+    assert.strictEqual(comprobarBackupCopiable(null, null).ok, false);
+    assert.strictEqual(comprobarBackupCopiable(null, null).motivo, 'ilegible');
+    assert.strictEqual(comprobarBackupCopiable(undefined, null).motivo, 'ilegible');
+    assert.strictEqual(comprobarBackupCopiable('', null).motivo, 'ilegible');
+    assert.strictEqual(comprobarBackupCopiable('   ', null).motivo, 'ilegible');
+  });
+
+  it('rechaza lo que no se puede leer como JSON', () => {
+    const resultado = comprobarBackupCopiable('{esto no es json', null);
+
+    assert.strictEqual(resultado.ok, false);
+    assert.strictEqual(resultado.motivo, 'ilegible');
+  });
+
+  it('rechaza lo que no es un backup de Oráculo', () => {
+    const resultado = comprobarBackupCopiable(JSON.stringify({ hola: 'mundo' }), null);
+
+    assert.strictEqual(resultado.ok, false);
+    assert.strictEqual(resultado.motivo, 'invalido');
+  });
+
+  it('rechaza lo que se va a copiar si no es un backup válido', () => {
+    const raw = JSON.stringify(backupVacio());
+
+    assert.strictEqual(comprobarBackupCopiable(raw, 'texto').motivo, 'invalido');
+    assert.strictEqual(comprobarBackupCopiable(raw, null).motivo, 'invalido');
+  });
+
+  it('acepta un backup con elementos sueltos si lo que se copia ya está limpio', () => {
+    // Es lo que pasa tras una carga reparada: en el almacenamiento sigue
+    // habiéndolo, pero lo que se copia es la copia ya limpiada. La app avisa
+    // de la reparación, así que la copia no puede negarse a Copy Data.
+    const guardado = { version: '1.5', journal: [null, { id: 'j1', content: 'Una entrada' }] };
+    const limpio = { version: '1.5', journal: [{ id: 'j1', content: 'Una entrada' }] };
+
+    const resultado = comprobarBackupCopiable(JSON.stringify(guardado), limpio);
+
+    assert.strictEqual(resultado.ok, true);
+    assert.strictEqual(resultado.motivo, null);
+    assert.deepStrictEqual(resultado.data.journal, [{ id: 'j1', content: 'Una entrada' }]);
+  });
+
+  it('rechaza un backup válido pero vacío', () => {
+    const backup = backupVacio();
+
+    const resultado = comprobarBackupCopiable(JSON.stringify(backup), backup);
+
+    assert.strictEqual(resultado.ok, false);
+    assert.strictEqual(resultado.motivo, 'vacio');
+  });
+
+  it('acepta un backup con contenido y lo devuelve', () => {
+    const backup = backupVacio();
+    backup.journal = [{ id: 'j1', content: 'Una entrada' }];
+
+    const resultado = comprobarBackupCopiable(JSON.stringify(backup), backup);
+
+    assert.strictEqual(resultado.ok, true);
+    assert.strictEqual(resultado.motivo, null);
+    assert.deepStrictEqual(resultado.data.journal, [{ id: 'j1', content: 'Una entrada' }]);
+  });
+
+  it('acepta contenido en cualquiera de las secciones del modelo', () => {
+    const casos = [
+      ['values', { values: [{ id: 'v1' }] }],
+      ['proyectos', { projects: [{ id: 'p1' }] }],
+      ['tarea en el backlog', { objectives: { backlog: [{ id: 't1' }] } }],
+      ['tarea completada', { objectives: { completed: [{ id: 't1' }] } }],
+      ['hábito activo', { habits: { active: { id: 'h1', name: 'Caminar' } } }],
+      ['historial de hábito', { habits: { history: [{ habitId: 'h1' }] } }],
+      ['hábito graduado', { habits: { graduated: [{ id: 'h1' }] } }],
+      ['auditoría de hábito', { habits: { audit: { activities: [{ id: 'a1' }] } } }],
+      ['evento de calendario', { calendar: { events: [{ id: 'e1' }] } }],
+      ['evento recurrente', { calendar: { recurring: [{ id: 'e1' }] } }],
+      ['logro espontáneo', { spontaneousAchievements: [{ id: 's1' }] }],
+      ['actividad atélica', { atelicActivities: [{ id: 'at1' }] }],
+      ['cuaderno archivado', { archivedNotebooks: [{ year: 2025 }] }],
+      ['notas del setup diario', { dailySetup: { potentialObstacle: 'Me cuesta levantarme' } }],
+      ['evaluación de la rueda', { lifeWheel: { evaluations: [{ id: 'w1' }] } }],
+      ['evaluación de objetivos', { objectiveEvaluation: { evaluations: [{ id: 'o1' }] } }],
+      ['registro de Muévete', { muevete: { activityLog: { entries: [{ date: '2026-11-15' }] } } }]
+    ];
+
+    for (const [nombre, parcial] of casos) {
+      const backup = { ...backupVacio(), ...parcial };
+      const resultado = comprobarBackupCopiable(JSON.stringify(backup), backup);
+      assert.strictEqual(resultado.ok, true, `debería aceptar: ${nombre}`);
+    }
+  });
+
+  it('no cuenta como contenido lo que viene por defecto en un cuaderno nuevo', () => {
+    const backup = backupVacio();
+    backup.onboarding = { completed: true, completedAt: '2026-01-01T00:00:00.000Z' };
+    backup.notebook = { year: 2026, name: 'Cuaderno 2026' };
+    backup.burkemanSettings = { showReflexiones: true };
+    backup.muevete.timerState = { status: 'idle', workBlockDuration: 7200000 };
+    // Haber hecho el setup del día no es contenido: un cuaderno recién creado
+    // lo tiene hecho y sigue vacío.
+    backup.dailySetup = { date: '2026-11-15', dailyLimit: 3 };
+
+    const resultado = comprobarBackupCopiable(JSON.stringify(backup), backup);
+
+    assert.strictEqual(resultado.ok, false);
+    assert.strictEqual(resultado.motivo, 'vacio');
   });
 });

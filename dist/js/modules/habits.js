@@ -1163,7 +1163,7 @@ const renderActiveHabit = (habit, history) => {
         </div>
         <div class="stat">
           <span class="stat-value">${progress.completed}</span>
-          <span class="stat-label">de ${numeroSeguro(progress.target)} días</span>
+          <span class="stat-label">de ${progress.target} días</span>
         </div>
         <div class="stat">
           <span class="stat-value">${progress.percentage}%</span>

@@ -8,7 +8,7 @@ import { getReflexionDelDia } from '../data/burkeman.js';
 import { getTrianguloFelicidad } from '../data/markmanson.js';
 import { renderWheelChart } from '../components/wheel-chart.js';
 import { renderEvolutionChart } from '../components/evolution-chart.js';
-import { escapeHTML } from '../utils/sanitizer.js';
+import { escapeHTML, numeroSeguro } from '../utils/sanitizer.js';
 import { puntuacionDe } from '../utils/numeros.js';
 
 let updateDataCallback = null;
@@ -28,6 +28,20 @@ const AREA_COLORS = {
   finances: '#eab308',    // Amarillo
   leisure: '#6b7280'      // Gris
 };
+
+/**
+ * Color de un área.
+ *
+ * La búsqueda es propia (`hasOwnProperty`): si el área se llama `constructor`
+ * o `toString`, leer el mapa directamente devolvería algo del prototipo en
+ * lugar de un color.
+ *
+ * @param {string} areaId - Identificador del área.
+ * @returns {string} El color del área, o el gris por defecto.
+ */
+const colorDeArea = (areaId) => (
+  Object.prototype.hasOwnProperty.call(AREA_COLORS, areaId) ? AREA_COLORS[areaId] : '#6b7280'
+);
 
 /**
  * Obtiene el trimestre actual (Q1-Q4)
@@ -313,7 +327,7 @@ const renderWheelView = (evaluation, areas) => {
           const score = puntuacionDe(scores, area.id);
           const diff = score.desired - score.current;
           return `
-            <div class="score-card" data-area="${area.id}" style="--area-color: ${AREA_COLORS[area.id] || '#6b7280'}">
+            <div class="score-card" data-area="${area.id}" style="--area-color: ${colorDeArea(area.id)}">
               <div class="score-card__header">
                 <span class="material-symbols-outlined">${escapeHTML(area.icon)}</span>
                 <span class="score-card__name">${escapeHTML(area.name)}</span>
@@ -489,8 +503,13 @@ const renderEvaluationPage = (data) => {
  * Renderiza un paso de evaluación de área
  */
 const renderEvaluationStep = (area, stepIndex) => {
-  const existingScore = wizardState.scores[area.id] || { current: 5, desired: 7, reflection: {} };
-  const areaColor = AREA_COLORS[area.id] || '#6b7280';
+  const rawScore = wizardState.scores[area.id];
+  const existingScore = {
+    current: numeroSeguro(rawScore?.current, 5),
+    desired: numeroSeguro(rawScore?.desired, 7),
+    reflection: rawScore?.reflection || {}
+  };
+  const areaColor = colorDeArea(area.id);
 
   return `
     <div class="eval-step" data-area="${area.id}">
@@ -591,7 +610,7 @@ const renderEvaluationSummary = (areas) => {
           const diff = score.desired - score.current;
           const diffClass = diff > 0 ? 'positive' : diff < 0 ? 'negative' : '';
           return `
-            <div class="eval-summary-score" style="--area-color: ${AREA_COLORS[area.id] || '#6b7280'}">
+            <div class="eval-summary-score" style="--area-color: ${colorDeArea(area.id)}">
               <span class="material-symbols-outlined">${escapeHTML(area.icon)}</span>
               <span class="name">${escapeHTML(area.name)}</span>
               <span class="scores">
@@ -673,8 +692,8 @@ const saveCurrentStepData = (areas) => {
   if (step < areas.length) {
     const area = areas[step];
     wizardState.scores[area.id] = {
-      current: parseInt(document.getElementById('score-current')?.value || 5),
-      desired: parseInt(document.getElementById('score-desired')?.value || 7),
+      current: numeroSeguro(parseInt(document.getElementById('score-current')?.value, 10), 5),
+      desired: numeroSeguro(parseInt(document.getElementById('score-desired')?.value, 10), 7),
       reflection: {
         why: document.getElementById('reflection-why')?.value || '',
         improve: document.getElementById('reflection-improve')?.value || '',
@@ -890,7 +909,7 @@ const renderEvolutionView = (evaluations, areas) => {
         ${areas.map(area => `
           <label class="evolution-legend-item">
             <input type="checkbox" data-area="${area.id}" checked>
-            <span class="legend-color" style="background: ${AREA_COLORS[area.id] || '#6b7280'}"></span>
+            <span class="legend-color" style="background: ${colorDeArea(area.id)}"></span>
             <span>${escapeHTML(area.name)}</span>
           </label>
         `).join('')}
@@ -1063,15 +1082,20 @@ const renderSelectedEvaluation = (evaluation, areas) => {
 const showAreaReflection = (areaId, data) => {
   const evaluations = data.lifeWheel?.evaluations || [];
   const lastEval = evaluations[evaluations.length - 1];
-  const score = lastEval?.scores?.[areaId];
+  const scores = lastEval?.scores;
+  const score = scores?.[areaId];
   const area = data.lifeWheel?.areas?.find(a => a.id === areaId);
 
   if (!score?.reflection || !area) return;
 
+  // La puntuación se normaliza antes de pintarse: los datos vienen de un
+  // archivo importado o de la nube y pueden traer cualquier cosa dentro.
+  const puntuacion = puntuacionDe(scores, areaId);
+
   // Mostrar en un alert simple (se puede mejorar con un modal dedicado)
   const reflection = score.reflection;
   alert(`
-${area.name} (${score.current} → ${score.desired})
+${area.name} (${puntuacion.current} → ${puntuacion.desired})
 
 ¿Por qué?
 ${reflection.why || 'Sin respuesta'}

@@ -18,6 +18,7 @@ import {
   normalizarLimiteDiario,
   puntuacionDe
 } from '../js/utils/numeros.js';
+import { numeroSeguro } from '../js/utils/sanitizer.js';
 
 describe('normalizarPuntuaciones', () => {
   it('deja las puntuaciones que ya son números', () => {
@@ -46,8 +47,19 @@ describe('normalizarPuntuaciones', () => {
   it('aguanta evaluaciones mal formadas', () => {
     const data = { lifeWheel: { evaluations: [null, { scores: null }, { scores: { health: 'x' } }] } };
 
-    assert.strictEqual(normalizarPuntuaciones(data), 0);
+    // La puntuación que no es un objeto se sustituye por la de cero: el
+    // modelo no guarda un valor sucio.
+    assert.strictEqual(normalizarPuntuaciones(data), 1);
+    assert.deepStrictEqual(data.lifeWheel.evaluations[2].scores.health, { current: 0, desired: 0 });
     assert.strictEqual(normalizarPuntuaciones({}), 0);
+  });
+
+  it('sustituye por cero una puntuación que no es un objeto', () => {
+    const data = { lifeWheel: { evaluations: [{ scores: { health: 'x', energy: 5 } }] } };
+
+    assert.strictEqual(normalizarPuntuaciones(data), 2);
+    assert.deepStrictEqual(data.lifeWheel.evaluations[0].scores.health, { current: 0, desired: 0 });
+    assert.deepStrictEqual(data.lifeWheel.evaluations[0].scores.energy, { current: 0, desired: 0 });
   });
 });
 
@@ -110,8 +122,46 @@ describe('normalizarDuracionHabito', () => {
   it('normaliza también la duración de las actividades del hábito', () => {
     const data = { habits: { active: { activities: [{ id: 'a1', duration: '<svg onload=alert(1)>' }] } } };
 
-    assert.strictEqual(normalizarDuracionHabito(data), 1);
+    // Una corrección por la duración del hábito, que estaba ausente, y otra
+    // por la duración de la actividad.
+    assert.strictEqual(normalizarDuracionHabito(data), 2);
+    assert.strictEqual(data.habits.active.duration, 30);
     assert.strictEqual(data.habits.active.activities[0].duration, 0);
+  });
+
+  it('sustituye por 30 una duración negativa', () => {
+    const data = { habits: { active: { id: 'h1', duration: -5 } } };
+
+    assert.strictEqual(normalizarDuracionHabito(data), 1);
+    assert.strictEqual(data.habits.active.duration, 30);
+  });
+
+  it('sustituye por 30 una duración vacía o nula', () => {
+    const vacia = { habits: { active: { id: 'h1', duration: '' } } };
+    assert.strictEqual(normalizarDuracionHabito(vacia), 1);
+    assert.strictEqual(vacia.habits.active.duration, 30);
+
+    const nula = { habits: { active: { id: 'h1', duration: null } } };
+    assert.strictEqual(normalizarDuracionHabito(nula), 1);
+    assert.strictEqual(nula.habits.active.duration, 30);
+
+    const ausente = { habits: { active: { id: 'h1' } } };
+    assert.strictEqual(normalizarDuracionHabito(ausente), 1);
+    assert.strictEqual(ausente.habits.active.duration, 30);
+  });
+
+  it('deja el valor guardado igual al valor que se pinta', () => {
+    const data = { habits: { active: { id: 'h1', duration: '' } } };
+    normalizarDuracionHabito(data);
+
+    // El pintado usa `numeroSeguro(habit.duration) || 30`: los dos tienen que
+    // dar lo mismo o la usuaria ve una cosa y el modelo guarda otra. Si la
+    // normalización no existiera, lo guardado seguiría vacío y lo pintado
+    // sería 30, que es justo lo que este test tiene que detectar.
+    const pintado = numeroSeguro(data.habits.active.duration) || 30;
+
+    assert.strictEqual(data.habits.active.duration, pintado);
+    assert.strictEqual(pintado, 30);
   });
 });
 
@@ -121,6 +171,33 @@ describe('normalizarDuracionesAtelicas', () => {
 
     assert.strictEqual(normalizarDuracionesAtelicas(data), 1);
     assert.strictEqual(data.atelicActivities[0].duration, 0);
+  });
+
+  it('sustituye por cero una duración negativa', () => {
+    const data = { atelicActivities: [{ id: 'a1', duration: -20 }] };
+
+    assert.strictEqual(normalizarDuracionesAtelicas(data), 1);
+    assert.strictEqual(data.atelicActivities[0].duration, 0);
+  });
+});
+
+describe('normalizarContadoresMuévete', () => {
+  it('normaliza las duraciones del temporizador', () => {
+    const data = {
+      muevete: {
+        timerState: {
+          workBlockDuration: '<img src=x onerror=alert(1)>',
+          breakDuration: -5,
+          soleusInterval: 'abc'
+        }
+      }
+    };
+
+    normalizarContadoresMuévete(data);
+
+    assert.strictEqual(data.muevete.timerState.workBlockDuration, 7200000);
+    assert.strictEqual(data.muevete.timerState.breakDuration, 480000);
+    assert.strictEqual(data.muevete.timerState.soleusInterval, 1800000);
   });
 });
 

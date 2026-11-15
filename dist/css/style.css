@@ -128,12 +128,12 @@
 .icon-xl { font-size: 48px; }
 
 /* Icon colors */
-.icon-primary { color: var(--color-primary); }
-.icon-secondary { color: var(--color-secondary); }
-.icon-success { color: var(--color-success); }
-.icon-warning { color: var(--color-warning); }
-.icon-danger { color: var(--color-danger); }
-.icon-muted { color: var(--gris-400); }
+.icon-primary { color: var(--turquesa-800); }
+.icon-secondary { color: var(--rosa-600); }
+.icon-success { color: var(--verde-600); }
+.icon-warning { color: var(--tulip-tree-500); }
+.icon-danger { color: var(--rosa-600); }
+.icon-muted { color: var(--gris-600); }
 
 /* --------------------------------------------------------------------------
    Reset & Base
@@ -3824,13 +3824,13 @@ a.entry-type-btn {
 }
 
 :focus-visible {
-  outline: 3px solid var(--turquesa-400);
+  outline: 3px solid var(--turquesa-800);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
 
 .btn:focus-visible {
-  outline: 3px solid var(--turquesa-400);
+  outline: 3px solid var(--turquesa-800);
   outline-offset: 2px;
   box-shadow: 0 0 0 4px rgba(0, 190, 200, 0.2);
 }
@@ -3842,7 +3842,7 @@ a.entry-type-btn {
 }
 
 .nav-link:focus-visible {
-  outline: 3px solid var(--turquesa-400);
+  outline: 3px solid var(--turquesa-800);
   outline-offset: 2px;
   background: var(--turquesa-100);
 }
@@ -3850,7 +3850,7 @@ a.entry-type-btn {
 .entry-card:focus-visible,
 .value-card--add:focus-visible,
 .entry-type-btn:focus-visible {
-  outline: 3px solid var(--turquesa-400);
+  outline: 3px solid var(--turquesa-800);
   outline-offset: 2px;
 }
 
@@ -8662,6 +8662,8 @@ a.entry-type-btn {
   border-left: 4px solid var(--turquesa-400);
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
   font-style: italic;
+  /* Las palabras largas no empujan la cita fuera de su caja en movil */
+  overflow-wrap: anywhere;
 }
 
 .philosophy-quote p {
@@ -9245,6 +9247,9 @@ kbd {
   padding: var(--space-3) var(--space-4);
   display: flex;
   flex-direction: row;
+  /* Los pasos se reparten en varias filas cuando no caben: antes se salian
+     del contenedor y la fase los recortaba sin dejar-scroll. */
+  flex-wrap: wrap;
   gap: var(--space-3);
 }
 
@@ -9260,7 +9265,8 @@ kbd {
   cursor: pointer;
   transition: all 0.2s ease;
   border: 2px solid transparent;
-  flex: 1;
+  flex: 1 1 200px;
+  min-width: 0;
 }
 
 .start-step:hover {
@@ -9332,6 +9338,7 @@ kbd {
 /* Fase 2 con pasos verticales */
 .start-phase__steps--vertical {
   flex-direction: column;
+  flex-wrap: nowrap;
   gap: var(--space-2);
 }
 
@@ -10315,7 +10322,7 @@ kbd {
 
 /* Focus visible mejorado para todos los elementos interactivos */
 :focus-visible {
-  outline: 3px solid var(--turquesa-400);
+  outline: 3px solid var(--turquesa-800);
   outline-offset: 2px;
 }
 
@@ -11407,8 +11414,11 @@ body {
 
 /* Heatmap mejorado */
 .heatmap-day {
-  width: 14px;
-  height: 14px;
+  /* 12px, que es lo que ocupan las semanas del año en la columna de
+     contenido (840px). Con 14px el mapa no cabía ni en un escritorio de
+     1600px y el final del año quedaba cortado sin avisar. */
+  width: 12px;
+  height: 12px;
   border-radius: 3px;
   transition: transform 0.1s ease;
 }
@@ -11485,6 +11495,20 @@ body {
 
 .settings-section--danger h2 {
   color: var(--rosa-600);
+}
+
+/* La nota legal es un pie de pagina, no una tarjeta de configuracion */
+.settings-section--legal {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: var(--space-1);
+  box-shadow: none;
+}
+
+.settings-section--legal:hover {
+  box-shadow: none;
 }
 
 /* Storage bar mejorada */
@@ -11606,7 +11630,7 @@ select,
 .focus-checkbox:focus-visible,
 .calm-trigger:focus-visible,
 .evening-trigger:focus-visible {
-  outline: 3px solid var(--turquesa-400);
+  outline: 3px solid var(--turquesa-800);
   outline-offset: 3px;
 }
 
@@ -14399,6 +14423,72 @@ select,
 
 .heatmap-wrapper {
   min-width: 700px;
+}
+
+/* Heatmap en pantallas estrechas.
+   La regla base impone 700px de ancho minimo, asi que estas van despues:
+   en movil el ano no cabe entero, pero tiene que caber la mayor parte y
+   poder desplazarse el resto con el dedo. */
+@media (max-width: 768px) {
+  .heatmap-wrapper {
+    min-width: 0;
+  }
+
+  .heatmap-container {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+}
+
+@media (max-width: 480px) {
+  .achievements-page,
+  .achievements-heatmap {
+    padding: var(--space-2);
+  }
+
+  .heatmap-container {
+    padding: var(--space-2);
+  }
+
+  .heatmap-day {
+    width: 9px;
+    height: 9px;
+  }
+
+  .heatmap-grid,
+  .heatmap-week,
+  .heatmap-days {
+    gap: 1px;
+  }
+
+  .heatmap-days {
+    width: 18px;
+  }
+
+  /* Las etiquetas de los días tienen la misma altura que las celdas, o los
+     días se quedan desalineados respecto a las semanas. */
+  .heatmap-days span {
+    height: 9px;
+  }
+}
+
+/* Aviso de que el mapa se desplaza: en movil no hay barra de scroll y sin
+   este texto no hay forma de saber que el ano sigue a la derecha. */
+.heatmap-hint {
+  display: none;
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--gris-600);
+  text-align: center;
+}
+
+/* El mapa del ano necesita 783px. Medido en el navegador, la columna de
+   contenido llega a ese ancho a partir de 960px de pantalla; por debajo el
+   mapa se sale de ella y hace falta el aviso de que se desplaza. */
+@media (max-width: 959px) {
+  .heatmap-hint {
+    display: block;
+  }
 }
 
 /* Estilos de intensidad del heatmap */
@@ -19859,6 +19949,12 @@ body.capacitor-native .capture-banner {
   text-align: left;
   cursor: pointer;
   overflow-wrap: anywhere;
+}
+
+/* El nombre del proyecto abre su evaluacion: se marca como pulsable */
+.project-card__open:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .focus-delete:focus-visible,

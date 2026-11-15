@@ -44,6 +44,17 @@ describe('numeroSeguro', () => {
   it('acepta el valor por defecto que se le pase', () => {
     assert.strictEqual(numeroSeguro('nada', 5), 5);
   });
+
+  it('no revienta con un símbolo', () => {
+    assert.strictEqual(numeroSeguro(Symbol('x')), 0);
+    assert.strictEqual(numeroSeguro(Symbol('x'), 5), 5);
+  });
+
+  it('trata el texto vacío como un valor que no es un número', () => {
+    assert.strictEqual(numeroSeguro('', 30), 30);
+    assert.strictEqual(numeroSeguro('   ', 30), 30);
+    assert.strictEqual(numeroSeguro('', 0), 0);
+  });
 });
 
 describe('colorSeguro', () => {

@@ -8,6 +8,8 @@
  * Es lógica pura: no importa nada.
  */
 
+import { numeroSeguro } from './sanitizer.js';
+
 /** Límite de tareas por horizonte. `null` significa sin límite. */
 export const LIMITS = {
   backlog: null,
@@ -37,16 +39,20 @@ export const getLocalDateString = (date = new Date()) => {
  * Límite de tareas del día. Sale del setup de hoy; si no hay setup de hoy,
  * vale el límite por defecto.
  *
+ * El setup viene de un archivo importado o de la nube, así que el número se
+ * comprueba antes de fiarse: solo vale si es un entero dentro del rango que
+ * admite el modelo.
+ *
  * @param {Object} data - Datos de la app.
  * @param {string} today - Fecha de referencia (AAAA-MM-DD).
  * @returns {number} Límite diario.
  */
 export const getDailyLimit = (data, today = getLocalDateString()) => {
   const setup = data?.dailySetup;
-  if (setup && setup.date === today && Number.isInteger(setup.dailyLimit)) {
-    return setup.dailyLimit;
-  }
-  return LIMITS.daily;
+  if (!setup || setup.date !== today) return LIMITS.daily;
+
+  const limite = numeroSeguro(setup.dailyLimit);
+  return Number.isInteger(limite) && limite >= 1 && limite <= 3 ? limite : LIMITS.daily;
 };
 
 /**

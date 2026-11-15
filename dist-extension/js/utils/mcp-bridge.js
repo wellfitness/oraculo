@@ -632,11 +632,11 @@ export function initMcpBridge(loadDataFn) {
     mcpBridge.syncToBridge(data).catch(() => { /* silencioso */ });
   });
 
-  // También sincronizar cuando Drive trae datos remotos
-  window.addEventListener('data-synced-from-cloud', (e) => {
-    if (e.detail?.data) {
-      mcpBridge.syncToBridge(e.detail.data).catch(() => { /* silencioso */ });
-    }
+  // También sincronizar cuando Drive trae datos remotos.
+  // Los datos se releen del almacenamiento en vez de usar los que trae el
+  // evento: así pasan por la misma normalización que el resto de caminos.
+  window.addEventListener('data-synced-from-cloud', () => {
+    mcpBridge.syncToBridge(loadDataFn()).catch(() => { /* silencioso */ });
   });
 
   // Verificar si hay acciones pendientes del agente al iniciar

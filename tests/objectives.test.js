@@ -22,13 +22,19 @@ describe('límites', () => {
     assert.strictEqual(getDailyLimit({}, '2026-11-13'), 3);
     assert.strictEqual(getDailyLimit({ dailySetup: null }, '2026-11-13'), 3);
   });
+  it('el límite diario fuera del rango del modelo vale 3', () => {
+    assert.strictEqual(getDailyLimit({ dailySetup: { date: '2026-11-13', dailyLimit: 0 } }, '2026-11-13'), 3);
+    assert.strictEqual(getDailyLimit({ dailySetup: { date: '2026-11-13', dailyLimit: 9 } }, '2026-11-13'), 3);
+    assert.strictEqual(getDailyLimit({ dailySetup: { date: '2026-11-13', dailyLimit: 2.5 } }, '2026-11-13'), 3);
+    assert.strictEqual(getDailyLimit({ dailySetup: { date: '2026-11-13', dailyLimit: '<b>x</b>' } }, '2026-11-13'), 3);
+    assert.strictEqual(getDailyLimit({ dailySetup: { date: '2026-11-13', dailyLimit: '2' } }, '2026-11-13'), 2);
+  });
   it('getHorizonLimit', () => {
     assert.strictEqual(getHorizonLimit({}, 'quarterly'), 3);
     assert.strictEqual(getHorizonLimit({}, 'monthly'), 6);
     assert.strictEqual(getHorizonLimit({}, 'weekly'), 10);
     assert.strictEqual(getHorizonLimit({}, 'backlog'), null);
-    assert.strictEqual(LIMITS.daily, 3);
-  });
+    assert.strictEqual(LIMITS.daily, 3);  });
   it('countActive ignora las completadas y admite listas ausentes', () => {
     assert.strictEqual(countActive([{ completed: true }, { completed: false }, {}]), 2);
     assert.strictEqual(countActive(undefined), 0);

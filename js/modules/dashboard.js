@@ -7,6 +7,7 @@ import { generateId, formatDate, showNotification, openCalmTimer, openSpontaneou
 import { needsWeeklyReview } from '../components/weekly-review-modal.js';
 import { escapeHTML, colorSeguro, numeroSeguro } from '../utils/sanitizer.js';
 import { buscarProyectoPorHashtag } from '../utils/elementos.js';
+import { getDailyLimit } from '../utils/objectives.js';
 import { confirmDangerAsync } from '../utils/confirm-modal.js';
 import { isEveningTime, hasEveningCheckIn } from '../components/evening-check-in.js';
 import { getAchievementsStats, isHabitCompletedToday } from '../utils/achievements-calculator.js';
@@ -425,7 +426,7 @@ function _injectDashboardGcalEvents(section, events) {
   for (const ev of events) {
     const li = document.createElement('li');
     li.className = 'event-item event-item--google';
-    li.style.setProperty('--gcal-color', ev.calendarColor || '#4285F4');
+    li.style.setProperty('--gcal-color', colorSeguro(ev.calendarColor, '#4285F4'));
     li.title = `${ev.calendarName || ''} · click abre Google Calendar`;
     li.dataset.htmllink = ev.htmlLink || '';
     const timeLabel = ev.allDay ? 'Todo el día' : (ev.startTime || '');
@@ -503,12 +504,13 @@ const renderMueveteCard = () => {
   }
 
   if (state.status === 'working') {
+    const bloques = numeroSeguro(state.blocksCompleted);
     return `
       <a href="#muevete" data-view="muevete" class="calm-trigger muevete-dashboard-card muevete-dashboard-card--active">
         <span class="material-symbols-outlined">directions_run</span>
         <div class="calm-trigger__content">
           <span class="calm-trigger__title">Muévete — ${formatTime(state.workBlockRemaining)}</span>
-          <span class="calm-trigger__subtitle">${numeroSeguro(state.blocksCompleted)} vitamina${state.blocksCompleted !== 1 ? 's' : ''} M hoy</span>
+          <span class="calm-trigger__subtitle">${bloques} vitamina${bloques !== 1 ? 's' : ''} M hoy</span>
         </div>
       </a>
     `;
@@ -903,19 +905,6 @@ const handleToggleRock = (taskId, data) => {
  */
 const getLocalDateString = (date = new Date()) => {
   return date.toLocaleDateString('en-CA'); // 'en-CA' devuelve YYYY-MM-DD
-};
-
-/**
- * Obtiene el límite diario dinámico según el Volumen Fijo configurado
- * Si no hay setup del día, usa el límite por defecto (3)
- */
-const getDailyLimit = (data) => {
-  const today = getLocalDateString();
-  const limite = numeroSeguro(data.dailySetup?.dailyLimit);
-  if (data.dailySetup?.date === today && Number.isInteger(limite) && limite >= 1 && limite <= 3) {
-    return limite;
-  }
-  return 3; // fallback
 };
 
 /**

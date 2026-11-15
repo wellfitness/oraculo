@@ -131,7 +131,7 @@ oraculo/
 │   ├── app.js              # Coordinador principal (bootstrap dinámico, captura inteligente)
 │   ├── storage-hybrid.js   # Implementación única (solo localStorage)
 │   ├── storage-local.js    # Reexporta storage-hybrid.js (extensión Chrome)
-│   ├── storage.js          # Solo localStorage (legacy, usado por settings.js)
+│   ├── storage.js          # Legado: solo lo usan sus pruebas
 │   ├── modules/
 │   │   ├── dashboard.js    # Dashboard web + launcher extensión
 │   │   ├── today.js        # Vista "Hoy" compacta
@@ -160,7 +160,14 @@ oraculo/
 │       ├── sanitizer.js
 │       ├── validator.js
 │       ├── speech-handler.js
-│       └── auto-backup.js
+│       ├── auto-backup.js
+│       ├── captura.js      # Captura inteligente (#proyecto, >horizonte, !)
+│       ├── elementos.js    # Lectura segura de los elementos del modelo
+│       ├── numeros.js      # Normalización de los números del modelo
+│       ├── objectives.js   # Reglas de tareas (límites, importante)
+│       ├── ics.js          # Exportación de calendario (.ics)
+│       ├── journal-draft.js  # Borrador automático del diario
+│       └── confirm-modal.js  # Confirmación de acciones peligrosas
 ├── sounds/
 │   └── alert.mp3           # Alerta de Muévete
 ├── extension/              # Extensión Chrome (source)

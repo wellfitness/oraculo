@@ -4,6 +4,7 @@
  */
 
 import { escapeHTML, numeroSeguro } from '../utils/sanitizer.js';
+import { puntuacionDe } from '../utils/numeros.js';
 
 // Colores por defecto para áreas
 const DEFAULT_COLORS = {
@@ -360,9 +361,9 @@ export const calculateWheelStats = (scores, areas) => {
   let biggestGap = null;
 
   areas.forEach(area => {
-    const score = scores[area.id] || { current: 0, desired: 0 };
-    const current = score.current || 0;
-    const desired = score.desired || 0;
+    const score = puntuacionDe(scores, area.id);
+    const current = score.current;
+    const desired = score.desired;
     const gap = desired - current;
 
     totalCurrent += current;

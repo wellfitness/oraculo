@@ -80,12 +80,32 @@ export const colorSeguro = (color, porDefecto = COLOR_POR_DEFECTO) => {
  * pueden traer cualquier cosa dentro. Escapar el HTML no valdría aquí: lo
  * que se quiere es un número, y si no lo es se pinta cero.
  *
+ * Un texto vacío no es un número: `Number('')` vale 0, pero un campo vacío
+ * significa "no informado", no "cero". Un símbolo ni siquiera se puede
+ * convertir, así que se trata como un valor que no es numérico.
+ *
  * @param {*} valor - Valor de partida.
  * @param {number} [porDefecto] - Número a devolver si el valor no es numérico.
  * @returns {number} Un número finito.
  */
 export const numeroSeguro = (valor, porDefecto = 0) => {
-  const numero = Number(valor);
-  return Number.isFinite(numero) ? numero : porDefecto;
+  if (typeof valor === 'symbol') return porDefecto;
+  if (typeof valor === 'string' && valor.trim() === '') return porDefecto;
+
+  try {
+    const numero = Number(valor);
+    return Number.isFinite(numero) ? numero : porDefecto;
+  } catch {
+    return porDefecto;
+  }
 };
+
+/**
+ * Indica si un valor es un objeto plano (no nulo, no un array).
+ *
+ * @param {*} valor - Valor de partida.
+ * @returns {boolean} true si es un objeto plano.
+ */
+export const esObjeto = (valor) =>
+  valor !== null && typeof valor === 'object' && !Array.isArray(valor);
 

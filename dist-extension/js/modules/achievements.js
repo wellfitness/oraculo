@@ -135,6 +135,7 @@ export const render = (data) => {
         <div class="heatmap-container">
           ${renderHeatmap(data)}
         </div>
+        <p class="heatmap-hint">Desliza el mapa para ver el año completo.</p>
       </section>
 
       <!-- Logros espontáneos -->

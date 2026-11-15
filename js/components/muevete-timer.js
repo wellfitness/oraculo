@@ -123,7 +123,7 @@ const recordActivity = (log, date, wasEarlyEnd) => {
 
   const pruned = pruneOldEntries(entries, 90);
   const currentStreak = calculateStreak(pruned, date);
-  const bestStreak = Math.max(log.bestStreak, currentStreak);
+  const bestStreak = Math.max(numeroSeguro(log.bestStreak), currentStreak);
 
   return { entries: pruned, currentStreak, bestStreak };
 };

@@ -7,6 +7,7 @@ import { showNotification, autoBackup, reloadStateFromStorage, USAGE_MODES, open
 import {
   exportData,
   saveData,
+  loadData,
   getStorageUsage,
   clearAllData,
   clearIdentityData,
@@ -23,6 +24,7 @@ import {
   applyImportedData
 } from '../storage-hybrid.js';
 import { escapeHTML, numeroSeguro } from '../utils/sanitizer.js';
+import { comprobarBackupCopiable } from '../utils/validator.js';
 import { confirmDangerAsync } from '../utils/confirm-modal.js';
 import * as gcalSettings from '../gcal/gcal-settings.js';
 import { mcpBridge, McpBridge } from '../utils/mcp-bridge.js';
@@ -459,9 +461,35 @@ export const init = (data, updateData) => {
       showNotification('Portapapeles no disponible (requiere HTTPS)', 'error');
       return;
     }
+
+    // Antes de copiar se comprueba lo que hay guardado. Un cuaderno vacío o
+    // algo que no se puede leer se lleva a la otra parte (web ↔ extensión) y
+    // sustituye a los datos que allí sí había, así que mejor no copiar nada y
+    // avisar de por qué.
+    //
+    // Lo que se comprueba y lo que se copia es lo mismo: los datos ya
+    // normalizados que devuelve `loadData()`. Si se comprobara el texto
+    // sucio del almacenamiento, una carga reparada dejaría a la usuaria sin
+    // poder pasar sus datos de una plataforma a otra.
+    const raw = localStorage.getItem('oraculo_data');
+    const datos = loadData();
+    const backup = comprobarBackupCopiable(raw, datos);
+
+    if (!backup.ok) {
+      const motivos = {
+        ilegible: 'No se han podido leer tus datos guardados. No se ha copiado nada.',
+        invalido: 'Tus datos guardados no son un backup válido. No se ha copiado nada.',
+        vacio: 'No hay datos guardados que copiar.'
+      };
+      showNotification(motivos[backup.motivo] || 'No se ha copiado nada.', 'error');
+      return;
+    }
+
     try {
-      const data = localStorage.getItem('oraculo_data') || '{}';
-      await navigator.clipboard.writeText(data);
+      // Se copia lo que la app tiene en forma, no lo que hay escrito en el
+      // almacenamiento: así lo que se pega en la otra parte (web ↔ extensión)
+      // es un backup válido y no un dato a medio normalizar.
+      await navigator.clipboard.writeText(JSON.stringify(backup.data));
       showNotification('Datos copiados al portapapeles', 'success');
     } catch (e) {
       showNotification('No se pudo copiar. Usa Exportar backup.', 'error');
@@ -713,6 +741,10 @@ const openArchivedViewer = (data) => {
 
   const notebook = data.notebook || {};
   const summary = data.summary || generateYearSummary(data);
+  // La lista de proyectos puede no ser una lista si el archivo está dañado:
+  // se comprueba antes de filtrarla.
+  const proyectosCompletados = (Array.isArray(data.projects) ? data.projects : [])
+    .filter(p => p?.status === 'completed');
 
   title.textContent = notebook.name || `Cuaderno ${notebook.year}`;
 
@@ -772,11 +804,11 @@ const openArchivedViewer = (data) => {
         </div>
       ` : ''}
 
-      ${(data.projects || []).filter(p => p.status === 'completed').length > 0 ? `
+      ${proyectosCompletados.length > 0 ? `
         <div class="viewer-section">
           <h3>Proyectos completados</h3>
           <ul class="viewer-list">
-            ${data.projects.filter(p => p.status === 'completed').map(p => `
+            ${proyectosCompletados.map(p => `
               <li>${escapeHTML(p.name)}</li>
             `).join('')}
           </ul>

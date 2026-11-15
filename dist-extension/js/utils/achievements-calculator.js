@@ -211,39 +211,47 @@ export const getJournalEntriesInPeriod = (journal, period) => {
 };
 
 /**
+ * Fecha en formato AAAA-MM-DD de una marca de tiempo.
+ *
+ * Los datos vienen de un archivo importado o de la nube, así que la fecha
+ * puede no ser una cadena. Si no lo es, no hay fecha que contar.
+ *
+ * @param {*} valor - Marca de tiempo de partida.
+ * @returns {string} La fecha, o cadena vacía.
+ */
+const fechaDe = (valor) => (typeof valor === 'string' ? valor.split('T')[0] : '');
+
+/**
  * Genera datos para el heatmap de actividad (estilo GitHub)
  * Retorna un objeto con fechas como claves y nivel de actividad como valores
  */
 export const generateHeatmapData = (data, year = new Date().getFullYear()) => {
   const heatmap = {};
+  const anio = year.toString();
 
   // Contar actividad de tareas completadas (en horizontes y en completed)
   ['quarterly', 'monthly', 'weekly', 'daily', 'completed'].forEach(horizon => {
     (data.objectives?.[horizon] || []).forEach(task => {
-      if (task.completedAt) {
-        const date = task.completedAt.split('T')[0];
-        if (date.startsWith(year.toString())) {
-          heatmap[date] = (heatmap[date] || 0) + 1;
-        }
+      const date = fechaDe(task?.completedAt);
+      if (date.startsWith(anio)) {
+        heatmap[date] = (heatmap[date] || 0) + 1;
       }
     });
   });
 
   // Contar actividad de hábitos (peso doble)
   (data.habits?.history || []).forEach(entry => {
-    const date = entry.date;
-    if (date.startsWith(year.toString())) {
+    const date = fechaDe(entry?.date);
+    if (date.startsWith(anio)) {
       heatmap[date] = (heatmap[date] || 0) + 2;
     }
   });
 
   // Contar actividad de diario
   (data.journal || []).forEach(entry => {
-    if (entry.createdAt) {
-      const date = entry.createdAt.split('T')[0];
-      if (date.startsWith(year.toString())) {
-        heatmap[date] = (heatmap[date] || 0) + 1;
-      }
+    const date = fechaDe(entry?.createdAt);
+    if (date.startsWith(anio)) {
+      heatmap[date] = (heatmap[date] || 0) + 1;
     }
   });
 

@@ -17,7 +17,8 @@ import {
   getCompletedTasksInPeriod,
   getHabitStatsInPeriod,
   generateRecapText,
-  getAchievementsStats
+  getAchievementsStats,
+  generateHeatmapData
 } from '../js/utils/achievements-calculator.js';
 
 // ============================================================
@@ -357,5 +358,31 @@ describe('getAchievementsStats', () => {
     assert.strictEqual(stats.journalEntries, 0);
     assert.strictEqual(stats.projectsCompleted, 0);
     assert.strictEqual(stats.graduatedHabits, 0);
+  });
+});
+
+describe('generateHeatmapData', () => {
+  it('cuenta la actividad del año', () => {
+    const data = {
+      objectives: { weekly: [{ completedAt: '2026-11-15T10:00:00.000Z' }] },
+      habits: { history: [{ date: '2026-11-15' }] },
+      journal: [{ createdAt: '2026-11-15T09:00:00.000Z' }]
+    };
+
+    const heatmap = generateHeatmapData(data, 2026);
+
+    assert.strictEqual(heatmap['2026-11-15'], 4);
+  });
+
+  it('aguanta fechas que no son cadenas', () => {
+    const data = {
+      objectives: { weekly: [{ completedAt: 12345 }, { completedAt: { fecha: 1 } }] },
+      habits: { history: [{ date: null }, { date: 20261115 }, {}] },
+      journal: [{ createdAt: { fecha: 1 } }, { createdAt: 'no-es-fecha' }]
+    };
+
+    const heatmap = generateHeatmapData(data, 2026);
+
+    assert.deepStrictEqual(heatmap, {});
   });
 });

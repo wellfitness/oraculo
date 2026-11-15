@@ -23,10 +23,13 @@ const leer = (relativo) => fs.readFileSync(path.join(raiz, relativo), 'utf8');
 
 describe('higiene de los datos pintados', () => {
   it('la captura global busca el proyecto con la función probada', () => {
-    const codigo = leer('js/app.js');
+    const captura = leer('js/utils/captura.js');
+    const app = leer('js/app.js');
 
-    assert.ok(codigo.includes('buscarProyectoPorEtiqueta('), 'debe usar buscarProyectoPorEtiqueta');
-    assert.ok(!codigo.includes("(p.name || '')"), 'no debe leer p.name sin proteger');
+    assert.ok(captura.includes('buscarProyectoPorEtiqueta('), 'debe usar buscarProyectoPorEtiqueta');
+    assert.ok(app.includes('parseCapture('), 'la app debe usar el parser probado');
+    assert.ok(!app.includes("(p.name || '')"), 'no debe leer p.name sin proteger');
+    assert.ok(!captura.includes('.name ||'), 'no debe leer el nombre del proyecto sin proteger');
   });
 
   it('el dashboard busca el proyecto con la función probada', () => {
@@ -99,6 +102,12 @@ describe('higiene de los datos pintados', () => {
 
     assert.ok(rueda.includes('numeroSeguro(scores[area.id]?.current)'), 'la rueda debe usar numeroSeguro');
     assert.ok(evolucion.includes('numeroSeguro(ev.scores?.[area.id]?.current, 5)'), 'el gráfico debe usar numeroSeguro');
+
+    // Y que el valor en crudo no se pinte por otro camino: si solo se
+    // comprueba que la llamada existe, quitar la protección deja el test
+    // en verde.
+    assert.ok(!rueda.includes('${scores[area.id]?.current}'), 'la rueda no debe pintar la puntuación en crudo');
+    assert.ok(!evolucion.includes('${ev.scores?.[area.id]?.current}'), 'el gráfico no debe pintar la puntuación en crudo');
   });
 
   it('los contadores de Muévete se pintan como números', () => {
@@ -111,6 +120,10 @@ describe('higiene de los datos pintados', () => {
     assert.ok(vista.includes('numeroSeguro(summary.totalCompleted)'), 'la vista debe usar numeroSeguro');
     assert.ok(vista.includes('numeroSeguro(state.blocksCompleted)'), 'la vista debe usar numeroSeguro');
     assert.ok(panel.includes('numeroSeguro(state.blocksCompleted)'), 'el panel debe usar numeroSeguro');
+
+    assert.ok(!temporizador.includes('${entry.completed}'), 'el temporizador no debe pintar el contador en crudo');
+    assert.ok(!vista.includes('${summary.totalCompleted}'), 'la vista no debe pintar el contador en crudo');
+    assert.ok(!panel.includes('${state.blocksCompleted}'), 'el panel no debe pintar el contador en crudo');
   });
 
   it('la duración del hábito y el límite diario se pintan como números', () => {
@@ -118,8 +131,10 @@ describe('higiene de los datos pintados', () => {
     const panel = leer('js/modules/dashboard.js');
 
     assert.ok(habitos.includes('numeroSeguro(habit.duration)'), 'la duración del hábito debe usar numeroSeguro');
-    assert.ok(habitos.includes('numeroSeguro(progress.target)'), 'el objetivo de días debe usar numeroSeguro');
     assert.ok(habitos.includes('numeroSeguro(activity.duration)'), 'la duración de la actividad debe usar numeroSeguro');
-    assert.ok(panel.includes('numeroSeguro(data.dailySetup?.dailyLimit)'), 'el límite diario debe usar numeroSeguro');
+    assert.ok(panel.includes('getDailyLimit(data)'), 'el panel debe usar el límite diario compartido');
+
+    assert.ok(!habitos.includes('${habit.duration}'), 'no debe pintar la duración del hábito en crudo');
+    assert.ok(!habitos.includes('${activity.duration}'), 'no debe pintar la duración de la actividad en crudo');
   });
 });

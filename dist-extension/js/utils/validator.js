@@ -305,6 +305,28 @@ export const descartarElementosInvalidos = (data) => {
 };
 
 /**
+ * Campos con los que se reconoce un backup de Oráculo. Basta con que tenga
+ * uno cualquiera para darlo por bueno.
+ */
+const CAMPOS_DE_ORACULO = ['version', 'createdAt', 'objectives', 'habits', 'settings', 'values', 'journal'];
+
+/**
+ * Dice si el objeto parece un backup de Oráculo.
+ *
+ * Solo mira los nombres de las secciones de primer nivel. No mira si sus
+ * elementos son válidos, porque eso lo comprueba la carga: cuando la carga
+ * reparada, lo que hay en el almacenamiento sigue sucio pero lo que se
+ * copia es la copia ya limpiada.
+ *
+ * @param {*} data - Datos a mirar.
+ * @returns {boolean} true si tiene alguna sección reconocible.
+ */
+export const pareceBackupDeOraculo = (data) => {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
+  return CAMPOS_DE_ORACULO.some(campo => Object.hasOwn(data, campo));
+};
+
+/**
  * Valida la estructura básica del archivo de backup.
  * Ahora es más permisivo para aceptar archivos de versiones anteriores.
  *
@@ -321,10 +343,7 @@ export const validateDataStructure = (data) => {
 
   // Validación mínima: al menos debe tener ALGO que parezca de Oráculo
   // Aceptamos si tiene version O createdAt O objectives O habits
-  const oraculoFields = ['version', 'createdAt', 'objectives', 'habits', 'settings', 'values', 'journal'];
-  const hasAnyField = oraculoFields.some(field => Object.hasOwn(data, field));
-
-  if (!hasAnyField) {
+  if (!pareceBackupDeOraculo(data)) {
     return {
       valid: false,
       error: 'Este archivo no parece ser un backup de Oráculo. No contiene campos reconocibles.'
@@ -405,4 +424,115 @@ export const validateDataStructure = (data) => {
   }
 
   return { valid: true, warnings };
+};
+
+/**
+ * Secciones del modelo donde vive lo que la usuaria ha escrito.
+ *
+ * Cada entrada es la ruta de una lista. Si alguna tiene elementos, el cuaderno
+ * tiene contenido. Las secciones que vienen por defecto en un cuaderno nuevo
+ * (ajustes, cuaderno, valores por defecto de la rueda, criterios de evaluación)
+ * no se cuentan: un cuaderno recién creado está vacío de verdad.
+ */
+const RUTAS_DE_CONTENIDO = [
+  ['values'],
+  ['projects'],
+  ['journal'],
+  ['spontaneousAchievements'],
+  ['atelicActivities'],
+  ['archivedNotebooks'],
+  ['objectives', 'backlog'],
+  ['objectives', 'quarterly'],
+  ['objectives', 'monthly'],
+  ['objectives', 'weekly'],
+  ['objectives', 'daily'],
+  ['objectives', 'completed'],
+  ['habits', 'graduated'],
+  ['habits', 'history'],
+  ['habits', 'audit', 'activities'],
+  ['calendar', 'events'],
+  ['calendar', 'recurring'],
+  ['lifeWheel', 'evaluations'],
+  ['objectiveEvaluation', 'evaluations'],
+  ['muevete', 'activityLog', 'entries']
+];
+
+/**
+ * Dice si el cuaderno tiene algo escrito por la usuaria.
+ *
+ * @param {Object} data - Datos a mirar.
+ * @returns {boolean} true si hay al menos un dato propio.
+ */
+export const tieneContenido = (data) => {
+  if (!data || typeof data !== 'object') return false;
+
+  for (const ruta of RUTAS_DE_CONTENIDO) {
+    const lista = valorEnRuta(data, ruta);
+    if (Array.isArray(lista) && lista.length > 0) return true;
+  }
+
+  // Estas dos no son listas: el hábito activo y las notas del setup del día.
+  const habitoActivo = data.habits?.active;
+  if (habitoActivo && typeof habitoActivo === 'object') return true;
+
+  // El setup del día cuenta solo si la usuaria escribió algo en él. Haberlo
+  // hecho no es contenido: un cuaderno recién creado lo tiene hecho y sigue
+  // siendo un cuaderno vacío.
+  for (const campo of ['potentialObstacle', 'contingencyPlan']) {
+    const nota = data.dailySetup?.[campo];
+    if (typeof nota === 'string' && nota.trim() !== '') return true;
+  }
+
+  return false;
+};
+
+/**
+ * Comprueba que lo que hay guardado sirva como backup para la otra plataforma
+ * (la web y la extensión Chrome).
+ *
+ * Sin esta comprobación, copiar desde un cuaderno vacío lleva un backup sin
+ * nada a la otra parte, donde sustituye a los datos que sí había. Y copiar lo
+ * que no se puede leer propaga el problema en lugar de avisar de él.
+ *
+ * Lo que se comprueba y lo que se copia tienen que ser **lo mismo**. Por eso
+ * se reciben los dos: el texto crudo del almacenamiento dice si se puede
+ * leer, y `datos` son los datos ya normalizados que se van a copiar. Si se
+ * validara el texto sucio y se copiara la copia limpia, una carga reparada
+ * dejaría a la usuaria sin poder pasar sus datos de una plataforma a otra,
+ * con un aviso que además se contradiría con el de la reparación.
+ *
+ * @param {string|null|undefined} rawText - Texto exacto guardado en el almacenamiento.
+ * @param {Object} [datos] - Los datos ya normalizados que se van a copiar.
+ * @returns {{ok: boolean, motivo: string|null, data: Object|null}} Resultado de la comprobación.
+ */
+export const comprobarBackupCopiable = (rawText, datos = null) => {
+  // ¿Se puede leer lo que hay guardado?
+  if (typeof rawText !== 'string' || rawText.trim() === '') {
+    return { ok: false, motivo: 'ilegible', data: null };
+  }
+
+  let guardado = null;
+  try {
+    guardado = JSON.parse(rawText);
+  } catch {
+    return { ok: false, motivo: 'ilegible', data: null };
+  }
+
+  // ¿Es siquiera un cuaderno de Oráculo? Aquí no se mira si sus elementos son
+  // válidos: la carga ya se ha encargado de eso.
+  if (!pareceBackupDeOraculo(guardado)) {
+    return { ok: false, motivo: 'invalido', data: null };
+  }
+
+  // ¿Lo que se va a copiar es un backup válido?
+  if (!datos || typeof datos !== 'object' || !validateDataStructure(datos).valid) {
+    return { ok: false, motivo: 'invalido', data: null };
+  }
+
+  // ¿Hay algo que copiar?
+  if (!tieneContenido(datos)) {
+    return { ok: false, motivo: 'vacio', data: null };
+  }
+
+  return { ok: true, motivo: null, data: datos };
 };

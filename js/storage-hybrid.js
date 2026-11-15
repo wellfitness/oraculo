@@ -160,6 +160,19 @@ const getDefaultData = () => ({
 // Incidencia de la última carga. La app la consulta una vez y la descarta.
 let loadIssue = null;
 
+/**
+ * Incidencia de la última carga y su caducidad.
+ *
+ * 'corrupt'   → no se ha podido leer lo que había.
+ * 'repaired'  → se ha leído, pero había elementos sueltos y se han quitado.
+ */
+export const LOAD_ISSUE_CORRUPT = 'corrupt';
+export const LOAD_ISSUE_REPAIRED = 'repaired';
+
+// Si ya se ha avisado de que el almacenamiento está lleno, no se avisa otra
+// vez: el aviso saldría en cada guardado y llenaría la pantalla de avisos.
+let quotaWarningShown = false;
+
 const loadFromLocalStorage = () => {
   let stored = null;
   try {
@@ -175,7 +188,7 @@ const loadFromLocalStorage = () => {
       try {
         localStorage.setItem('oraculo_data_corrupt', stored);
       } catch { /* noop */ }
-      loadIssue = 'corrupt';
+      loadIssue = LOAD_ISSUE_CORRUPT;
     }
     return null;
   }
@@ -195,6 +208,13 @@ export const consumeLoadIssue = () => {
 
 const saveToLocalStorage = (data) => {
   try {
+    // Los datos se dejan en forma antes de escribirlos: así lo que queda en
+    // el almacenamiento es lo mismo que ve la app, y no un dato sucio que
+    // vuelve a salir en la siguiente carga.
+    if (isPlainObject(data)) {
+      ensureDataShape(data);
+    }
+
     data.updatedAt = new Date().toISOString();
 
     // Prune tombstones viejos (>30 dias) para evitar crecimiento indefinido
@@ -206,6 +226,8 @@ const saveToLocalStorage = (data) => {
     }
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+    quotaWarningShown = false;
 
     // Notificar al sync layer (Google Drive) que hubo cambio
     window.dispatchEvent(new CustomEvent('data-saved'));
@@ -273,12 +295,21 @@ export const loadData = () => {
     localData = migrateData(localData);
   }
 
+  // Se cuentan antes de limpiar para poder avisar de que la carga ha tenido
+  // que quitar algo: si no, el aviso sale en silencio y la usuaria no sabe
+  // por qué falta un dato.
+  const descartados = descartarElementosInvalidos(localData);
+
   ensureDataShape(localData);
   // Los identificadores se normalizan al cargar, no solo al importar: los
   // datos también llegan por la sincronización con Drive, que escribe
   // directamente en localStorage.
   sanearIdentificadores(localData);
   cleanupLegacyGcalSettings(localData);
+
+  if (descartados > 0 && !loadIssue) {
+    loadIssue = LOAD_ISSUE_REPAIRED;
+  }
 
   return localData;
 };
@@ -489,7 +520,13 @@ export const summarizeBackup = (data) => {
 export const applyImportedData = (data) => {
   const current = localStorage.getItem(STORAGE_KEY);
   if (current !== null) {
-    localStorage.setItem(STORAGE_KEY + '_backup', current);
+    // La copia de seguridad es una cortesía: si el almacenamiento está lleno
+    // y no cabe, la importación sigue adelante con los datos nuevos.
+    try {
+      localStorage.setItem(STORAGE_KEY + '_backup', current);
+    } catch (error) {
+      console.warn('[Storage] No se ha podido guardar la copia de seguridad:', error);
+    }
   }
 
   return saveData(data);
@@ -516,6 +553,9 @@ export const getStorageUsage = () => {
 };
 
 const showStorageWarning = () => {
+  if (quotaWarningShown) return;
+  quotaWarningShown = true;
+
   const usage = getStorageUsage();
   console.warn(`Almacenamiento casi lleno: ${usage.percentage}% usado`);
   window.dispatchEvent(new CustomEvent('storage-warning', { detail: usage }));
@@ -640,7 +680,11 @@ export const clearIdentityData = () => {
     history: [],
     audit: { activities: [], lastAuditAt: null }
   };
-  if (data.lifeWheel) data.lifeWheel = null;
+  // La rueda de la vida vuelve a su estado de fábrica: los ocho áreas son
+  // las de la app, pero se borran las evaluaciones de la usuaria. Ponerla a
+  // null no servía, porque al rellenar la forma por defecto volvía a salir
+  // igual, y el dato guardado no decía la verdad.
+  data.lifeWheel = getDefaultData().lifeWheel;
   saveData(data);
 };
 
@@ -765,6 +809,19 @@ export const startNewYear = (archivedNotebooks = []) => {
   return newData;
 };
 
+/**
+ * Indica si un archivo es un cuaderno de Oráculo archivado.
+ *
+ * @param {*} data - Contenido del archivo ya leído.
+ * @returns {boolean} true si es un cuaderno archivado.
+ */
+export const esCuadernoArchivado = (data) => {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
+  if (!data.version || !data.notebook) return false;
+  if (typeof data.notebook !== 'object' || Array.isArray(data.notebook)) return false;
+  return true;
+};
+
 export const loadArchivedYear = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -773,7 +830,7 @@ export const loadArchivedYear = (file) => {
       try {
         const archivedData = JSON.parse(e.target.result);
 
-        if (!archivedData.version || !archivedData.notebook) {
+        if (!esCuadernoArchivado(archivedData)) {
           throw new Error('Este archivo no es un cuaderno de Oráculo válido');
         }
 

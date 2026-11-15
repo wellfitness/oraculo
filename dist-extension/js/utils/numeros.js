@@ -9,44 +9,79 @@
  * marcado ni los cálculos se coman el dato.
  */
 
-/** Un valor es un objeto si no es nulo, no es un array y tiene tipo objeto. */
-const esObjeto = (valor) =>
-  valor !== null && typeof valor === 'object' && !Array.isArray(valor);
+import { numeroSeguro, esObjeto } from './sanitizer.js';
 
-/**
- * Fuerza un valor a número, con un sustituto si no se puede.
- *
- * @param {*} valor - Valor de partida.
- * @param {number} porDefecto - Número a dejar si el valor no es numérico.
- * @returns {number} Un número finito.
- */
-const aNumero = (valor, porDefecto) => {
-  const numero = Number(valor);
-  return Number.isFinite(numero) ? numero : porDefecto;
-};
+/** Duración por defecto de un hábito, en días. */
+const DURACION_HABITO = 30;
+
+/** Bloque de trabajo por defecto de Muévete, en milisegundos. */
+const BLOQUE_TRABAJO = 7200000;
+
+/** Descanso por defecto de Muévete, en milisegundos. */
+const DESCANSO = 480000;
+
+/** Recordatorio de sóleo por defecto, en milisegundos. */
+const INTERVALO_SOLEO = 1800000;
 
 /**
  * Normaliza los valores numéricos de un modelo de tarea.
  *
+ * Un campo vacío o nulo significa "no informado": se deja con el valor por
+ * defecto, para que lo que se guarda sea lo mismo que se pinta. Un campo por
+ * debajo del mínimoAllowed tampoco vale: se sustituye por el valor por
+ * defecto.
+ *
+ * Un campo que no está no se toca, salvo que se pida rellenarlo: en las
+ * listas del modelo (registro de descansos, actividades) añadir un campo
+ * que la app nunca usou solo genera ruido.
+ *
  * @param {*} tarea - Tarea a normalizar.
  * @param {string[]} campos - Campos que deben ser números.
  * @param {number} porDefecto - Valor a dejar si el campo no es numérico.
+ * @param {number|null} [minimo] - Valor por debajo del cual no vale.
+ * @param {boolean} [rellenarAusentes] - Si un campo ausente se rellena.
  * @returns {number} Cuántos campos se han corregido.
  */
-const normalizarCampos = (tarea, campos, porDefecto = 0) => {
+const normalizarCampos = (tarea, campos, porDefecto = 0, minimo = null, rellenarAusentes = false) => {
   if (!esObjeto(tarea)) return 0;
 
   let corregidos = 0;
 
   for (const campo of campos) {
     const valor = tarea[campo];
-    if (valor === undefined || valor === null) continue;
+    if (valor === undefined && !rellenarAusentes) continue;
 
-    const numero = aNumero(valor, porDefecto);
-    if (numero !== valor) {
-      tarea[campo] = numero;
+    const numero = (valor === undefined || valor === null)
+      ? porDefecto
+      : numeroSeguro(valor, porDefecto);
+    const limpio = (minimo !== null && numero < minimo) ? porDefecto : numero;
+
+    if (limpio !== valor) {
+      tarea[campo] = limpio;
       corregidos++;
     }
+  }
+
+  return corregidos;
+};
+
+/**
+ * Normaliza la duración de cada elemento de una lista.
+ *
+ * Es el mismo recorrido para las actividades de un hábito y para las
+ * actividades atélicas: solo cambia el valor por defecto.
+ *
+ * @param {*} lista - Lista de actividades.
+ * @param {number} porDefecto - Valor a dejar si la duración no es numérica.
+ * @param {number} [minimo] - Valor por debajo del cual no vale.
+ * @returns {number} Cuántos valores se han corregido.
+ */
+const normalizarDuracionesDeLista = (lista, porDefecto = 0, minimo = 0) => {
+  if (!Array.isArray(lista)) return 0;
+
+  let corregidos = 0;
+  for (const actividad of lista) {
+    corregidos += normalizarCampos(actividad, ['duration'], porDefecto, minimo);
   }
 
   return corregidos;
@@ -71,7 +106,18 @@ export const normalizarPuntuaciones = (data) => {
     if (!esObjeto(evaluacion) || !esObjeto(evaluacion.scores)) continue;
 
     for (const areaId of Object.keys(evaluacion.scores)) {
-      corregidos += normalizarCampos(evaluacion.scores[areaId], ['current', 'desired']);
+      const score = evaluacion.scores[areaId];
+
+      // Una puntuación que no es un objeto (una cadena, un número) no
+      // significa nada: se sustituye por la de cero, para que el modelo no
+      // guarde un valor sucio.
+      if (!esObjeto(score)) {
+        evaluacion.scores[areaId] = { current: 0, desired: 0 };
+        corregidos++;
+        continue;
+      }
+
+      corregidos += normalizarCampos(score, ['current', 'desired']);
     }
   }
 
@@ -83,7 +129,8 @@ export const normalizarPuntuaciones = (data) => {
  *
  * El registro de actividad lleva cuántos descansos se completaron y cuántos
  * se cortaron, y el temporizador lleva los bloques hechos. Se suman y se
- * pintan, así que tienen que ser números.
+ * pintan, así que tienen que ser números. Las duraciones del temporizador
+ * también se normalizan: si no lo están, la vista pinta "NaN min".
  *
  * @param {*} data - Datos a normalizar, en el sitio.
  * @returns {number} Cuántos valores se han corregido.
@@ -98,9 +145,17 @@ export const normalizarContadoresMuévete = (data) => {
     }
   }
 
+  const registro = data?.muevete?.activityLog;
+  if (esObjeto(registro)) {
+    corregidos += normalizarCampos(registro, ['currentStreak', 'bestStreak']);
+  }
+
   const temporizador = data?.muevete?.timerState;
   if (esObjeto(temporizador)) {
     corregidos += normalizarCampos(temporizador, ['blocksCompleted']);
+    corregidos += normalizarCampos(temporizador, ['workBlockDuration'], BLOQUE_TRABAJO, 1);
+    corregidos += normalizarCampos(temporizador, ['breakDuration'], DESCANSO, 1);
+    corregidos += normalizarCampos(temporizador, ['soleusInterval'], INTERVALO_SOLEO, 1);
   }
 
   return corregidos;
@@ -140,8 +195,8 @@ export const puntuacionDe = (scores, areaId) => {
 
   return {
     ...score,
-    current: aNumero(score.current, 0),
-    desired: aNumero(score.desired, 0)
+    current: numeroSeguro(score.current, 0),
+    desired: numeroSeguro(score.desired, 0)
   };
 };
 
@@ -155,14 +210,8 @@ export const normalizarDuracionHabito = (data) => {
   const habito = data?.habits?.active;
   if (!esObjeto(habito)) return 0;
 
-  let corregidos = normalizarCampos(habito, ['duration'], 30);
-
-  const actividades = habito.activities;
-  if (Array.isArray(actividades)) {
-    for (const actividad of actividades) {
-      corregidos += normalizarCampos(actividad, ['duration']);
-    }
-  }
+  let corregidos = normalizarCampos(habito, ['duration'], DURACION_HABITO, 1, true);
+  corregidos += normalizarDuracionesDeLista(habito.activities, 0, 0);
 
   return corregidos;
 };
@@ -174,15 +223,7 @@ export const normalizarDuracionHabito = (data) => {
  * @returns {number} Cuántos valores se han corregido.
  */
 export const normalizarDuracionesAtelicas = (data) => {
-  const actividades = data?.atelicActivities;
-  if (!Array.isArray(actividades)) return 0;
-
-  let corregidos = 0;
-  for (const actividad of actividades) {
-    corregidos += normalizarCampos(actividad, ['duration']);
-  }
-
-  return corregidos;
+  return normalizarDuracionesDeLista(data?.atelicActivities, 0, 0);
 };
 
 /**

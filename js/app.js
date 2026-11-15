@@ -10,9 +10,15 @@ const saveData = (...args) => _storage.saveData(...args);
 const getStorageUsage = (...args) => _storage.getStorageUsage(...args);
 const shouldPersistOnUnload = (...args) => _storage.shouldPersistOnUnload(...args);
 const consumeLoadIssue = (...args) => _storage.consumeLoadIssue(...args);
+// `ensureDataShape` deja los datos en la forma que espera la app. Se usa en el
+// guardado de salida, que escribe en localStorage sin pasar por el storage.
+const ensureDataShape = (...args) => (
+  typeof _storage.ensureDataShape === 'function' ? _storage.ensureDataShape(...args) : null
+);
 import { confirmDanger } from './utils/confirm-modal.js';
 import { getHorizonLimit, countActive, IMPORTANT_TASK_TYPE } from './utils/objectives.js';
-import { buscarProyectoPorEtiqueta } from './utils/elementos.js';
+import { parseCapture } from './utils/captura.js';
+import { escapeHTML } from './utils/sanitizer.js';
 import { needsDailySetup } from './components/daily-setup-modal.js';
 import {
   renderCalmTimerModal,
@@ -100,6 +106,44 @@ const getBaseView = (hash) => {
 };
 
 /**
+ * Avisa de lo que pasó al cargar los datos.
+ *
+ * Hay dos incidencias posibles: que no se pudiera leer lo que había
+ * ('corrupt') o que se leyeran datos sueltos y tuvieran que quitarse
+ * ('repaired'). La segunda también puede aparecer al sincronizar con la
+ * nube, no solo al arrancar, así que la función se usa en los dos caminos.
+ *
+ * @param {string|null} issue - Incidencia pendiente.
+ * @param {boolean} [enSincronizacion] - true si los datos vienen de la nube.
+ */
+const mostrarAvisoDeCarga = (issue, enSincronizacion = false) => {
+  if (issue === 'corrupt') {
+    if (enSincronizacion) {
+      showNotification(
+        'No se han podido leer los datos sincronizados. Oráculo ha conservado una copia de lo que había.',
+        'warning'
+      );
+      return;
+    }
+    confirmDanger({
+      title: 'No se han podido leer tus datos guardados',
+      message: 'Oráculo ha conservado una copia de lo que había y ha empezado un cuaderno vacío. Si tienes un backup, impórtalo desde Configuración.',
+      confirmText: 'Ir a Configuración',
+      cancelText: 'Cerrar',
+      type: 'warning'
+    }, () => navigateTo('settings'));
+    return;
+  }
+
+  if (issue === 'repaired') {
+    showNotification(
+      'Algunos elementos de tus datos no eran válidos y se han quitado. El resto se ha conservado.',
+      'warning'
+    );
+  }
+};
+
+/**
  * Inicializa la aplicación
  */
 export const init = () => {
@@ -180,15 +224,7 @@ export const init = () => {
 
   state.initialized = true;
 
-  if (consumeLoadIssue() === 'corrupt') {
-    confirmDanger({
-      title: 'No se han podido leer tus datos guardados',
-      message: 'Oráculo ha conservado una copia de lo que había y ha empezado un cuaderno vacío. Si tienes un backup, impórtalo desde Configuración.',
-      confirmText: 'Ir a Configuración',
-      cancelText: 'Cerrar',
-      type: 'warning'
-    }, () => navigateTo('settings'));
-  }
+  mostrarAvisoDeCarga(consumeLoadIssue());
 
   console.log('Oráculo inicializado');
 };
@@ -256,6 +292,11 @@ const setupGlobalEvents = () => {
     // evita que un dato externo rompa el marcado al pintarse.
     const fresh = loadData();
 
+    // La carga puede haber tenido que quitar elementos sueltos. El aviso sale
+    // también aquí, no solo al arrancar: si no, la usuaria ve que faltan
+    // datos después de sincronizar y no sabe por qué.
+    const loadIssue = consumeLoadIssue();
+
     // Verificar si hay algún modal abierto
     const openModal = document.querySelector('dialog[open]');
 
@@ -270,6 +311,8 @@ const setupGlobalEvents = () => {
       renderView(state.currentView);
       showNotification('✓ Datos sincronizados desde la nube', 'success');
     }
+
+    mostrarAvisoDeCarga(loadIssue, true);
   });
 
   // Aplicar sync pendiente cuando se cierra un modal
@@ -289,6 +332,10 @@ const setupGlobalEvents = () => {
       // Guardar directamente en localStorage
       try {
         state.data.updatedAt = new Date().toISOString();
+        // Los datos se dejan en forma antes de escribirlos. Este camino no
+        // pasa por el storage, así que es el único sitio donde se puede
+        // colar un dato suelto que reviente la vista al cargarlo.
+        ensureDataShape(state.data);
         localStorage.setItem('oraculo_data', JSON.stringify(state.data));
       } catch (e) {
         console.warn('[App] Error guardando en beforeunload:', e);
@@ -748,60 +795,10 @@ const setupGlobalCapture = () => {
   if (!input || !btn) return;
 
   /**
-   * Parsea el texto de captura para extraer metadatos inteligentes
-   * Sintaxis: "texto #proyecto >horizonte !"
-   *   #nombre  → asigna al proyecto que coincida
-   *   >semana / >mes / >trimestre → horizonte destino (default: backlog)
-   *   ! al inicio → marca como importante (taskType: 'importante')
-   */
-  const parseCapture = (rawText) => {
-    let text = rawText;
-    let projectId = null;
-    let horizon = 'backlog';
-    let isImportant = false;
-    let unknownTag = null;
-
-    // Detectar ! al inicio → importante
-    if (text.startsWith('!')) {
-      isImportant = true;
-      text = text.slice(1).trim();
-    }
-
-    // Detectar #proyecto
-    const hashMatch = text.match(/#(\S+)/);
-    if (hashMatch) {
-      const tag = hashMatch[1].toLowerCase();
-      const projects = state.data.projects || [];
-      const match = buscarProyectoPorEtiqueta(projects, tag);
-      if (match) {
-        projectId = match.id;
-        text = text.replace(/#\S+/, '').trim();
-      } else {
-        unknownTag = hashMatch[1];
-      }
-    }
-
-    // Detectar >horizonte
-    const horizonMatch = text.match(/>(\S+)/);
-    if (horizonMatch) {
-      const h = horizonMatch[1].toLowerCase();
-      const horizonMap = {
-        'semana': 'weekly', 'sem': 'weekly', 's': 'weekly',
-        'mes': 'monthly', 'm': 'monthly',
-        'trimestre': 'quarterly', 'tri': 'quarterly', 't': 'quarterly',
-        'hoy': 'daily', 'foco': 'daily', 'prioridades': 'daily', 'prioridad': 'daily', 'p': 'daily', 'h': 'daily'
-      };
-      if (horizonMap[h]) {
-        horizon = horizonMap[h];
-        text = text.replace(/>\S+/, '').trim();
-      }
-    }
-
-    return { text, projectId, horizon, isImportant, unknownTag };
-  };
-
-  /**
-   * Captura una idea con parsing inteligente
+   * Captura una idea con parsing inteligente.
+   *
+   * La sintaxis la lee `parseCapture` (utils/captura.js), que es lógica pura
+   * y está cubierta por pruebas.
    */
   const capture = () => {
     const rawText = input.value.trim();
@@ -810,7 +807,7 @@ const setupGlobalCapture = () => {
       return;
     }
 
-    const parsed = parseCapture(rawText);
+    const parsed = parseCapture(rawText, state.data.projects || []);
 
     if (!/[\p{L}\p{N}]/u.test(parsed.text)) {
       showNotification('Falta el texto de la idea. Escribe algo además de los símbolos.', 'warning');
@@ -1020,11 +1017,11 @@ const renderView = async (viewName) => {
       }
     }
   } catch (error) {
-    console.error('Error cargando vista:', viewName, error);
+    console.error(`[App] No se ha podido cargar la vista "${viewName}":`, error);
     container.innerHTML = `
       <div class="empty-state empty-state--large">
         <span class="material-symbols-outlined icon-xl">error_outline</span>
-        <h3>No se pudo cargar "${VIEWS[viewName] || viewName}"</h3>
+        <h3>No se pudo cargar "${escapeHTML(VIEWS[viewName] || viewName)}"</h3>
         <p>Puede que haya un problema temporal. Intenta volver al inicio.</p>
         <button class="btn btn--primary" onclick="window.location.hash='dashboard'">
           <span class="material-symbols-outlined icon-sm">home</span>
@@ -1037,9 +1034,13 @@ const renderView = async (viewName) => {
 
 /**
  * Actualiza la navegación activa
+ *
+ * Solo se marca el enlace de la barra lateral: el logo, los botones de la
+ * cabecera y el enlace del pie también llevan `data-view`, pero no son
+ * elementos de navegación y no deben llevar el estado de "página actual".
  */
 const updateActiveNav = (viewName) => {
-  document.querySelectorAll('[data-view]').forEach(link => {
+  document.querySelectorAll('.app-nav [data-view]').forEach(link => {
     const active = link.dataset.view === viewName;
     link.classList.toggle('active', active);
     if (active) link.setAttribute('aria-current', 'page');

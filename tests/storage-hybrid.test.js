@@ -118,6 +118,16 @@ describe('borrado sin confirm', () => {
     assert.strictEqual(d.habits.graduated.length, 0);
     assert.strictEqual(d.objectives.weekly.length, 1);
   });
+  it('clearIdentityData borra la rueda de la vida', () => {
+    localStorage.setItem(KEY, JSON.stringify({
+      version: '1.5',
+      lifeWheel: { evaluations: [{ id: 'e1', scores: { health: { current: 8 } } }] }
+    }));
+    storage.clearIdentityData();
+    const d = storage.loadData();
+    assert.deepStrictEqual(d.lifeWheel.evaluations, []);
+    assert.ok(d.lifeWheel.areas.length > 0, 'los áreas por defecto se mantienen');
+  });
   it('clearAllData elimina la clave', () => {
     sembrar(); storage.clearAllData();
     assert.strictEqual(localStorage.getItem(KEY), null);
@@ -244,6 +254,20 @@ describe('elementos sueltos', () => {
     assert.strictEqual(d.muevete.timerState.blocksCompleted, 0);
     assert.strictEqual(d.notebook.year, 2026);
   });
+
+  it('loadData deja la duración del hábito, la atélica y el límite diario en su sitio', () => {
+    localStorage.setItem(KEY, JSON.stringify({
+      version: '1.5',
+      habits: { active: { id: 'h1', name: 'Caminar', duration: -5 } },
+      atelicActivities: [{ id: 'a1', name: 'Pasear', duration: -20 }],
+      dailySetup: { date: '2026-11-15', dailyLimit: 99 }
+    }));
+    const d = storage.loadData();
+
+    assert.strictEqual(d.habits.active.duration, 30);
+    assert.strictEqual(d.atelicActivities[0].duration, 0);
+    assert.strictEqual(d.dailySetup.dailyLimit, 3);
+  });
 });
 
 describe('generateYearSummary', () => {
@@ -253,5 +277,100 @@ describe('generateYearSummary', () => {
       objectives: { weekly: [{ completed: true }, { completed: false }], completed: [{ completed: true }, { completed: true }] }
     }));
     assert.strictEqual(s.totalTasksCompleted, 3);
+  });
+});
+
+describe('guardado', () => {
+  it('saveData guarda los datos ya normalizados', () => {
+    const datos = storage.ensureDataShape({ version: '1.5' });
+    datos.habits.active = { id: 'h1', name: 'Caminar', duration: -5 };
+    datos.notebook.year = '<img src=x onerror=alert(1)>';
+
+    storage.saveData(datos);
+
+    const guardado = JSON.parse(localStorage.getItem(KEY));
+    assert.strictEqual(guardado.habits.active.duration, 30);
+    assert.strictEqual(Number.isInteger(guardado.notebook.year), true);
+  });
+
+  it('avisa una sola vez cuando el almacenamiento está lleno', () => {
+    const avisos = [];
+    const dispatchOriginal = globalThis.window.dispatchEvent;
+    const setItemOriginal = localStorage.setItem;
+
+    globalThis.window.dispatchEvent = (evento) => {
+      if (evento.type === 'storage-warning') avisos.push(evento);
+    };
+    localStorage.setItem = () => {
+      const error = new Error('almacenamiento lleno');
+      error.name = 'QuotaExceededError';
+      throw error;
+    };
+
+    try {
+      storage.saveData({ version: '1.5' });
+      storage.saveData({ version: '1.5' });
+      storage.saveData({ version: '1.5' });
+    } finally {
+      globalThis.window.dispatchEvent = dispatchOriginal;
+      localStorage.setItem = setItemOriginal;
+    }
+
+    assert.strictEqual(avisos.length, 1);
+  });
+
+  it('la importación sigue aunque la copia de seguridad no quepa', () => {
+    localStorage.setItem(KEY, JSON.stringify({ version: '1.5' }));
+    const setItemOriginal = localStorage.setItem;
+    localStorage.setItem = (k, v) => {
+      if (k === KEY + '_backup') {
+        const error = new Error('no cabe');
+        error.name = 'QuotaExceededError';
+        throw error;
+      }
+      setItemOriginal(k, v);
+    };
+
+    let guardado = false;
+    try {
+      guardado = storage.applyImportedData({ version: '1.5', values: [] });
+    } finally {
+      localStorage.setItem = setItemOriginal;
+    }
+
+    assert.strictEqual(guardado, true);
+    assert.ok(localStorage.getItem(KEY));
+  });
+});
+
+describe('esCuadernoArchivado', () => {
+  it('acepta un cuaderno de Oráculo', () => {
+    assert.strictEqual(storage.esCuadernoArchivado({ version: '1.5', notebook: { year: 2025 } }), true);
+  });
+
+  it('rechaza lo que no es un cuaderno', () => {
+    assert.strictEqual(storage.esCuadernoArchivado(null), false);
+    assert.strictEqual(storage.esCuadernoArchivado('texto'), false);
+    assert.strictEqual(storage.esCuadernoArchivado([]), false);
+    assert.strictEqual(storage.esCuadernoArchivado({ version: '1.5' }), false);
+    assert.strictEqual(storage.esCuadernoArchivado({ notebook: { year: 2025 } }), false);
+    assert.strictEqual(storage.esCuadernoArchivado({ version: '1.5', notebook: '2025' }), false);
+  });
+});
+
+describe('aviso de carga', () => {
+  it('avisa cuando al cargar se ha tenido que descartar algo', () => {
+    localStorage.setItem(KEY, JSON.stringify({ version: '1.5', values: [null, { id: 'v1', name: 'Salud' }] }));
+
+    const d = storage.loadData();
+    assert.strictEqual(d.values.length, 1);
+    assert.strictEqual(storage.consumeLoadIssue(), 'repaired');
+  });
+
+  it('no avisa cuando la carga está limpia', () => {
+    localStorage.setItem(KEY, JSON.stringify({ version: '1.5', values: [{ id: 'v1', name: 'Salud' }] }));
+
+    storage.loadData();
+    assert.strictEqual(storage.consumeLoadIssue(), null);
   });
 });

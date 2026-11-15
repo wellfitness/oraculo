@@ -310,8 +310,8 @@ export const calculateTrends = (evaluations, areas) => {
   const [prev, current] = lastTwo;
 
   areas.forEach(area => {
-    const prevScore = prev.scores?.[area.id]?.current || 0;
-    const currentScore = current.scores?.[area.id]?.current || 0;
+    const prevScore = numeroSeguro(prev.scores?.[area.id]?.current);
+    const currentScore = numeroSeguro(current.scores?.[area.id]?.current);
     const diff = currentScore - prevScore;
 
     trends[area.id] = {
@@ -355,7 +355,7 @@ export const renderSparkline = (evaluations, areaId, options = {}) => {
     return `${(i * xStep).toFixed(2)},${yScale(score).toFixed(2)}`;
   }).join(' ');
 
-  const lastScore = sortedEvals[sortedEvals.length - 1].scores?.[areaId]?.current || 5;
+  const lastScore = numeroSeguro(sortedEvals[sortedEvals.length - 1].scores?.[areaId]?.current, 5);
   const lastY = yScale(lastScore);
 
   return `

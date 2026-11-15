@@ -193,7 +193,11 @@ const renderList = (data) => {
 const renderEntryCard = (entry) => {
   const typeInfo = ENTRY_TYPES[entry.type] || ENTRY_TYPES.free;
   const safeContent = escapeHTML(entry.content);
-  const preview = safeContent.substring(0, 150) + (safeContent.length > 150 ? '...' : '');
+  // Una entrada sin texto se queda muda: se dice, para que la usuaria no
+  // piense que la tarjeta está rota.
+  const preview = safeContent
+    ? safeContent.substring(0, 150) + (safeContent.length > 150 ? '...' : '')
+    : 'Entrada sin texto';
 
   return `
     <a href="#journal/edit/${escapeHTML(entry.id)}" class="entry-card">
@@ -366,9 +370,14 @@ const setupEditor = (data) => {
     clearTimeout(draftTimer);
     draftTimer = setTimeout(() => saveDraft(draftId, textarea.value), 400);
   });
-  document.querySelector('.editor-actions-right a[href="#journal"]')?.addEventListener('click', () => {
-    clearTimeout(draftTimer);
-    clearDraft(draftId);
+  // Los dos enlaces de vuelta ("Volver al diario" de la cabecera y
+  // "Cancelar") se comportan igual: al salir sin guardar, el borrador se
+  // borra. Si solo lo hiciera uno, el texto reaparecía al volver a entrar.
+  document.querySelectorAll('.editor-back, .editor-actions-right a[href="#journal"]').forEach(enlace => {
+    enlace.addEventListener('click', () => {
+      clearTimeout(draftTimer);
+      clearDraft(draftId);
+    });
   });
 
   // Guardar entrada

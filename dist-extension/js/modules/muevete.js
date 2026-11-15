@@ -139,7 +139,7 @@ const renderIdle = (state, data) => {
       <div class="muevete-idle__toggles">
         <label class="toggle-label">
           <input type="checkbox" id="muevete-soleus-toggle" ${state.soleusEnabled ? 'checked' : ''}>
-          <span>Recordatorio de sóleo cada ${state.soleusInterval / 60000} min</span>
+          <span>Recordatorio de sóleo cada ${numeroSeguro(state.soleusInterval, 1800000) / 60000} min</span>
         </label>
         <label class="toggle-label">
           <input type="checkbox" id="muevete-sound-toggle" ${state.soundEnabled ? 'checked' : ''}>
@@ -163,6 +163,8 @@ const renderIdle = (state, data) => {
 };
 
 const renderWorking = (state, data) => {
+  const bloques = numeroSeguro(state.blocksCompleted);
+
   return `
     <div class="muevete-working">
       <p class="muevete-working__label">Trabajando</p>
@@ -178,7 +180,7 @@ const renderWorking = (state, data) => {
 
       <div class="muevete-working__blocks">
         <span class="material-symbols-outlined" style="font-size:20px">emoji_events</span>
-        ${numeroSeguro(state.blocksCompleted)} vitamina${state.blocksCompleted !== 1 ? 's' : ''} M hoy
+        ${bloques} vitamina${bloques !== 1 ? 's' : ''} M hoy
       </div>
 
       ${renderWeekStrip(data)}

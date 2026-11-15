@@ -6,6 +6,7 @@
  */
 
 import { escapeHTML } from '../utils/sanitizer.js';
+import { confirmDangerAsync } from '../utils/confirm-modal.js';
 import * as gcalService from './gcal-service.js';
 import { getGcalSettings, setGcalSettings, patchGcalSettings } from './gcal-local-store.js';
 
@@ -98,7 +99,14 @@ async function onConnect() {
 }
 
 async function onDisconnect() {
-  if (!confirm('¿Seguro que quieres desconectar Google Calendar?\n\nPodrás volver a conectarlo cuando quieras.')) return;
+  const ok = await confirmDangerAsync({
+    title: '¿Desconectar Google Calendar?',
+    message: 'Podrás volver a conectarlo cuando quieras.',
+    confirmText: 'Sí, desconectar',
+    cancelText: 'No, mantener',
+    type: 'warning'
+  });
+  if (!ok) return;
   try {
     await gcalService.disconnectCalendar();
   } catch (e) {
