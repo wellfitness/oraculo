@@ -6,7 +6,6 @@
 import { showNotification, autoBackup, reloadStateFromStorage, USAGE_MODES, openWeeklyReview } from '../app.js';
 import {
   exportData,
-  importData,
   saveData,
   getStorageUsage,
   clearAllData,
@@ -16,9 +15,15 @@ import {
   archiveCurrentYear,
   startNewYear,
   loadArchivedYear,
-  generateYearSummary
-} from '../storage.js';
-import { escapeHTML } from '../utils/sanitizer.js';
+  generateYearSummary,
+  getNextNotebookYear,
+  parseImportFile,
+  parseImportText,
+  summarizeBackup,
+  applyImportedData
+} from '../storage-hybrid.js';
+import { escapeHTML, numeroSeguro } from '../utils/sanitizer.js';
+import { confirmDangerAsync } from '../utils/confirm-modal.js';
 import * as gcalSettings from '../gcal/gcal-settings.js';
 import { mcpBridge, McpBridge } from '../utils/mcp-bridge.js';
 
@@ -50,8 +55,9 @@ export const render = (data) => {
   const usage = getStorageUsage();
   const notebook = data.notebook || { year: new Date().getFullYear() };
   const archivedNotebooks = data.archivedNotebooks || [];
-  const currentYear = new Date().getFullYear();
-  const nextYear = currentYear + 1;
+  const currentYear = notebook.year;
+  const nextYear = getNextNotebookYear(data);
+  const anioCuaderno = numeroSeguro(notebook.year);
 
   return `
     <div class="settings-page">
@@ -79,7 +85,7 @@ export const render = (data) => {
           <div class="notebook-info">
             <span class="material-symbols-outlined notebook-icon">menu_book</span>
             <div>
-              <strong>${notebook.name || `Cuaderno ${notebook.year}`}</strong>
+              <strong>${escapeHTML(notebook.name || `Cuaderno ${notebook.year}`)}</strong>
               <span class="notebook-since">
                 Desde ${formatDate(notebook.startedAt)}
               </span>
@@ -94,7 +100,7 @@ export const render = (data) => {
         <div class="notebook-actions">
           <button class="btn btn--primary" id="archive-year-btn">
             <span class="material-symbols-outlined">inventory_2</span>
-            Archivar ${notebook.year} y empezar ${nextYear}
+            Archivar ${anioCuaderno} y empezar ${nextYear}
           </button>
           <p class="action-hint">
             Esto descargará un archivo con todos tus datos del año y empezará un cuaderno limpio.
@@ -110,15 +116,15 @@ export const render = (data) => {
                   <div class="archived-info">
                     <span class="material-symbols-outlined">inventory_2</span>
                     <div>
-                      <strong>${nb.name}</strong>
+                      <strong>${escapeHTML(nb.name)}</strong>
                       <span class="archived-date">Archivado ${formatDate(nb.archivedAt)}</span>
                     </div>
                   </div>
                   ${nb.summary ? `
                     <div class="archived-summary">
-                      ${nb.summary.totalTasksCompleted} tareas,
-                      ${nb.summary.habitsGraduated} hábitos,
-                      ${nb.summary.journalEntries} entradas
+                      ${numeroSeguro(nb.summary.totalTasksCompleted)} tareas,
+                      ${numeroSeguro(nb.summary.habitsGraduated)} hábitos,
+                      ${numeroSeguro(nb.summary.journalEntries)} entradas
                     </div>
                   ` : ''}
                 </li>
@@ -285,15 +291,15 @@ export const render = (data) => {
       </section>
 
       <!-- Legal -->
-      <section class="settings-section" style="opacity: 0.7;">
-        <p style="font-size: 0.75rem; line-height: 1.5; color: var(--gris-500); text-align: center;">
+      <section class="settings-section settings-section--legal">
+        <p class="settings-legal">
           Oráculo es un proyecto de <strong>código abierto</strong>, gratuito y sin ánimo de lucro.
           Tus datos se almacenan en tu dispositivo y, opcionalmente, en tu Google Drive personal.
           No tenemos acceso a tus datos. No nos hacemos responsables de la pérdida, inexactitud
           o cualquier problema derivado del uso de la aplicación.
-          <a href="https://oraculo.movimientofuncional.app/aviso-legal.html" target="_blank" rel="noopener" style="color: var(--turquesa-600);">Aviso legal</a> ·
-          <a href="https://oraculo.movimientofuncional.app/privacidad.html" target="_blank" rel="noopener" style="color: var(--turquesa-600);">Privacidad</a> ·
-          <a href="https://github.com/wellfitness/oraculo" target="_blank" rel="noopener" style="color: var(--turquesa-600);">GitHub</a>
+          <a href="https://oraculo.movimientofuncional.app/aviso-legal.html" target="_blank" rel="noopener">Aviso legal</a> ·
+          <a href="https://oraculo.movimientofuncional.app/privacidad.html" target="_blank" rel="noopener">Privacidad</a> ·
+          <a href="https://github.com/wellfitness/oraculo" target="_blank" rel="noopener">GitHub</a>
         </p>
       </section>
 
@@ -302,14 +308,14 @@ export const render = (data) => {
         <div class="modal-content">
           <h2 class="modal-title">
             <span class="material-symbols-outlined icon-warning">inventory_2</span>
-            Archivar año ${notebook.year}
+            Archivar año ${anioCuaderno}
           </h2>
           <div class="modal-body">
             <p>Esto hará lo siguiente:</p>
             <ul class="archive-steps">
               <li>
                 <span class="material-symbols-outlined icon-success">download</span>
-                Descargar un archivo con todos tus datos de ${notebook.year}
+                Descargar un archivo con todos tus datos de ${anioCuaderno}
               </li>
               <li>
                 <span class="material-symbols-outlined icon-success">check</span>
@@ -390,6 +396,23 @@ export const init = (data, updateData) => {
     showNotification('Backup descargado. ¡Súbelo a tu nube!', 'success');
   });
 
+  // Reemplazar los datos actuales por los de un backup, con aviso previo
+  const replaceWithBackup = async (data, origin, successMsg) => {
+    const s = summarizeBackup(data);
+    const ok = await confirmDangerAsync({
+      title: `¿Reemplazar tus datos por los ${origin}?`,
+      message: `Contiene ${s.tasks} tareas y ${s.journalEntries} entradas de diario. Antes se guardará una copia de tus datos actuales.`,
+      confirmText: 'Sí, reemplazar',
+      cancelText: 'No, cancelar',
+      type: 'warning'
+    });
+    if (!ok) return;
+    if (!applyImportedData(data)) throw new Error('No se pudieron guardar los datos');
+    reloadStateFromStorage();
+    showNotification(successMsg, 'success');
+    location.reload();
+  };
+
   // Importar (botón de sincronización)
   document.getElementById('import-sync-input')?.addEventListener('change', async (e) => {
     const file = e.target.files[0];
@@ -399,11 +422,7 @@ export const init = (data, updateData) => {
     e.target.value = '';
 
     try {
-      await importData(file);
-      // Sincronizar state.data con localStorage para evitar que beforeunload sobrescriba
-      reloadStateFromStorage();
-      showNotification('¡Datos sincronizados correctamente!', 'success');
-      location.reload();
+      await replaceWithBackup(await parseImportFile(file), 'de este archivo', '¡Datos sincronizados correctamente!');
     } catch (error) {
       console.error('[Settings] Error sincronizando:', error);
       showNotification('Error: ' + error.message, 'error');
@@ -427,11 +446,7 @@ export const init = (data, updateData) => {
     e.target.value = '';
 
     try {
-      await importData(file);
-      // Sincronizar state.data con localStorage para evitar que beforeunload sobrescriba
-      reloadStateFromStorage();
-      showNotification('Datos importados correctamente', 'success');
-      location.reload();
+      await replaceWithBackup(await parseImportFile(file), 'de este archivo', 'Datos importados correctamente');
     } catch (error) {
       console.error('[Settings] Error importando:', error);
       showNotification('Error: ' + error.message, 'error');
@@ -461,56 +476,32 @@ export const init = (data, updateData) => {
     }
     try {
       const text = await navigator.clipboard.readText();
-      const parsed = JSON.parse(text);
-      if (!parsed.version || !parsed.objectives) {
-        throw new Error('No es un backup de Oráculo válido');
-      }
-      if (confirm('¿Reemplazar TODOS los datos actuales con los del portapapeles?')) {
-        localStorage.setItem('oraculo_data', text);
-        reloadStateFromStorage();
-        showNotification('Datos pegados correctamente', 'success');
-        location.reload();
-      }
+      await replaceWithBackup(parseImportText(text), 'del portapapeles', 'Datos pegados correctamente');
     } catch (e) {
       showNotification('Error: ' + (e.message || 'Datos no válidos en el portapapeles'), 'error');
     }
   });
 
-  // Borrado parcial: Identidad
-  document.getElementById('clear-identity-btn')?.addEventListener('click', () => {
-    if (clearIdentityData()) {
-      showNotification('Identidad borrada (valores, hábitos, rueda)', 'info');
-      window.oraculoSkipUnloadWarning = true;
+  // Borrado parcial: identidad, productividad, diario y todo
+  const wireClear = (btnId, title, message, clearFn, doneMsg) => {
+    document.getElementById(btnId)?.addEventListener('click', async () => {
+      const ok = await confirmDangerAsync({ title, message, confirmText: 'Sí, borrar', cancelText: 'No, mantener' });
+      if (!ok) return;
+      clearFn();
+      reloadStateFromStorage();
+      showNotification(doneMsg, 'info');
       location.reload();
-    }
-  });
+    });
+  };
 
-  // Borrado parcial: Productividad
-  document.getElementById('clear-productivity-btn')?.addEventListener('click', () => {
-    if (clearProductivityData()) {
-      showNotification('Productividad borrada (tareas, proyectos, logros)', 'info');
-      window.oraculoSkipUnloadWarning = true;
-      location.reload();
-    }
-  });
-
-  // Borrado parcial: Diario
-  document.getElementById('clear-journal-btn')?.addEventListener('click', () => {
-    if (clearJournalData()) {
-      showNotification('Diario borrado', 'info');
-      window.oraculoSkipUnloadWarning = true;
-      location.reload();
-    }
-  });
-
-  // Borrar TODO
-  document.getElementById('clear-data-btn')?.addEventListener('click', () => {
-    if (clearAllData()) {
-      showNotification('Todos los datos borrados', 'info');
-      window.oraculoSkipUnloadWarning = true;
-      location.reload();
-    }
-  });
+  wireClear('clear-identity-btn', '¿Borrar valores, hábitos y rueda de la vida?',
+    'Las tareas, proyectos y diario se mantienen.', clearIdentityData, 'Identidad borrada (valores, hábitos, rueda)');
+  wireClear('clear-productivity-btn', '¿Borrar tareas, proyectos y logros?',
+    'Valores, hábitos y diario se mantienen.', clearProductivityData, 'Productividad borrada (tareas, proyectos, logros)');
+  wireClear('clear-journal-btn', '¿Borrar todas las entradas del diario?',
+    'Todo lo demás se mantiene.', clearJournalData, 'Diario borrado');
+  wireClear('clear-data-btn', '¿Estás segura de que quieres borrar TODOS los datos?',
+    'Esta acción no se puede deshacer.', clearAllData, 'Todos los datos borrados');
 
   // Notificaciones
   document.getElementById('notifications-toggle')?.addEventListener('change', async (e) => {
@@ -681,7 +672,7 @@ export const init = (data, updateData) => {
 
   // Desvincular carpeta
   document.getElementById('unlink-folder-btn')?.addEventListener('click', async () => {
-    if (confirm('¿Desvincular la carpeta de backup? Tus datos seguirán en el navegador.')) {
+    if (await confirmDangerAsync({ title: '¿Desvincular la carpeta de backup?', message: 'Tus datos seguirán en el navegador.', confirmText: 'Sí, continuar', cancelText: 'Cancelar', type: 'warning' })) {
       await autoBackup.unlinkFolder();
       showNotification('Carpeta desvinculada', 'info');
       location.reload();
@@ -699,6 +690,7 @@ const handleArchiveYear = () => {
 
     // Iniciar nuevo año
     startNewYear(archivedNotebooks);
+    reloadStateFromStorage();
 
     showNotification('¡Año archivado! Bienvenida al nuevo cuaderno.', 'success');
 
@@ -735,23 +727,23 @@ const openArchivedViewer = (data) => {
         <h3>Resumen del año</h3>
         <div class="summary-stats">
           <div class="summary-stat">
-            <span class="stat-value">${summary.totalTasksCompleted}</span>
+            <span class="stat-value">${numeroSeguro(summary.totalTasksCompleted)}</span>
             <span class="stat-label">tareas completadas</span>
           </div>
           <div class="summary-stat">
-            <span class="stat-value">${summary.habitsGraduated}</span>
+            <span class="stat-value">${numeroSeguro(summary.habitsGraduated)}</span>
             <span class="stat-label">hábitos graduados</span>
           </div>
           <div class="summary-stat">
-            <span class="stat-value">${summary.habitDaysLogged}</span>
+            <span class="stat-value">${numeroSeguro(summary.habitDaysLogged)}</span>
             <span class="stat-label">días de hábito</span>
           </div>
           <div class="summary-stat">
-            <span class="stat-value">${summary.projectsCompleted}</span>
+            <span class="stat-value">${numeroSeguro(summary.projectsCompleted)}</span>
             <span class="stat-label">proyectos completados</span>
           </div>
           <div class="summary-stat">
-            <span class="stat-value">${summary.journalEntries}</span>
+            <span class="stat-value">${numeroSeguro(summary.journalEntries)}</span>
             <span class="stat-label">entradas de diario</span>
           </div>
         </div>
@@ -1202,19 +1194,19 @@ const renderCurrentSummary = (data) => {
     <div class="summary-mini">
       <span title="Tareas completadas">
         <span class="material-symbols-outlined icon-sm">task_alt</span>
-        ${summary.totalTasksCompleted}
+        ${numeroSeguro(summary.totalTasksCompleted)}
       </span>
       <span title="Días de hábito">
         <span class="material-symbols-outlined icon-sm">local_fire_department</span>
-        ${summary.habitDaysLogged}
+        ${numeroSeguro(summary.habitDaysLogged)}
       </span>
       <span title="Proyectos completados">
         <span class="material-symbols-outlined icon-sm">folder</span>
-        ${summary.projectsCompleted}
+        ${numeroSeguro(summary.projectsCompleted)}
       </span>
       <span title="Entradas de diario">
         <span class="material-symbols-outlined icon-sm">edit_note</span>
-        ${summary.journalEntries}
+        ${numeroSeguro(summary.journalEntries)}
       </span>
     </div>
   `;
@@ -1368,7 +1360,7 @@ async function initGDriveSyncUI() {
 
   // Desconectar
   document.getElementById('gdrive-disconnect-btn')?.addEventListener('click', async () => {
-    if (!confirm('¿Desconectar Google Drive? Tus datos locales se mantendrán.')) return;
+    if (!(await confirmDangerAsync({ title: '¿Desconectar Google Drive?', message: 'Tus datos locales se mantendrán.', confirmText: 'Sí, continuar', cancelText: 'Cancelar', type: 'warning' }))) return;
 
     await gdriveSync.disconnect();
     showNotification('Google Drive desconectado', 'success');
@@ -1495,8 +1487,8 @@ function initMcpUI(data) {
   });
 
   // ── Botón "Desconectar" ──────────────────────────────────────────────
-  disableBtn?.addEventListener('click', () => {
-    if (confirm('¿Desconectar el agente IA? Tus datos locales se mantendrán.')) {
+  disableBtn?.addEventListener('click', async () => {
+    if (await confirmDangerAsync({ title: '¿Desconectar el agente IA?', message: 'Tus datos locales se mantendrán.', confirmText: 'Sí, continuar', cancelText: 'Cancelar', type: 'warning' })) {
       mcpBridge.disable();
       showNotification('Agente IA desconectado', 'info');
       refreshMcpPanel(data);
@@ -1528,8 +1520,8 @@ function initMcpUI(data) {
   });
 
   // ── Botón "Olvidar MCP" — resetea completamente el estado MCP ─────────
-  forgetBtn?.addEventListener('click', () => {
-    if (!confirm('¿Olvidar la configuración MCP? Tu agente IA se desconectará y tendrás que volver a vincularlo desde cero.')) {
+  forgetBtn?.addEventListener('click', async () => {
+    if (!(await confirmDangerAsync({ title: '¿Olvidar la configuración MCP?', message: 'Tu agente IA se desconectará y tendrás que volver a vincularlo desde cero.', confirmText: 'Sí, continuar', cancelText: 'Cancelar', type: 'warning' }))) {
       return;
     }
     mcpBridge.forget();
@@ -1598,7 +1590,7 @@ function initMcpUI(data) {
         <label class="mcp-pending-label">
           <input type="checkbox" name="mcp-action" value="${escapeHTML(action.id)}" checked>
           <div class="mcp-pending-content">
-            <strong>${label}</strong>
+            <strong>${escapeHTML(label)}</strong>
             <span class="mcp-pending-summary">${escapeHTML(summary)}</span>
             <span class="mcp-pending-date">${formatTimeAgo(action.createdAt)}</span>
           </div>
@@ -1657,7 +1649,6 @@ function initMcpUI(data) {
 
       if (result.applied.length > 0) {
         showNotification(`${result.applied.length} cambio(s) aplicado(s)`, 'success');
-        window.oraculoSkipUnloadWarning = true;
         location.reload();
       } else if (result.failed.length > 0) {
         showNotification('No se pudo aplicar ningún cambio', 'warning');

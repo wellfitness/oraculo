@@ -8,6 +8,8 @@ import { getReflexionDelDia } from '../data/burkeman.js';
 import { getTrianguloFelicidad } from '../data/markmanson.js';
 import { renderWheelChart } from '../components/wheel-chart.js';
 import { renderEvolutionChart } from '../components/evolution-chart.js';
+import { escapeHTML } from '../utils/sanitizer.js';
+import { puntuacionDe } from '../utils/numeros.js';
 
 let updateDataCallback = null;
 let currentData = null;
@@ -154,7 +156,7 @@ const renderMainPage = (data) => {
       </aside>
 
       <!-- Contenido principal -->
-      <main class="life-wheel-main">
+      <div class="life-wheel-main">
         <header class="page-header">
         <h1 class="page-title">
           <span class="material-symbols-outlined icon-lg">donut_large</span>
@@ -207,7 +209,7 @@ const renderMainPage = (data) => {
           <select id="evaluation-select" class="input">
             ${evaluations.map((e, i) => `
               <option value="${e.id}" ${i === evaluations.length - 1 ? 'selected' : ''}>
-                ${e.quarter} - ${new Date(e.date).toLocaleDateString('es-ES')}
+                ${escapeHTML(e.quarter)} - ${new Date(e.date).toLocaleDateString('es-ES')}
               </option>
             `).join('')}
           </select>
@@ -243,7 +245,7 @@ const renderMainPage = (data) => {
 
       <!-- Modal de editar área -->
       ${renderEditAreaModal()}
-      </main>
+      </div>
     </div>
   `;
 };
@@ -308,13 +310,13 @@ const renderWheelView = (evaluation, areas) => {
 
       <div class="wheel-scores-grid">
         ${areas.map(area => {
-          const score = scores[area.id] || { current: 0, desired: 0 };
+          const score = puntuacionDe(scores, area.id);
           const diff = score.desired - score.current;
           return `
             <div class="score-card" data-area="${area.id}" style="--area-color: ${AREA_COLORS[area.id] || '#6b7280'}">
               <div class="score-card__header">
-                <span class="material-symbols-outlined">${area.icon}</span>
-                <span class="score-card__name">${area.name}</span>
+                <span class="material-symbols-outlined">${escapeHTML(area.icon)}</span>
+                <span class="score-card__name">${escapeHTML(area.name)}</span>
               </div>
               <div class="score-card__scores">
                 <span class="score-current">${score.current}</span>
@@ -335,7 +337,7 @@ const renderWheelView = (evaluation, areas) => {
       ${evaluation.overallReflection ? `
         <div class="overall-reflection">
           <h3>Reflexión general</h3>
-          <p>${evaluation.overallReflection}</p>
+          <p>${escapeHTML(evaluation.overallReflection)}</p>
         </div>
       ` : ''}
     </div>
@@ -351,12 +353,12 @@ const renderAreaItem = (area, index, values) => {
   return `
     <div class="area-item" data-area-id="${area.id}">
       <span class="area-item__order">${index + 1}</span>
-      <span class="material-symbols-outlined area-item__icon">${area.icon}</span>
-      <span class="area-item__name">${area.name}</span>
+      <span class="material-symbols-outlined area-item__icon">${escapeHTML(area.icon)}</span>
+      <span class="area-item__name">${escapeHTML(area.name)}</span>
       ${linkedValue ? `
-        <span class="area-item__value" title="Vinculado a: ${linkedValue.name}">
+        <span class="area-item__value" title="Vinculado a: ${escapeHTML(linkedValue.name)}">
           <span class="material-symbols-outlined icon-xs">link</span>
-          ${linkedValue.name}
+          ${escapeHTML(linkedValue.name)}
         </span>
       ` : ''}
       <button class="btn btn--icon area-item__edit" title="Editar área">
@@ -456,13 +458,13 @@ const renderEvaluationPage = (data) => {
           <button class="btn btn--tertiary btn--sm" id="eval-cancel-btn">
             Cancelar
           </button>
-          <button class="btn btn--secondary btn--sm" id="eval-prev" ${step === 0 ? 'disabled' : ''}>
-            <span class="material-symbols-outlined">arrow_back</span>
+          <button class="btn btn--secondary btn--sm" id="eval-prev" aria-label="Área anterior" ${step === 0 ? 'disabled' : ''}>
+            <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
           </button>
-          <button class="btn btn--primary btn--sm" id="eval-next">
+          <button class="btn btn--primary btn--sm" id="eval-next" aria-label="${step >= areas.length ? 'Guardar evaluación' : 'Área siguiente'}">
             ${step >= areas.length
-              ? `<span class="material-symbols-outlined">check</span>`
-              : `<span class="material-symbols-outlined">arrow_forward</span>`
+              ? `<span class="material-symbols-outlined" aria-hidden="true">check</span>`
+              : `<span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>`
             }
           </button>
         </div>
@@ -494,8 +496,8 @@ const renderEvaluationStep = (area, stepIndex) => {
     <div class="eval-step" data-area="${area.id}">
       <!-- Cabecera del área -->
       <div class="eval-area-header" style="--area-color: ${areaColor}">
-        <span class="material-symbols-outlined eval-area-icon">${area.icon}</span>
-        <h2 class="eval-area-title">${area.name}</h2>
+        <span class="material-symbols-outlined eval-area-icon">${escapeHTML(area.icon)}</span>
+        <h2 class="eval-area-title">${escapeHTML(area.name)}</h2>
         <p class="eval-area-subtitle">Evalúa esta área de tu vida</p>
       </div>
 
@@ -507,7 +509,7 @@ const renderEvaluationStep = (area, stepIndex) => {
             <span class="eval-slider-value" id="current-value">${existingScore.current}</span>
           </label>
           <input type="range" min="1" max="10" value="${existingScore.current}"
-                 class="eval-slider" id="score-current">
+                 class="eval-slider" id="score-current" aria-label="¿Cómo te sientes actualmente?">
           <div class="eval-slider-hints">
             <span>Muy insatisfecha</span>
             <span>Muy satisfecha</span>
@@ -520,7 +522,7 @@ const renderEvaluationStep = (area, stepIndex) => {
             <span class="eval-slider-value eval-slider-value--desired" id="desired-value">${existingScore.desired}</span>
           </label>
           <input type="range" min="1" max="10" value="${existingScore.desired}"
-                 class="eval-slider eval-slider--desired" id="score-desired">
+                 class="eval-slider eval-slider--desired" id="score-desired" aria-label="¿Qué puntuación te gustaría tener?">
           <div class="eval-slider-hints">
             <span>1</span>
             <span>10</span>
@@ -541,7 +543,7 @@ const renderEvaluationStep = (area, stepIndex) => {
             ¿Por qué has puntuado así esta área?
           </label>
           <textarea id="reflection-why" class="input textarea" rows="3"
-                    placeholder="Reflexiona sobre tu situación actual...">${existingScore.reflection?.why || ''}</textarea>
+                    placeholder="Reflexiona sobre tu situación actual...">${escapeHTML(existingScore.reflection?.why || '')}</textarea>
         </div>
 
         <div class="eval-reflection-card">
@@ -550,7 +552,7 @@ const renderEvaluationStep = (area, stepIndex) => {
             ¿Qué aspectos podrías mejorar?
           </label>
           <textarea id="reflection-improve" class="input textarea" rows="3"
-                    placeholder="Identifica oportunidades de mejora...">${existingScore.reflection?.improve || ''}</textarea>
+                    placeholder="Identifica oportunidades de mejora...">${escapeHTML(existingScore.reflection?.improve || '')}</textarea>
         </div>
 
         <div class="eval-reflection-card">
@@ -559,7 +561,7 @@ const renderEvaluationStep = (area, stepIndex) => {
             ¿Qué harás para lograrlo?
           </label>
           <textarea id="reflection-actions" class="input textarea" rows="3"
-                    placeholder="Define acciones concretas...">${existingScore.reflection?.actions || ''}</textarea>
+                    placeholder="Define acciones concretas...">${escapeHTML(existingScore.reflection?.actions || '')}</textarea>
         </div>
       </div>
     </div>
@@ -585,13 +587,13 @@ const renderEvaluationSummary = (areas) => {
 
       <div class="eval-summary-scores">
         ${areas.map(area => {
-          const score = scores[area.id] || { current: 0, desired: 0 };
+          const score = puntuacionDe(scores, area.id);
           const diff = score.desired - score.current;
           const diffClass = diff > 0 ? 'positive' : diff < 0 ? 'negative' : '';
           return `
             <div class="eval-summary-score" style="--area-color: ${AREA_COLORS[area.id] || '#6b7280'}">
-              <span class="material-symbols-outlined">${area.icon}</span>
-              <span class="name">${area.name}</span>
+              <span class="material-symbols-outlined">${escapeHTML(area.icon)}</span>
+              <span class="name">${escapeHTML(area.name)}</span>
               <span class="scores">
                 <span class="current">${score.current}</span>
                 <span class="arrow">→</span>
@@ -609,7 +611,7 @@ const renderEvaluationSummary = (areas) => {
           Reflexión general del trimestre
         </label>
         <textarea id="overall-reflection" class="input textarea" rows="4"
-                  placeholder="¿Qué conclusiones sacas de esta evaluación? ¿Qué áreas quieres priorizar?">${wizardState.overallReflection}</textarea>
+                  placeholder="¿Qué conclusiones sacas de esta evaluación? ¿Qué áreas quieres priorizar?">${escapeHTML(wizardState.overallReflection)}</textarea>
       </div>
     </div>
   `;
@@ -889,7 +891,7 @@ const renderEvolutionView = (evaluations, areas) => {
           <label class="evolution-legend-item">
             <input type="checkbox" data-area="${area.id}" checked>
             <span class="legend-color" style="background: ${AREA_COLORS[area.id] || '#6b7280'}"></span>
-            <span>${area.name}</span>
+            <span>${escapeHTML(area.name)}</span>
           </label>
         `).join('')}
       </div>
@@ -919,7 +921,7 @@ const renderCompareView = (evaluations, areas) => {
         <select id="compare-eval-1" class="input">
           ${evaluations.map((e, i) => `
             <option value="${e.id}" ${i === evaluations.length - 2 ? 'selected' : ''}>
-              ${e.quarter}
+              ${escapeHTML(e.quarter)}
             </option>
           `).join('')}
         </select>
@@ -927,7 +929,7 @@ const renderCompareView = (evaluations, areas) => {
         <select id="compare-eval-2" class="input">
           ${evaluations.map((e, i) => `
             <option value="${e.id}" ${i === evaluations.length - 1 ? 'selected' : ''}>
-              ${e.quarter}
+              ${escapeHTML(e.quarter)}
             </option>
           `).join('')}
         </select>
@@ -935,11 +937,11 @@ const renderCompareView = (evaluations, areas) => {
 
       <div class="compare-wheels">
         <div class="compare-wheel">
-          <h4>${eval1.quarter}</h4>
+          <h4>${escapeHTML(eval1.quarter)}</h4>
           ${renderWheelChart(eval1.scores, areas, { size: 280, showLabels: true })}
         </div>
         <div class="compare-wheel">
-          <h4>${eval2.quarter}</h4>
+          <h4>${escapeHTML(eval2.quarter)}</h4>
           ${renderWheelChart(eval2.scores, areas, { size: 280, showLabels: true })}
         </div>
       </div>
@@ -947,15 +949,15 @@ const renderCompareView = (evaluations, areas) => {
       <div class="compare-diff">
         <h4>Cambios</h4>
         ${areas.map(area => {
-          const score1 = eval1.scores[area.id]?.current || 0;
-          const score2 = eval2.scores[area.id]?.current || 0;
+          const score1 = puntuacionDe(eval1.scores, area.id).current;
+          const score2 = puntuacionDe(eval2.scores, area.id).current;
           const diff = score2 - score1;
           const diffClass = diff > 0 ? 'positive' : diff < 0 ? 'negative' : 'neutral';
 
           return `
             <div class="compare-diff-item">
-              <span class="material-symbols-outlined">${area.icon}</span>
-              <span class="name">${area.name}</span>
+              <span class="material-symbols-outlined">${escapeHTML(area.icon)}</span>
+              <span class="name">${escapeHTML(area.name)}</span>
               <span class="diff diff--${diffClass}">
                 ${diff > 0 ? '+' : ''}${diff}
               </span>
@@ -1008,8 +1010,8 @@ const openEditAreaModal = (area, values) => {
   valueSelect.innerHTML = `
     <option value="">Sin vincular</option>
     ${(values || []).map(v => `
-      <option value="${v.id}" ${area.linkedValueId === v.id ? 'selected' : ''}>
-        ${v.name}
+      <option value="${escapeHTML(v.id)}" ${area.linkedValueId === v.id ? 'selected' : ''}>
+        ${escapeHTML(v.name)}
       </option>
     `).join('')}
   `;

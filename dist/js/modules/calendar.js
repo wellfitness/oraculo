@@ -5,6 +5,8 @@
 
 import { generateId, showNotification, recordDeletion } from '../app.js';
 import { escapeHTML } from '../utils/sanitizer.js';
+import { construirICS } from '../utils/ics.js';
+import { confirmDangerAsync } from '../utils/confirm-modal.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
 import * as gcalService from '../gcal/gcal-service.js';
 import { renderGcalEventItem, groupByDate } from '../gcal/gcal-render.js';
@@ -36,12 +38,12 @@ export const render = (data) => {
       </header>
 
       <div class="calendar-navigation">
-        <button class="btn btn--icon" id="prev-week">
-          <span class="material-symbols-outlined">chevron_left</span>
+        <button class="btn btn--icon" id="prev-week" aria-label="Semana anterior">
+          <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
         </button>
         <h2 class="week-title">${formatWeekRange(currentWeekStart)}</h2>
-        <button class="btn btn--icon" id="next-week">
-          <span class="material-symbols-outlined">chevron_right</span>
+        <button class="btn btn--icon" id="next-week" aria-label="Semana siguiente">
+          <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
         </button>
         <button class="btn btn--tertiary" id="today-btn">
           <span class="material-symbols-outlined icon-sm">today</span>
@@ -173,7 +175,7 @@ export const render = (data) => {
 const reRender = () => {
   if (!currentData) return;
 
-  const container = document.querySelector('.calendar-section');
+  const container = document.querySelector('.calendar-page');
   if (!container) return;
 
   // Re-generar HTML
@@ -229,6 +231,18 @@ const bindWeekViewEvents = () => {
       }
     });
   });
+
+  // Añadir a Google Calendar
+  document.querySelectorAll('.event-item__gcal').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const item = btn.closest('.event-item');
+      const list = item.dataset.recurring === 'true' ? currentData.calendar.recurring : currentData.calendar.events;
+      const source = list.find(ev => ev.id === item.dataset.id);
+      if (!source) return;
+      openGoogleCalendar({ name: source.name, date: btn.dataset.date, time: source.time, duration: source.duration, notes: source.notes });
+    });
+  });
 };
 
 /**
@@ -263,40 +277,8 @@ export const init = (data, updateData) => {
     openRecurringModal();
   });
 
-  // Click en día para añadir evento
-  document.querySelectorAll('.day-column').forEach(col => {
-    col.addEventListener('dblclick', (e) => {
-      if (e.target.classList.contains('day-column') || e.target.classList.contains('day-events')) {
-        const date = col.dataset.date;
-        openEventModal(null, date);
-      }
-    });
-  });
-
-  // Click en evento para editar (solo eventos Oráculo, no Google)
-  document.querySelectorAll('.event-item:not(.event--google)').forEach(item => {
-    item.addEventListener('click', (e) => {
-      const eventId = item.dataset.id;
-      const isRecurring = item.dataset.recurring === 'true';
-
-      if (isRecurring) {
-        const recurring = data.calendar.recurring.find(r => r.id === eventId);
-        if (recurring) openRecurringModal(recurring);
-      } else {
-        const event = data.calendar.events.find(ev => ev.id === eventId);
-        if (event) openEventModal(event);
-      }
-    });
-  });
-
-  // Añadir a Google Calendar
-  document.querySelectorAll('.event-item__gcal').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation(); // Evitar abrir el modal de edición
-      const eventData = JSON.parse(btn.dataset.event);
-      openGoogleCalendar(eventData);
-    });
-  });
+  // Los eventos de la semana se enlazan en un solo sitio
+  bindWeekViewEvents();
 
   setupEventModal(data);
   setupRecurringModal(data);
@@ -329,16 +311,16 @@ const renderDayColumn = (day, events, recurring) => {
       <div class="day-events">
         ${dayEvents.map(event => `
           <div class="event-item ${event.recurring ? 'event-item--recurring' : ''} ${event.isSincronia ? 'event-item--sincronia' : ''}"
-               data-id="${event.id}" data-recurring="${event.recurring || false}">
+               data-id="${event.id}" data-recurring="${event.recurring ? 'true' : 'false'}">
             <div class="event-item__content">
               ${event.isSincronia ? '<span class="material-symbols-outlined event-sincronia-icon" title="Evento de sincronía">group</span>' : ''}
-              ${event.time ? `<span class="event-time">${event.time}</span>` : ''}
-              <span class="event-name">${escapeHTML(event.name)}</span>
+              ${event.time ? `<span class="event-time">${escapeHTML(event.time)}</span>` : ''}
+              <button type="button" class="event-name event-item__open">${escapeHTML(event.name)}</button>
             </div>
-            <button class="event-item__gcal btn--icon"
-                    data-event='${JSON.stringify({ name: event.name, date: event.recurring ? day.dateStr : event.date, time: event.time, duration: event.duration, notes: event.notes })}'
-                    title="Añadir a Google Calendar">
-              <span class="material-symbols-outlined icon-xs">open_in_new</span>
+            <button type="button" class="event-item__gcal btn--icon"
+                    data-date="${escapeHTML(event.recurring ? day.dateStr : event.date)}"
+                    title="Añadir a Google Calendar" aria-label="Añadir a Google Calendar: ${escapeHTML(event.name)}">
+              <span class="material-symbols-outlined icon-xs" aria-hidden="true">open_in_new</span>
             </button>
           </div>
         `).join('')}
@@ -474,9 +456,9 @@ const setupEventModal = (data) => {
 
   document.getElementById('cancel-event')?.addEventListener('click', () => modal.close());
 
-  document.getElementById('delete-event')?.addEventListener('click', () => {
+  document.getElementById('delete-event')?.addEventListener('click', async () => {
     const id = document.getElementById('event-id').value;
-    if (id && confirm('¿Eliminar este evento?')) {
+    if (id && (await confirmDangerAsync({ title: '¿Eliminar este evento?', message: '', confirmText: 'Sí, eliminar', cancelText: 'Cancelar', type: 'danger' }))) {
       recordDeletion(data, 'calendar.events', id);
       data.calendar.events = data.calendar.events.filter(e => e.id !== id);
       currentData.calendar = data.calendar;
@@ -563,9 +545,9 @@ const setupRecurringModal = (data) => {
 
   document.getElementById('cancel-recurring')?.addEventListener('click', () => modal.close());
 
-  document.getElementById('delete-recurring')?.addEventListener('click', () => {
+  document.getElementById('delete-recurring')?.addEventListener('click', async () => {
     const id = document.getElementById('recurring-id').value;
-    if (id && confirm('¿Eliminar este evento recurrente?')) {
+    if (id && (await confirmDangerAsync({ title: '¿Eliminar este evento recurrente?', message: '', confirmText: 'Sí, eliminar', cancelText: 'Cancelar', type: 'danger' }))) {
       recordDeletion(data, 'calendar.recurring', id);
       data.calendar.recurring = data.calendar.recurring.filter(r => r.id !== id);
       currentData.calendar = data.calendar;
@@ -636,56 +618,9 @@ const exportToICS = (data) => {
     return;
   }
 
-  let icsContent = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Oráculo//Movimiento Funcional//ES',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH'
-  ];
+  const icsContent = construirICS(events, recurring);
 
-  // Eventos puntuales
-  events.forEach(event => {
-    const dtStart = formatICSDate(event.date, event.time);
-    const dtEnd = formatICSDate(event.date, event.time, event.duration);
-
-    icsContent.push(
-      'BEGIN:VEVENT',
-      `UID:${event.id}@oraculo`,
-      `DTSTAMP:${formatICSDate(new Date().toISOString().split('T')[0], '00:00')}`,
-      `DTSTART:${dtStart}`,
-      `DTEND:${dtEnd}`,
-      `SUMMARY:${event.name}`,
-      event.notes ? `DESCRIPTION:${event.notes}` : '',
-      'END:VEVENT'
-    );
-  });
-
-  // Eventos recurrentes (RRULE semanal)
-  const ICS_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
-  recurring.forEach(event => {
-    if (!event.days || event.days.length === 0) return;
-    const byDay = event.days.map(d => ICS_DAYS[d]).join(',');
-    // Usar hoy como fecha de inicio para el DTSTART
-    const today = new Date().toISOString().split('T')[0];
-    const dtStart = formatICSDate(today, event.time || '09:00');
-    const dtEnd = formatICSDate(today, event.time || '09:00', 60);
-
-    icsContent.push(
-      'BEGIN:VEVENT',
-      `UID:${event.id}@oraculo-recurring`,
-      `DTSTAMP:${formatICSDate(today, '00:00')}`,
-      `DTSTART:${dtStart}`,
-      `DTEND:${dtEnd}`,
-      `RRULE:FREQ=WEEKLY;BYDAY=${byDay}`,
-      `SUMMARY:${event.name}`,
-      'END:VEVENT'
-    );
-  });
-
-  icsContent.push('END:VCALENDAR');
-
-  const blob = new Blob([icsContent.filter(Boolean).join('\r\n')], { type: 'text/calendar' });
+  const blob = new Blob([icsContent.join('\r\n')], { type: 'text/calendar' });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement('a');
@@ -695,13 +630,6 @@ const exportToICS = (data) => {
 
   URL.revokeObjectURL(url);
   showNotification('Calendario exportado', 'success');
-};
-
-const formatICSDate = (date, time, durationMinutes = 0) => {
-  const d = new Date(`${date}T${time || '00:00'}`);
-  if (durationMinutes) d.setMinutes(d.getMinutes() + durationMinutes);
-
-  return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 };
 
 /**

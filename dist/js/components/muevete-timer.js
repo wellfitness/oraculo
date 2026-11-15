@@ -9,6 +9,7 @@
  */
 
 import { showNotification } from '../app.js';
+import { numeroSeguro } from '../utils/sanitizer.js';
 
 // ============================================================
 // CONSTANTES
@@ -198,8 +199,8 @@ export const getWeekSummary = (log) => {
       status = 'completed';
     }
 
-    const completed = entry?.completed ?? 0;
-    const earlyEnds = entry?.earlyEnds ?? 0;
+    const completed = numeroSeguro(entry?.completed);
+    const earlyEnds = numeroSeguro(entry?.earlyEnds);
     totalCompleted += completed;
 
     days.push({ date: dateStr, dayOfWeek: dow, status, completed, earlyEnds });
@@ -218,7 +219,7 @@ const persist = () => {
     status: timerState.status,
     startTime,
     breakStartTime,
-    blocksCompleted: timerState.blocksCompleted,
+    blocksCompleted: numeroSeguro(timerState.blocksCompleted),
     lastResetDate: getTodayDateString(),
     soleusEnabled: timerState.soleusEnabled,
     workBlockDuration: timerState.workBlockDuration,
@@ -418,7 +419,7 @@ const restoreState = (data) => {
 
   // Reset diario
   const today = getTodayDateString();
-  timerState.blocksCompleted = saved.lastResetDate !== today ? 0 : (saved.blocksCompleted || 0);
+  timerState.blocksCompleted = saved.lastResetDate !== today ? 0 : numeroSeguro(saved.blocksCompleted);
 
   // Recalcular estado según timestamps guardados
   if (saved.status === 'working' && saved.startTime) {

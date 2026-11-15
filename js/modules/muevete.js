@@ -7,6 +7,8 @@
  */
 
 import { showNotification } from '../app.js';
+import { numeroSeguro } from '../utils/sanitizer.js';
+import { confirmDangerAsync } from '../utils/confirm-modal.js';
 import {
   getMueveteState,
   getWeekSummary,
@@ -105,8 +107,8 @@ const renderWeekStrip = (data) => {
     <div class="muevete-weekstrip">
       <div class="muevete-weekstrip__days">${daysHtml}</div>
       <div class="muevete-weekstrip__stats">
-        <span>${summary.totalCompleted} vitaminas M esta semana</span>
-        ${summary.currentStreak > 0 ? `<span class="muevete-weekstrip__streak"><span class="material-symbols-outlined" style="font-size:16px">local_fire_department</span> ${summary.currentStreak} días</span>` : ''}
+        <span>${numeroSeguro(summary.totalCompleted)} vitaminas M esta semana</span>
+        ${summary.currentStreak > 0 ? `<span class="muevete-weekstrip__streak"><span class="material-symbols-outlined" style="font-size:16px">local_fire_department</span> ${numeroSeguro(summary.currentStreak)} días</span>` : ''}
       </div>
     </div>
   `;
@@ -176,7 +178,7 @@ const renderWorking = (state, data) => {
 
       <div class="muevete-working__blocks">
         <span class="material-symbols-outlined" style="font-size:20px">emoji_events</span>
-        ${state.blocksCompleted} vitamina${state.blocksCompleted !== 1 ? 's' : ''} M hoy
+        ${numeroSeguro(state.blocksCompleted)} vitamina${state.blocksCompleted !== 1 ? 's' : ''} M hoy
       </div>
 
       ${renderWeekStrip(data)}
@@ -362,8 +364,8 @@ export const init = (data, updateData) => {
     endBreakEarly();
   });
 
-  document.getElementById('muevete-reset')?.addEventListener('click', () => {
-    if (confirm('¿Parar el bloque de trabajo?')) {
+  document.getElementById('muevete-reset')?.addEventListener('click', async () => {
+    if (await confirmDangerAsync({ title: '¿Parar el bloque de trabajo?', message: '', confirmText: 'Sí, continuar', cancelText: 'Cancelar', type: 'warning' })) {
       resetTimer();
     }
   });

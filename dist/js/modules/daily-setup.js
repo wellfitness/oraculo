@@ -11,6 +11,7 @@
  */
 
 import { showNotification, navigateTo } from '../app.js';
+import { escapeHTML, colorSeguro } from '../utils/sanitizer.js';
 
 /**
  * Navega al destino correcto después del setup.
@@ -267,13 +268,13 @@ const renderTasksList = (weeklyTasks, dailyTasks, projects) => {
             </span>
           </label>
           <div class="task-item__content">
-            <p class="task-item__text">${task.text}</p>
+            <p class="task-item__text">${escapeHTML(task.text)}</p>
             <div class="task-item__meta">
               <span class="task-item__tag task-item__tag--in-daily">Prioridad</span>
               ${project ? `
                 <span class="task-item__tag task-item__tag--project"
-                      style="--project-color: ${project.color}">
-                  ${project.name}
+                      style="--project-color: ${colorSeguro(project.color)}">
+                  ${escapeHTML(project.name)}
                 </span>
               ` : ''}
             </div>
@@ -303,13 +304,13 @@ const renderTasksList = (weeklyTasks, dailyTasks, projects) => {
             </span>
           </label>
           <div class="task-item__content">
-            <p class="task-item__text">${task.text}</p>
+            <p class="task-item__text">${escapeHTML(task.text)}</p>
             <div class="task-item__meta">
               <span class="task-item__tag">Semana</span>
               ${project ? `
                 <span class="task-item__tag task-item__tag--project"
-                      style="--project-color: ${project.color}">
-                  ${project.name}
+                      style="--project-color: ${colorSeguro(project.color)}">
+                  ${escapeHTML(project.name)}
                 </span>
               ` : ''}
             </div>

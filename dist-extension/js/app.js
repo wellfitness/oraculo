@@ -8,6 +8,11 @@ let _storage = {};
 const loadData = (...args) => _storage.loadData(...args);
 const saveData = (...args) => _storage.saveData(...args);
 const getStorageUsage = (...args) => _storage.getStorageUsage(...args);
+const shouldPersistOnUnload = (...args) => _storage.shouldPersistOnUnload(...args);
+const consumeLoadIssue = (...args) => _storage.consumeLoadIssue(...args);
+import { confirmDanger } from './utils/confirm-modal.js';
+import { getHorizonLimit, countActive, IMPORTANT_TASK_TYPE } from './utils/objectives.js';
+import { buscarProyectoPorEtiqueta } from './utils/elementos.js';
 import { needsDailySetup } from './components/daily-setup-modal.js';
 import {
   renderCalmTimerModal,
@@ -174,6 +179,17 @@ export const init = () => {
   }
 
   state.initialized = true;
+
+  if (consumeLoadIssue() === 'corrupt') {
+    confirmDanger({
+      title: 'No se han podido leer tus datos guardados',
+      message: 'Oráculo ha conservado una copia de lo que había y ha empezado un cuaderno vacío. Si tienes un backup, impórtalo desde Configuración.',
+      confirmText: 'Ir a Configuración',
+      cancelText: 'Cerrar',
+      type: 'warning'
+    }, () => navigateTo('settings'));
+  }
+
   console.log('Oráculo inicializado');
 };
 
@@ -195,7 +211,8 @@ const setupNavigation = () => {
   window.addEventListener('popstate', (e) => {
     // Manejar navegación atrás/adelante del navegador
     // e.state puede ser null si el usuario navegó a un estado sin history.pushState
-    const view = e.state?.view || getBaseView(location.hash.slice(1)) || 'dashboard';
+    const candidate = e.state?.view || getBaseView(location.hash.slice(1));
+    const view = VIEWS[candidate] ? candidate : 'dashboard';
     renderView(view);
     updateActiveNav(view);
   });
@@ -210,6 +227,9 @@ const setupNavigation = () => {
       state.currentView = baseView;
       renderView(baseView);
       updateActiveNav(baseView);
+    } else {
+      // Una dirección desconocida lleva al inicio
+      navigateTo('dashboard');
     }
   });
 };
@@ -230,17 +250,23 @@ const setupGlobalEvents = () => {
   window.addEventListener('data-synced-from-cloud', (e) => {
     console.log('[App] Datos sincronizados desde fuente externa');
 
+    // Los datos de la nube se releen del almacenamiento en vez de usar los que
+    // trae el evento. Así pasan por la misma normalización que el resto de
+    // caminos (forma garantizada e identificadores seguros), que es lo que
+    // evita que un dato externo rompa el marcado al pintarse.
+    const fresh = loadData();
+
     // Verificar si hay algún modal abierto
     const openModal = document.querySelector('dialog[open]');
 
     if (openModal) {
       // Hay un modal abierto - guardar datos para aplicar después
       console.log('[App] Modal abierto, difiriendo actualización');
-      state.pendingSync = e.detail.data;
+      state.pendingSync = fresh;
       showNotification('Datos actualizados. Se aplicarán al cerrar el modal.', 'info');
     } else {
       // No hay modal - aplicar inmediatamente
-      state.data = e.detail.data;
+      state.data = fresh;
       renderView(state.currentView);
       showNotification('✓ Datos sincronizados desde la nube', 'success');
     }
@@ -259,7 +285,7 @@ const setupGlobalEvents = () => {
 
   // Guardar en localStorage antes de cerrar (sin diálogo)
   window.addEventListener('beforeunload', () => {
-    if (state.data) {
+    if (state.data && shouldPersistOnUnload(state.data, localStorage.getItem('oraculo_data'))) {
       // Guardar directamente en localStorage
       try {
         state.data.updatedAt = new Date().toISOString();
@@ -270,6 +296,22 @@ const setupGlobalEvents = () => {
     }
   });
 
+  // Otra pestaña ha guardado: esta deja de tener la última versión
+  window.addEventListener('storage', (e) => {
+    if (e.key !== 'oraculo_data') return;
+
+    // Otra pestaña ha borrado todos los datos. Esta tampoco debe guardarlos
+    // otra vez desde memoria, así que se queda con lo que haya ahora.
+    const fresh = loadData();
+
+    if (document.querySelector('dialog[open]')) {
+      state.pendingSync = fresh;
+      return;
+    }
+    state.data = fresh;
+    renderView(state.currentView);
+  });
+
   // Escuchar cambios en el modo de uso para actualizar el menú
   window.addEventListener('usage-mode-changed', () => {
     updateMenuVisibility();
@@ -278,6 +320,14 @@ const setupGlobalEvents = () => {
   // Menú hamburguesa para tablets/móviles
   const navToggle = document.querySelector('.nav-toggle');
   const appNav = document.querySelector('.app-nav');
+
+  // El enlace de salto enfoca el contenido sin cambiar la dirección
+  document.querySelector('.skip-link')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    const main = document.getElementById('app-content');
+    main.setAttribute('tabindex', '-1');
+    main.focus();
+  });
 
   if (navToggle && appNav) {
     navToggle.addEventListener('click', (e) => {
@@ -302,6 +352,15 @@ const setupGlobalEvents = () => {
       if (!e.target.closest('.app-header')) {
         appNav.classList.remove('is-open');
         navToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // Escape cierra el menú móvil
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && appNav.classList.contains('is-open')) {
+        appNav.classList.remove('is-open');
+        navToggle.setAttribute('aria-expanded', 'false');
+        navToggle.focus();
       }
     });
   }
@@ -693,13 +752,14 @@ const setupGlobalCapture = () => {
    * Sintaxis: "texto #proyecto >horizonte !"
    *   #nombre  → asigna al proyecto que coincida
    *   >semana / >mes / >trimestre → horizonte destino (default: backlog)
-   *   ! al inicio → marca como importante (taskType: 'important')
+   *   ! al inicio → marca como importante (taskType: 'importante')
    */
   const parseCapture = (rawText) => {
     let text = rawText;
     let projectId = null;
     let horizon = 'backlog';
     let isImportant = false;
+    let unknownTag = null;
 
     // Detectar ! al inicio → importante
     if (text.startsWith('!')) {
@@ -712,13 +772,12 @@ const setupGlobalCapture = () => {
     if (hashMatch) {
       const tag = hashMatch[1].toLowerCase();
       const projects = state.data.projects || [];
-      const match = projects.find(p =>
-        p.name.toLowerCase().includes(tag) ||
-        p.name.toLowerCase().replace(/\s+/g, '-').includes(tag)
-      );
+      const match = buscarProyectoPorEtiqueta(projects, tag);
       if (match) {
         projectId = match.id;
         text = text.replace(/#\S+/, '').trim();
+      } else {
+        unknownTag = hashMatch[1];
       }
     }
 
@@ -738,7 +797,7 @@ const setupGlobalCapture = () => {
       }
     }
 
-    return { text, projectId, horizon, isImportant };
+    return { text, projectId, horizon, isImportant, unknownTag };
   };
 
   /**
@@ -753,16 +812,16 @@ const setupGlobalCapture = () => {
 
     const parsed = parseCapture(rawText);
 
-    if (!parsed.text) {
+    if (!/[\p{L}\p{N}]/u.test(parsed.text)) {
+      showNotification('Falta el texto de la idea. Escribe algo además de los símbolos.', 'warning');
       input.focus();
       return;
     }
 
     // Verificar límites del horizonte destino
-    const limits = { daily: 3, weekly: 10, monthly: 6, quarterly: 3 };
-    const limit = limits[parsed.horizon];
-    if (limit) {
-      const current = (state.data.objectives?.[parsed.horizon] || []).filter(t => !t.completed).length;
+    const limit = getHorizonLimit(state.data, parsed.horizon);
+    if (limit !== null) {
+      const current = countActive(state.data.objectives?.[parsed.horizon]);
       if (current >= limit) {
         showNotification(`${parsed.horizon === 'daily' ? 'Prioridades' : parsed.horizon} está lleno (${current}/${limit}). Va a Pendientes.`, 'warning');
         parsed.horizon = 'backlog';
@@ -775,7 +834,7 @@ const setupGlobalCapture = () => {
       text: parsed.text,
       notes: null,
       projectId: parsed.projectId,
-      taskType: parsed.isImportant ? 'important' : null,
+      taskType: parsed.isImportant ? IMPORTANT_TASK_TYPE : null,
       completed: false,
       createdAt: new Date().toISOString()
     };
@@ -803,6 +862,7 @@ const setupGlobalCapture = () => {
     let msg = `Capturado en ${horizonNames[parsed.horizon] || 'Pendientes'}`;
     if (project) msg += ` (${project.name})`;
     if (parsed.isImportant) msg += ' !';
+    if (parsed.unknownTag) msg += `. No hay ningún proyecto «${parsed.unknownTag}»`;
     showNotification(msg, 'success');
 
     // Actualizar contador
@@ -980,7 +1040,10 @@ const renderView = async (viewName) => {
  */
 const updateActiveNav = (viewName) => {
   document.querySelectorAll('[data-view]').forEach(link => {
-    link.classList.toggle('active', link.dataset.view === viewName);
+    const active = link.dataset.view === viewName;
+    link.classList.toggle('active', active);
+    if (active) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
   });
 };
 

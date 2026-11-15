@@ -86,12 +86,12 @@ export const render = (data) => {
       ${rocaPrincipal ? `
         <div class="today__roca">
           <div class="today__roca-label">
-            <span class="material-symbols-outlined">diamond</span>
+            <span class="material-symbols-outlined" aria-hidden="true">diamond</span>
             Roca del día
           </div>
           <div class="today__roca-text">${escapeHTML(rocaPrincipal.text)}</div>
-          <button class="today__roca-done" data-id="${rocaPrincipal.id}">
-            <span class="material-symbols-outlined">check</span>
+          <button class="today__roca-done" data-id="${rocaPrincipal.id}" aria-label="Completar: ${escapeHTML(rocaPrincipal.text)}">
+            <span class="material-symbols-outlined" aria-hidden="true">check</span>
             Hecho
           </button>
         </div>
@@ -101,8 +101,8 @@ export const render = (data) => {
         <div class="today__tasks">
           ${otherTasks.map(t => `
             <div class="today__task">
-              <button class="today__task-check" data-id="${t.id}">
-                <span class="material-symbols-outlined">radio_button_unchecked</span>
+              <button class="today__task-check" data-id="${t.id}" aria-label="Completar: ${escapeHTML(t.text)}">
+                <span class="material-symbols-outlined" aria-hidden="true">radio_button_unchecked</span>
               </button>
               <span class="today__task-text">${escapeHTML(t.text)}</span>
             </div>
@@ -141,7 +141,7 @@ export const render = (data) => {
         ${nextEvent ? `
           <div class="today__widget today__widget--event">
             <span class="material-symbols-outlined">schedule</span>
-            <span>${nextEvent.time} ${escapeHTML(nextEvent.name)}</span>
+            <span>${escapeHTML(nextEvent.time)} ${escapeHTML(nextEvent.name)}</span>
           </div>
         ` : ''}
       </div>

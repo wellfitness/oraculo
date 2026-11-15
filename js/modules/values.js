@@ -6,6 +6,8 @@
 
 import { generateId, showNotification, recordDeletion } from '../app.js';
 import { escapeHTML } from '../utils/sanitizer.js';
+import { hayValorConNombre } from '../utils/elementos.js';
+import { puntuacionDe } from '../utils/numeros.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
 import { getBuenosValores, getMalosValores } from '../data/markmanson.js';
 import { confirmDanger } from '../utils/confirm-modal.js';
@@ -42,7 +44,7 @@ export const render = (data) => {
       </aside>
 
       <!-- Contenido principal -->
-      <main class="values-main">
+      <div class="values-main">
         <header class="page-header">
         <div class="page-header__row">
           <h1 class="page-title">Brújula de Valores</h1>
@@ -101,7 +103,7 @@ export const render = (data) => {
         </section>
       ` : ''}
 
-      </main>
+      </div>
 
       <!-- Modal para añadir/editar valor -->
       <dialog id="value-modal" class="modal">
@@ -369,7 +371,7 @@ const renderValueCard = (value, wheelAreas = []) => {
           <div class="linked-areas-list">
             ${linkedAreas.map(area => `
               <span class="linked-area-tag">
-                <span class="material-symbols-outlined icon-xs">${area.icon}</span>
+                <span class="material-symbols-outlined icon-xs">${escapeHTML(area.icon)}</span>
                 ${escapeHTML(area.name)}
               </span>
             `).join('')}
@@ -550,6 +552,12 @@ const handleSaveValue = (data) => {
     return;
   }
 
+  const repetido = hayValorConNombre(data.values, name, id);
+  if (repetido) {
+    showNotification('Ya tienes un valor con ese nombre.', 'warning');
+    return;
+  }
+
   if (id) {
     // Editar existente
     const index = data.values.findIndex(v => v.id === id);
@@ -616,16 +624,18 @@ const getWheelSuggestions = (wheelAreas, evaluations, existingValues) => {
   // Calcular brecha por área y filtrar las que no tienen valor vinculado
   const suggestions = wheelAreas
     .map(area => {
-      const score = lastEval.scores[area.id];
-      if (!score) return null;
+      if (!lastEval.scores?.[area.id]) return null;
 
-      const gap = (score.desired || 10) - (score.current || 5);
+      const score = puntuacionDe(lastEval.scores, area.id);
+      const current = score.current || 5;
+      const desired = score.desired || 10;
+      const gap = desired - current;
       const hasLinkedValue = area.linkedValueId && existingValues.some(v => v.id === area.linkedValueId);
 
       return {
         area,
-        current: score.current || 5,
-        desired: score.desired || 10,
+        current,
+        desired,
         gap,
         hasLinkedValue,
         reflection: typeof score.reflection === 'string'
@@ -660,7 +670,7 @@ const renderWheelSuggestions = (suggestions) => {
         ${suggestions.map(s => `
           <div class="suggestion-card" data-area-id="${s.area.id}">
             <div class="suggestion-header">
-              <span class="material-symbols-outlined suggestion-icon">${s.area.icon}</span>
+              <span class="material-symbols-outlined suggestion-icon">${escapeHTML(s.area.icon)}</span>
               <div>
                 <h4>${escapeHTML(s.area.name)}</h4>
                 <span class="suggestion-gap">
@@ -671,7 +681,7 @@ const renderWheelSuggestions = (suggestions) => {
             ${s.reflection ? `<p class="suggestion-reflection">"${escapeHTML(s.reflection)}"</p>` : ''}
             <button class="btn btn--secondary btn--small create-value-from-area"
                     data-area-name="${escapeHTML(s.area.name)}"
-                    data-area-icon="${s.area.icon}">
+                    data-area-icon="${escapeHTML(s.area.icon)}">
               <span class="material-symbols-outlined icon-sm">add</span>
               Crear valor desde esta área
             </button>

@@ -5,6 +5,8 @@
  * más amigable y consistente con el diseño de la app.
  */
 
+import { escapeHTML } from './sanitizer.js';
+
 /**
  * Muestra un modal de confirmación para acciones destructivas
  * @param {Object} options - Opciones del modal
@@ -31,11 +33,11 @@ export const confirmDanger = ({
       <div class="confirm-modal__icon">
         <span class="material-symbols-outlined">${type === 'danger' ? 'warning' : 'help_outline'}</span>
       </div>
-      <h2 class="confirm-modal__title">${title}</h2>
-      <p class="confirm-modal__message">${message}</p>
+      <h2 class="confirm-modal__title">${escapeHTML(title)}</h2>
+      <p class="confirm-modal__message">${escapeHTML(message)}</p>
       <div class="confirm-modal__actions">
-        <button type="button" class="btn btn--secondary" data-action="cancel">${cancelText}</button>
-        <button type="button" class="btn btn--${type}" data-action="confirm">${confirmText}</button>
+        <button type="button" class="btn btn--secondary" data-action="cancel">${escapeHTML(cancelText)}</button>
+        <button type="button" class="btn btn--${type}" data-action="confirm">${escapeHTML(confirmText)}</button>
       </div>
     </div>
   `;

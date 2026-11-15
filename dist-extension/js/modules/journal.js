@@ -5,6 +5,7 @@
 
 import { generateId, showNotification, formatDate, openEveningCheckIn, recordDeletion } from '../app.js';
 import { escapeHTML } from '../utils/sanitizer.js';
+import { filtrarEntradasPorTexto } from '../utils/elementos.js';
 import {
   getReflexionDelDia,
   getPromptsIncomodidad,
@@ -15,6 +16,7 @@ import { getHerramienta } from '../data/markmanson.js';
 import { getSpeechHandler, isSpeechSupported } from '../utils/speech-handler.js';
 import { confirmDanger } from '../utils/confirm-modal.js';
 import { emptyStateFor } from '../components/empty-state.js';
+import { draftIdFor, saveDraft, loadDraft, clearDraft } from '../utils/journal-draft.js';
 
 let updateDataCallback = null;
 let currentData = null;
@@ -194,7 +196,7 @@ const renderEntryCard = (entry) => {
   const preview = safeContent.substring(0, 150) + (safeContent.length > 150 ? '...' : '');
 
   return `
-    <a href="#journal/edit/${entry.id}" class="entry-card">
+    <a href="#journal/edit/${escapeHTML(entry.id)}" class="entry-card">
       <header class="entry-card__header">
         <span class="entry-type-badge">
           <span class="material-symbols-outlined icon-sm ${typeInfo.iconClass}">${typeInfo.icon}</span>
@@ -215,6 +217,9 @@ const renderEditor = (data, entry, type) => {
   const herramienta = getHerramienta(type);
   const prompts = PROMPTS[type] || [];
   const isNew = !entry;
+
+  // Si hay un borrador de esta entrada, manda el borrador sobre el contenido guardado
+  const draft = loadDraft(draftIdFor(parseJournalRoute()));
 
   const title = entry
     ? 'Editar entrada'
@@ -279,7 +284,7 @@ const renderEditor = (data, entry, type) => {
         </aside>
 
         <!-- Área de escritura principal -->
-        <main class="editor-main">
+        <div class="editor-main">
           <form id="journal-form" class="editor-form">
             <div class="editor-textarea-wrapper">
               <textarea
@@ -287,7 +292,7 @@ const renderEditor = (data, entry, type) => {
                 class="editor-textarea"
                 placeholder="Escribe aquí... Tómate tu tiempo."
                 autofocus
-              >${escapeHTML(entry?.content || '')}</textarea>
+              >${escapeHTML(draft ?? entry?.content ?? '')}</textarea>
 
               <!-- Dictado por voz -->
               <div class="dictation-container" ${isSpeechSupported() ? '' : 'hidden'}>
@@ -301,9 +306,9 @@ const renderEditor = (data, entry, type) => {
               </div>
             </div>
 
-            <input type="hidden" id="journal-id" value="${entry?.id || ''}">
-            <input type="hidden" id="journal-type" value="${type}">
-            <input type="hidden" id="journal-created" value="${entry?.createdAt || ''}">
+            <input type="hidden" id="journal-id" value="${escapeHTML(entry?.id || '')}">
+            <input type="hidden" id="journal-type" value="${escapeHTML(type)}">
+            <input type="hidden" id="journal-created" value="${escapeHTML(entry?.createdAt || '')}">
 
             <div class="editor-actions">
               ${!isNew ? `
@@ -321,7 +326,7 @@ const renderEditor = (data, entry, type) => {
               </div>
             </div>
           </form>
-        </main>
+        </div>
       </div>
     </div>
   `;
@@ -351,6 +356,21 @@ const setupEditor = (data) => {
   const form = document.getElementById('journal-form');
   const textarea = document.getElementById('journal-content');
 
+  // Borrador automático: lo escrito se guarda solo para no perderlo al salir
+  const draftId = draftIdFor(parseJournalRoute());
+  if (loadDraft(draftId) !== null) {
+    showNotification('Hemos recuperado el texto que no llegaste a guardar.', 'info');
+  }
+  let draftTimer = null;
+  textarea?.addEventListener('input', () => {
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(() => saveDraft(draftId, textarea.value), 400);
+  });
+  document.querySelector('.editor-actions-right a[href="#journal"]')?.addEventListener('click', () => {
+    clearTimeout(draftTimer);
+    clearDraft(draftId);
+  });
+
   // Guardar entrada
   form?.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -371,6 +391,7 @@ const setupEditor = (data) => {
       recordDeletion(data, 'journal', id);
       data.journal = data.journal.filter(e => e.id !== id);
       updateDataCallback('journal', data.journal);
+      clearDraft(draftIdFor({ mode: 'edit', id }));
       showNotification('Entrada eliminada', 'info');
       window.location.hash = '#journal';
     });
@@ -385,6 +406,9 @@ const setupEditor = (data) => {
       textarea.value = currentContent
         ? `${currentContent}\n\n${prompt}\n`
         : `${prompt}\n`;
+
+      // Avisar al borrador automático de que el texto ha cambiado
+      textarea.dispatchEvent(new Event('input'));
 
       textarea.focus();
       textarea.setSelectionRange(textarea.value.length, textarea.value.length);
@@ -440,6 +464,7 @@ const saveEntry = (data) => {
   }
 
   updateDataCallback('journal', data.journal);
+  clearDraft(draftIdFor(parseJournalRoute()));
   showNotification('Entrada guardada', 'success');
   window.location.hash = '#journal';
 };
@@ -460,18 +485,6 @@ const formatEntryDate = (isoDate) => {
     day: 'numeric',
     month: 'long',
     year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-  });
-};
-
-/**
- * Filtra las entradas por texto y tipo
- */
-const filterEntries = (entries, query, type) => {
-  return entries.filter(entry => {
-    const matchesQuery = !query ||
-      entry.content.toLowerCase().includes(query.toLowerCase());
-    const matchesType = !type || entry.type === type;
-    return matchesQuery && matchesType;
   });
 };
 
@@ -514,7 +527,7 @@ const updateEntriesList = (data) => {
   );
 
   // Filtrar
-  const filteredEntries = filterEntries(allEntries, query, type);
+  const filteredEntries = filtrarEntradasPorTexto(allEntries, query, type);
 
   // Actualizar contador
   const total = allEntries.length;

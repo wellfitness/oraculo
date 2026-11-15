@@ -43,7 +43,7 @@ El `app.js` usa **dynamic import** en `bootstrap()` para cargar el módulo de st
 ### Almacenamiento
 
 - **Solo localStorage** — sin backend, sin cuentas, sin sincronización cloud
-- `storage-hybrid.js` y `storage-local.js` son idénticos (ambos solo localStorage)
+- `storage-local.js` reexporta `storage-hybrid.js` (una sola implementación, solo localStorage)
 - La app no requiere registro ni autenticación (legacy de Supabase eliminado)
 
 ### Extensión Chrome
@@ -129,8 +129,8 @@ oraculo/
 │   └── style.css           # Estilos con design system (~18000 líneas)
 ├── js/
 │   ├── app.js              # Coordinador principal (bootstrap dinámico, captura inteligente)
-│   ├── storage-hybrid.js   # Solo localStorage (idéntico a storage-local.js)
-│   ├── storage-local.js    # Solo localStorage (para extensión Chrome)
+│   ├── storage-hybrid.js   # Implementación única (solo localStorage)
+│   ├── storage-local.js    # Reexporta storage-hybrid.js (extensión Chrome)
 │   ├── storage.js          # Solo localStorage (legacy, usado por settings.js)
 │   ├── modules/
 │   │   ├── dashboard.js    # Dashboard web + launcher extensión

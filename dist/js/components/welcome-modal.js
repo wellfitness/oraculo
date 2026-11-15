@@ -181,7 +181,14 @@ export const initWelcomeModal = (data, updateData) => {
 
   // Botón de empezar
   const startBtn = document.getElementById('welcome-start');
-  startBtn?.addEventListener('click', () => {
+  let done = false;
+
+  // Cerrar la bienvenida también cuenta como empezar: si se cierra con
+  // Escape, el onboarding queda completado y no vuelve a salir.
+  const completeOnboarding = ({ redirect }) => {
+    if (done) return;
+    done = true;
+
     // Guardar onboarding como completado
     const onboardingData = {
       completed: true,
@@ -211,8 +218,13 @@ export const initWelcomeModal = (data, updateData) => {
     showNotification(`¡Bienvenida! Modo: ${modeName}`, 'success');
 
     // Redirigir a Rueda de la Vida para empezar
-    window.location.hash = 'life-wheel';
-  });
+    if (redirect) {
+      window.location.hash = 'life-wheel';
+    }
+  };
+
+  startBtn?.addEventListener('click', () => completeOnboarding({ redirect: true }));
+  modal.addEventListener('close', () => completeOnboarding({ redirect: false }));
 
   // Mostrar modal si es necesario
   if (shouldShowWelcome(data)) {

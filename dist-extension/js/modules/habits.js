@@ -4,9 +4,9 @@
  */
 
 import { generateId, showNotification, recordDeletion } from '../app.js';
-import { escapeHTML } from '../utils/sanitizer.js';
+import { escapeHTML, numeroSeguro } from '../utils/sanitizer.js';
 import { getReflexionDelDia, getReflexionPorPilar } from '../data/burkeman.js';
-import { confirmDanger } from '../utils/confirm-modal.js';
+import { confirmDanger, confirmDangerAsync } from '../utils/confirm-modal.js';
 import { getHabitosManson } from '../data/markmanson.js';
 import { generateHabitHeatmapGrid, groupHabitGridByWeeks } from '../utils/achievements-calculator.js';
 
@@ -156,7 +156,7 @@ export const render = (data) => {
       </aside>
 
       <!-- Contenido principal -->
-      <main class="habits-main">
+      <div class="habits-main">
         <header class="page-header">
         <h1 class="page-title">Laboratorio de Hábitos</h1>
         <p class="page-description">
@@ -211,7 +211,7 @@ export const render = (data) => {
         </section>
       ` : ''}
 
-      </main>
+      </div>
 
       <!-- Modal para crear/editar hábito -->
       <dialog id="habit-modal" class="modal modal--large">
@@ -439,8 +439,8 @@ const renderAtelicSidebar = (activities) => {
         <ul class="atelic-mini-list">
           ${recentActivities.map(a => `
             <li class="atelic-mini-item">
-              <span class="material-symbols-outlined icon-sm">${a.icon || 'spa'}</span>
-              <span>${a.name}</span>
+              <span class="material-symbols-outlined icon-sm">${escapeHTML(a.icon || 'spa')}</span>
+              <span>${escapeHTML(a.name)}</span>
             </li>
           `).join('')}
         </ul>
@@ -488,14 +488,14 @@ const renderAtelicSection = (activities) => {
         <div class="atelic-list">
           ${recentActivities.map(activity => `
             <div class="atelic-item" data-id="${activity.id}">
-              <span class="material-symbols-outlined atelic-item__icon">${activity.icon || 'spa'}</span>
+              <span class="material-symbols-outlined atelic-item__icon">${escapeHTML(activity.icon || 'spa')}</span>
               <div class="atelic-item__content">
-                <span class="atelic-item__name">${activity.name}</span>
+                <span class="atelic-item__name">${escapeHTML(activity.name)}</span>
                 <span class="atelic-item__date">${formatShortDate(activity.date)}</span>
-                ${activity.note ? `<p class="atelic-item__note">${activity.note}</p>` : ''}
+                ${activity.note ? `<p class="atelic-item__note">${escapeHTML(activity.note)}</p>` : ''}
               </div>
               ${activity.duration ? `
-                <span class="atelic-item__duration">${activity.duration} min</span>
+                <span class="atelic-item__duration">${numeroSeguro(activity.duration)} min</span>
               ` : ''}
               <button class="btn btn--icon atelic-item__delete" data-id="${activity.id}" title="Eliminar">
                 <span class="material-symbols-outlined icon-sm">close</span>
@@ -534,12 +534,12 @@ export const init = (data, updateData) => {
   });
 
   // Botón crear hábito (salta auditoría, va directo al wizard)
-  document.getElementById('create-habit-btn')?.addEventListener('click', () => {
+  document.getElementById('create-habit-btn')?.addEventListener('click', async () => {
     // Verificar si hay progreso guardado del mismo día
     const savedProgress = restoreWizardProgress();
     if (savedProgress && Object.keys(savedProgress.data).length > 0) {
       // Preguntar si quiere continuar
-      if (confirm('Tienes un hábito sin terminar. ¿Quieres continuar donde lo dejaste?')) {
+      if (await confirmDangerAsync({ title: 'Tienes un hábito sin terminar. ¿Quieres continuar donde lo dejaste?', message: '', confirmText: 'Sí, continuar', cancelText: 'Cancelar', type: 'warning' })) {
         wizardStep = savedProgress.step;
         wizardData = savedProgress.data;
       } else {
@@ -716,10 +716,10 @@ const initAuditEvents = (data) => {
   });
 
   // Crear hábito nuevo (sin auditoría) - con restauración de progreso
-  document.getElementById('audit-create-new-btn')?.addEventListener('click', () => {
+  document.getElementById('audit-create-new-btn')?.addEventListener('click', async () => {
     const savedProgress = restoreWizardProgress();
     if (savedProgress && Object.keys(savedProgress.data).length > 0) {
-      if (confirm('Tienes un hábito sin terminar. ¿Quieres continuar donde lo dejaste?')) {
+      if (await confirmDangerAsync({ title: 'Tienes un hábito sin terminar. ¿Quieres continuar donde lo dejaste?', message: '', confirmText: 'Sí, continuar', cancelText: 'Cancelar', type: 'warning' })) {
         wizardStep = savedProgress.step;
         wizardData = savedProgress.data;
       } else {
@@ -735,10 +735,10 @@ const initAuditEvents = (data) => {
     reRender(data);
   });
 
-  document.getElementById('audit-skip-btn')?.addEventListener('click', () => {
+  document.getElementById('audit-skip-btn')?.addEventListener('click', async () => {
     const savedProgress = restoreWizardProgress();
     if (savedProgress && Object.keys(savedProgress.data).length > 0) {
-      if (confirm('Tienes un hábito sin terminar. ¿Quieres continuar donde lo dejaste?')) {
+      if (await confirmDangerAsync({ title: 'Tienes un hábito sin terminar. ¿Quieres continuar donde lo dejaste?', message: '', confirmText: 'Sí, continuar', cancelText: 'Cancelar', type: 'warning' })) {
         wizardStep = savedProgress.step;
         wizardData = savedProgress.data;
       } else {
@@ -760,8 +760,8 @@ const initAuditEvents = (data) => {
  */
 const initWizardEvents = (data) => {
   // Cancelar wizard
-  document.getElementById('wizard-cancel-btn')?.addEventListener('click', () => {
-    if (confirm('¿Cancelar la creación del hábito?')) {
+  document.getElementById('wizard-cancel-btn')?.addEventListener('click', async () => {
+    if (await confirmDangerAsync({ title: '¿Cancelar la creación del hábito?', message: '', confirmText: 'Sí, continuar', cancelText: 'Cancelar', type: 'warning' })) {
       currentView = 'lab';
       wizardStep = 1;
       wizardData = {};
@@ -770,8 +770,8 @@ const initWizardEvents = (data) => {
     }
   });
 
-  document.getElementById('wizard-cancel-footer-btn')?.addEventListener('click', () => {
-    if (confirm('¿Cancelar la creación del hábito?')) {
+  document.getElementById('wizard-cancel-footer-btn')?.addEventListener('click', async () => {
+    if (await confirmDangerAsync({ title: '¿Cancelar la creación del hábito?', message: '', confirmText: 'Sí, continuar', cancelText: 'Cancelar', type: 'warning' })) {
       currentView = 'lab';
       wizardStep = 1;
       wizardData = {};
@@ -946,7 +946,7 @@ const validateCurrentWizardStep = () => {
       break;
     case 8:
       if (!wizardData.duration) {
-        showNotification('Selecciona una duracion para el experimento', 'warning');
+        showNotification('Selecciona una duración para el experimento', 'warning');
         return false;
       }
       break;
@@ -1107,7 +1107,7 @@ const renderActiveHabit = (habit, history) => {
         <h3 class="habit-name">${escapeHTML(habit.name)}</h3>
         ${(habit.scheduledTime || habit.location) ? `
           <p class="habit-when-where">
-            ${habit.scheduledTime ? `<span class="material-symbols-outlined icon-sm">schedule</span> ${habit.scheduledTime}` : ''}
+            ${habit.scheduledTime ? `<span class="material-symbols-outlined icon-sm">schedule</span> ${escapeHTML(habit.scheduledTime)}` : ''}
             ${habit.location ? `<span class="material-symbols-outlined icon-sm">location_on</span> ${escapeHTML(habit.location)}` : ''}
           </p>
         ` : ''}
@@ -1163,7 +1163,7 @@ const renderActiveHabit = (habit, history) => {
         </div>
         <div class="stat">
           <span class="stat-value">${progress.completed}</span>
-          <span class="stat-label">de ${progress.target} días</span>
+          <span class="stat-label">de ${numeroSeguro(progress.target)} días</span>
         </div>
         <div class="stat">
           <span class="stat-value">${progress.percentage}%</span>
@@ -1326,7 +1326,7 @@ const markHabitDone = (data) => {
   if (ctx.daysSinceLastCompletion !== null && ctx.daysSinceLastCompletion >= 2) {
     showNotification('Has vuelto al camino. Eso es lo que importa.', 'success');
   } else if (ctx.streak >= 7) {
-    showNotification('Una semana mas. Tu constancia es inspiradora.', 'success');
+    showNotification('Una semana más. Tu constancia es inspiradora.', 'success');
   } else {
     showNotification('Otro día más. Sigue así.', 'success');
   }
@@ -1337,10 +1337,10 @@ const markHabitDone = (data) => {
 /**
  * Gradúa el hábito (lo marca como consolidado)
  */
-const graduateHabit = (data) => {
+const graduateHabit = async (data) => {
   if (!data.habits.active) return;
 
-  if (!confirm('¿Este hábito ya forma parte de tu rutina automática? Una vez graduado, podrás empezar uno nuevo.')) {
+  if (!(await confirmDangerAsync({ title: '¿Este hábito ya forma parte de tu rutina automática?', message: 'Una vez graduado, podrás empezar uno nuevo.', confirmText: 'Sí, continuar', cancelText: 'Cancelar', type: 'warning' }))) {
     return;
   }
 
@@ -1360,8 +1360,8 @@ const graduateHabit = (data) => {
 /**
  * Abandona el hábito actual
  */
-const abandonHabit = (data) => {
-  if (!confirm('¿Segura que quieres abandonar este hábito? El historial se mantendrá pero el hábito dejará de estar activo.')) {
+const abandonHabit = async (data) => {
+  if (!(await confirmDangerAsync({ title: '¿Segura que quieres abandonar este hábito?', message: 'El historial se mantendrá pero el hábito dejará de estar activo.', confirmText: 'Sí, eliminar', cancelText: 'Cancelar', type: 'danger' }))) {
     return;
   }
 
@@ -1458,7 +1458,7 @@ const getStreakContext = (habitId, history) => {
 
 const calculateProgress = (habit, history) => {
   const completedDays = history.filter(h => h.habitId === habit.id).length;
-  const target = habit.duration || 30;
+  const target = numeroSeguro(habit.duration) || 30;
   const percentage = Math.min(100, Math.round((completedDays / target) * 100));
 
   return { completed: completedDays, target, percentage };
@@ -1578,7 +1578,7 @@ const renderAuditSection = (data) => {
           <div class="wizard-progress-label">Paso 1 de 3</div>
         </header>
 
-        <main class="wizard-content">
+        <div class="wizard-content">
           <h1 class="wizard-title">Auditoría de Hábitos</h1>
           <p class="wizard-subtitle">
             Piensa en 2 días representativos de tu rutina.<br>
@@ -1588,7 +1588,7 @@ const renderAuditSection = (data) => {
           <div class="audit-activities-list" id="audit-activities-list">
             ${activities.map(a => `
               <div class="audit-activity-item" data-id="${a.id}">
-                <span class="audit-activity-name">${a.name}</span>
+                <span class="audit-activity-name">${escapeHTML(a.name)}</span>
                 <button class="btn btn--icon audit-activity-delete" data-id="${a.id}">
                   <span class="material-symbols-outlined icon-sm">close</span>
                 </button>
@@ -1609,7 +1609,7 @@ const renderAuditSection = (data) => {
               <p>Ejemplos: "Café de media mañana", "Comer en 10 minutos", "Ver series antes de dormir"</p>
             </div>
           ` : ''}
-        </main>
+        </div>
 
         <footer class="wizard-footer">
           <button class="btn btn--tertiary" id="audit-back-to-lab-btn">Cancelar</button>
@@ -1641,7 +1641,7 @@ const renderAuditSection = (data) => {
           <div class="wizard-progress-label">Paso 2 de 3</div>
         </header>
 
-        <main class="wizard-content">
+        <div class="wizard-content">
           <h1 class="wizard-title">¿Qué quieres hacer con cada actividad?</h1>
           <p class="wizard-subtitle">
             Evalúa cada una según lo que necesitas.
@@ -1650,7 +1650,7 @@ const renderAuditSection = (data) => {
           <div class="audit-evaluate-list">
             ${activities.map(a => `
               <div class="audit-evaluate-item" data-id="${a.id}">
-                <span class="audit-evaluate-name">${a.name}</span>
+                <span class="audit-evaluate-name">${escapeHTML(a.name)}</span>
                 <div class="audit-evaluate-buttons">
                   <button class="btn btn--eval ${a.evaluation === 'maintain' ? 'selected maintain' : ''}" data-id="${a.id}" data-eval="maintain">
                     <span class="material-symbols-outlined icon-sm">add</span>
@@ -1668,7 +1668,7 @@ const renderAuditSection = (data) => {
               </div>
             `).join('')}
           </div>
-        </main>
+        </div>
 
         <footer class="wizard-footer">
           <button class="btn btn--tertiary" id="audit-prev-btn-footer">
@@ -1703,7 +1703,7 @@ const renderAuditSection = (data) => {
           <div class="wizard-progress-label">Paso 3 de 3</div>
         </header>
 
-        <main class="wizard-content">
+        <div class="wizard-content">
           <h1 class="wizard-title">¿Cuál quieres trabajar primero?</h1>
           <p class="wizard-subtitle">
             Has marcado ${activitiesToChange.length} actividad${activitiesToChange.length !== 1 ? 'es' : ''} para cambiar.<br>
@@ -1713,9 +1713,9 @@ const renderAuditSection = (data) => {
           ${activitiesToChange.length > 0 ? `
             <div class="audit-select-list">
               ${activitiesToChange.map(a => `
-                <button class="audit-select-item" data-id="${a.id}" data-name="${a.name}">
+                <button class="audit-select-item" data-id="${a.id}" data-name="${escapeHTML(a.name)}">
                   <span class="material-symbols-outlined">change_circle</span>
-                  <span>${a.name}</span>
+                  <span>${escapeHTML(a.name)}</span>
                   <span class="material-symbols-outlined icon-sm">arrow_forward</span>
                 </button>
               `).join('')}
@@ -1730,7 +1730,7 @@ const renderAuditSection = (data) => {
               </button>
             </div>
           `}
-        </main>
+        </div>
 
         <footer class="wizard-footer">
           <button class="btn btn--tertiary" id="audit-prev-btn-footer">
@@ -1772,7 +1772,7 @@ const renderHabitWizard = () => {
           <div class="wizard-progress-label">Paso ${wizardStep} de ${totalSteps}</div>
         </header>
 
-        <main class="wizard-content">
+        <div class="wizard-content">
           <h1 class="wizard-title">¿A qué área de tu vida pertenece?</h1>
           <p class="wizard-subtitle">
             Prioriza un área antes de dispersarte en varias.
@@ -1781,13 +1781,13 @@ const renderHabitWizard = () => {
           <div class="wizard-area-grid">
             ${LIFE_AREAS.map(area => `
               <button class="wizard-area-card ${wizardData.area === area.id ? 'selected' : ''}" data-area="${area.id}">
-                <span class="material-symbols-outlined wizard-area-icon">${area.icon}</span>
+                <span class="material-symbols-outlined wizard-area-icon">${escapeHTML(area.icon)}</span>
                 <span class="wizard-area-name">${area.name}</span>
                 <span class="wizard-area-desc">${area.description}</span>
               </button>
             `).join('')}
           </div>
-        </main>
+        </div>
 
         <footer class="wizard-footer">
           <button class="btn btn--tertiary" id="wizard-cancel-footer-btn">Cancelar</button>
@@ -1816,7 +1816,7 @@ const renderHabitWizard = () => {
           <div class="wizard-progress-label">Paso ${wizardStep} de ${totalSteps}</div>
         </header>
 
-        <main class="wizard-content">
+        <div class="wizard-content">
           <h1 class="wizard-title">¿Quién quieres ser?</h1>
           <p class="wizard-subtitle">
             Los hábitos basados en identidad son más duraderos que los basados en resultados.
@@ -1829,14 +1829,14 @@ const renderHabitWizard = () => {
               id="wizard-identity"
               class="input input--large"
               placeholder="cuida su cuerpo"
-              value="${wizardData.identity || ''}"
+              value="${escapeHTML(wizardData.identity || '')}"
               maxlength="100"
             >
             <small class="wizard-examples">
               Ejemplos: "se mueve cada día", "come conscientemente", "descansa bien"
             </small>
           </div>
-        </main>
+        </div>
 
         <footer class="wizard-footer">
           <button class="btn btn--tertiary" id="wizard-prev-footer-btn">
@@ -1868,7 +1868,7 @@ const renderHabitWizard = () => {
           <div class="wizard-progress-label">Paso ${wizardStep} de ${totalSteps}</div>
         </header>
 
-        <main class="wizard-content">
+        <div class="wizard-content">
           <h1 class="wizard-title">¿Qué hábito quieres instalar?</h1>
 
           <div class="wizard-form-group">
@@ -1878,7 +1878,7 @@ const renderHabitWizard = () => {
               id="wizard-name"
               class="input input--large"
               placeholder="Hacer 5 minutos de movilidad"
-              value="${wizardData.name || ''}"
+              value="${escapeHTML(wizardData.name || '')}"
               maxlength="100"
               required
             >
@@ -1891,12 +1891,12 @@ const renderHabitWizard = () => {
               id="wizard-micro"
               class="input"
               placeholder="Abrir la esterilla"
-              value="${wizardData.micro || ''}"
+              value="${escapeHTML(wizardData.micro || '')}"
               maxlength="100"
             >
             <small class="wizard-hint">La versión tan pequeña que es imposible fallar.</small>
           </div>
-        </main>
+        </div>
 
         <footer class="wizard-footer">
           <button class="btn btn--tertiary" id="wizard-prev-footer-btn">
@@ -1928,10 +1928,10 @@ const renderHabitWizard = () => {
           <div class="wizard-progress-label">Paso ${wizardStep} de ${totalSteps}</div>
         </header>
 
-        <main class="wizard-content">
+        <div class="wizard-content">
           <h1 class="wizard-title">¿Cuándo y dónde lo harás?</h1>
           <p class="wizard-subtitle">
-            "Voy a <strong>${wizardData.name || '[hábito]'}</strong> a las <strong>[HORA]</strong> en <strong>[LUGAR]</strong>"
+            "Voy a <strong>${escapeHTML(wizardData.name || '[hábito]')}</strong> a las <strong>[HORA]</strong> en <strong>[LUGAR]</strong>"
           </p>
 
           <div class="wizard-form-group">
@@ -1943,7 +1943,7 @@ const renderHabitWizard = () => {
               type="time"
               id="wizard-time"
               class="input"
-              value="${wizardData.scheduledTime || '07:30'}"
+              value="${escapeHTML(wizardData.scheduledTime || '07:30')}"
             >
           </div>
 
@@ -1957,11 +1957,11 @@ const renderHabitWizard = () => {
               id="wizard-location"
               class="input"
               placeholder="en la cocina, en el salón, en el parque..."
-              value="${wizardData.location || ''}"
+              value="${escapeHTML(wizardData.location || '')}"
               maxlength="100"
             >
           </div>
-        </main>
+        </div>
 
         <footer class="wizard-footer">
           <button class="btn btn--tertiary" id="wizard-prev-footer-btn">
@@ -1993,22 +1993,22 @@ const renderHabitWizard = () => {
           <div class="wizard-progress-label">Paso ${wizardStep} de ${totalSteps}</div>
         </header>
 
-        <main class="wizard-content">
+        <div class="wizard-content">
           <div class="wizard-law-badge">Ley 1: Hacerlo Obvio</div>
-          <h1 class="wizard-title">Acumulacion de Habitos</h1>
+          <h1 class="wizard-title">Acumulación de hábitos</h1>
           <p class="wizard-subtitle">
             Vincula tu nuevo hábito a algo que ya haces automáticamente.
-            <em>Despues de [HABITO ACTUAL], hare [NUEVO HABITO].</em>
+            <em>Después de [HÁBITO ACTUAL], haré [NUEVO HÁBITO].</em>
           </p>
 
           <div class="wizard-form-group">
-            <label for="wizard-trigger">Despues de...</label>
+            <label for="wizard-trigger">Después de...</label>
             <input
               type="text"
               id="wizard-trigger"
               class="input input--large"
-              placeholder="servir mi cafe de la manana, hare 2 minutos de estiramientos"
-              value="${wizardData.trigger || ''}"
+              placeholder="servir mi café de la mañana, haré 2 minutos de estiramientos"
+              value="${escapeHTML(wizardData.trigger || '')}"
               maxlength="150"
             >
             <small class="wizard-examples">
@@ -2019,15 +2019,15 @@ const renderHabitWizard = () => {
           <details class="wizard-law-tips">
             <summary>
               <span class="material-symbols-outlined icon-sm">lightbulb</span>
-              Tecnicas para hacerlo obvio
+              Técnicas para hacerlo obvio
             </summary>
             <ul>
-              <li><strong>Disena tu entorno</strong>: Coloca senales visuales donde las veas (las senales visuales son las mas poderosas)</li>
+              <li><strong>Diseña tu entorno</strong>: Coloca señales visuales donde las veas (las señales visuales son las más poderosas)</li>
               <li><strong>Un espacio, un uso</strong>: Si puedes, dedica un lugar específico para tu hábito</li>
               <li><strong>Señala y verbaliza</strong>: Di en voz alta "Voy a hacer [hábito] ahora" para hacerlo consciente</li>
             </ul>
           </details>
-        </main>
+        </div>
 
         <footer class="wizard-footer">
           <button class="btn btn--tertiary" id="wizard-prev-footer-btn">
@@ -2059,8 +2059,8 @@ const renderHabitWizard = () => {
           <div class="wizard-progress-label">Paso ${wizardStep} de ${totalSteps}</div>
         </header>
 
-        <main class="wizard-content">
-          <h1 class="wizard-title">Disena tu entorno</h1>
+        <div class="wizard-content">
+          <h1 class="wizard-title">Diseña tu entorno</h1>
           <p class="wizard-subtitle">
             Aplica las 3 leyes restantes para que tu hábito sea más fácil de mantener.
           </p>
@@ -2068,19 +2068,19 @@ const renderHabitWizard = () => {
           <div class="wizard-law-guide">
             <div class="wizard-law-badge small">Ley 2: Hacerlo Atractivo</div>
             <p class="wizard-law-principle">Empareja lo que TIENES que hacer con algo que QUIERAS hacer.</p>
-            <label for="wizard-attractive">¿Con que lo emparejas?</label>
+            <label for="wizard-attractive">¿Con qué lo emparejas?</label>
             <input
               type="text"
               id="wizard-attractive"
               class="input"
               placeholder="Escucho mi podcast favorito mientras lo hago"
-              value="${wizardData.attractive || ''}"
+              value="${escapeHTML(wizardData.attractive || '')}"
               maxlength="150"
             >
             <details class="wizard-law-tips">
               <summary>
                 <span class="material-symbols-outlined icon-sm">lightbulb</span>
-                Tecnicas
+                Técnicas
               </summary>
               <ul>
                 <li><strong>Acumulación de tentaciones</strong>: Combina el hábito con algo que disfrutes</li>
@@ -2091,21 +2091,21 @@ const renderHabitWizard = () => {
           </div>
 
           <div class="wizard-law-guide">
-            <div class="wizard-law-badge small">Ley 3: Hacerlo Facil</div>
-            <p class="wizard-law-principle">Centrate en la version factible, no en la ideal. Empezar es mas importante que ser perfecta.</p>
+            <div class="wizard-law-badge small">Ley 3: Hacerlo Fácil</div>
+            <p class="wizard-law-principle">Céntrate en la versión factible, no en la ideal. Empezar es más importante que ser perfecta.</p>
             <label for="wizard-easy">¿Cómo reduces la fricción?</label>
             <input
               type="text"
               id="wizard-easy"
               class="input"
               placeholder="Dejo la ropa de deporte preparada la noche anterior"
-              value="${wizardData.easy || ''}"
+              value="${escapeHTML(wizardData.easy || '')}"
               maxlength="150"
             >
             <details class="wizard-law-tips">
               <summary>
                 <span class="material-symbols-outlined icon-sm">lightbulb</span>
-                Tecnicas
+                Técnicas
               </summary>
               <ul>
                 <li><strong>Reduce la fricción</strong>: Elimina pasos entre tú y el hábito</li>
@@ -2124,14 +2124,14 @@ const renderHabitWizard = () => {
               type="text"
               id="wizard-reward"
               class="input"
-              placeholder="Me preparo mi te favorito como celebracion"
-              value="${wizardData.reward || ''}"
+              placeholder="Me preparo mi té favorito como celebración"
+              value="${escapeHTML(wizardData.reward || '')}"
               maxlength="150"
             >
             <details class="wizard-law-tips">
               <summary>
                 <span class="material-symbols-outlined icon-sm">lightbulb</span>
-                Tecnicas
+                Técnicas
               </summary>
               <ul>
                 <li><strong>Recompensa inmediata</strong>: Date algo placentero justo al terminar</li>
@@ -2140,7 +2140,7 @@ const renderHabitWizard = () => {
               </ul>
             </details>
           </div>
-        </main>
+        </div>
 
         <footer class="wizard-footer">
           <button class="btn btn--tertiary" id="wizard-prev-footer-btn">
@@ -2174,9 +2174,9 @@ const renderHabitWizard = () => {
           <div class="wizard-progress-label">Paso ${wizardStep} de ${totalSteps}</div>
         </header>
 
-        <main class="wizard-content">
-          <div class="wizard-law-badge">Preparacion</div>
-          <h1 class="wizard-title">Preparate para los contratiempos</h1>
+        <div class="wizard-content">
+          <div class="wizard-law-badge">Preparación</div>
+          <h1 class="wizard-title">Prepárate para los contratiempos</h1>
           <p class="wizard-subtitle">
             No se trata de ser perfecta. Se trata de volver siempre al camino.
           </p>
@@ -2189,7 +2189,7 @@ const renderHabitWizard = () => {
                   <input
                     type="text"
                     class="input wizard-obstacle-input"
-                    placeholder="${idx === 0 ? 'Estoy muy cansada por la manana' : 'Llueve y no puedo salir'}"
+                    placeholder="${idx === 0 ? 'Estoy muy cansada por la mañana' : 'Llueve y no puedo salir'}"
                     value="${escapeHTML(item.obstacle || '')}"
                     maxlength="100"
                     data-field="obstacle"
@@ -2201,7 +2201,7 @@ const renderHabitWizard = () => {
                   <input
                     type="text"
                     class="input wizard-obstacle-plan"
-                    placeholder="${idx === 0 ? 'Hago solo la micro-version de 2 minutos' : 'Hago la version indoor en casa'}"
+                    placeholder="${idx === 0 ? 'Hago solo la microversión de 2 minutos' : 'Hago la versión de interior en casa'}"
                     value="${escapeHTML(item.plan || '')}"
                     maxlength="100"
                     data-field="plan"
@@ -2215,19 +2215,19 @@ const renderHabitWizard = () => {
           ${currentObstacles.length < 3 ? `
             <button class="btn btn--tertiary btn--sm" id="wizard-add-obstacle">
               <span class="material-symbols-outlined icon-sm">add</span>
-              Anadir otro contratiempo
+              Añadir otro contratiempo
             </button>
           ` : ''}
 
           <blockquote class="quote quote--secondary wizard-quote">
             <p>"${getReflexionPorPilar('imperfeccion')}"</p>
           </blockquote>
-        </main>
+        </div>
 
         <footer class="wizard-footer">
           <button class="btn btn--tertiary" id="wizard-prev-footer-btn">
             <span class="material-symbols-outlined icon-sm">arrow_back</span>
-            Atras
+            Atrás
           </button>
           <button class="btn btn--primary" id="wizard-next-btn">
             Siguiente
@@ -2256,7 +2256,7 @@ const renderHabitWizard = () => {
           <div class="wizard-progress-label">Paso ${wizardStep} de ${totalSteps}</div>
         </header>
 
-        <main class="wizard-content">
+        <div class="wizard-content">
           <h1 class="wizard-title">Tu compromiso</h1>
 
           <div class="wizard-summary">
@@ -2267,9 +2267,9 @@ const renderHabitWizard = () => {
               </div>
             ` : ''}
             <div class="wizard-summary-habit">
-              <strong>${wizardData.name}</strong>
-              ${wizardData.scheduledTime ? `<span>a las ${wizardData.scheduledTime}</span>` : ''}
-              ${wizardData.location ? `<span>${wizardData.location}</span>` : ''}
+              <strong>${escapeHTML(wizardData.name || '')}</strong>
+              ${wizardData.scheduledTime ? `<span>a las ${escapeHTML(wizardData.scheduledTime)}</span>` : ''}
+              ${wizardData.location ? `<span>${escapeHTML(wizardData.location)}</span>` : ''}
             </div>
           </div>
 
@@ -2302,7 +2302,7 @@ const renderHabitWizard = () => {
           <blockquote class="quote quote--wizard">
             <p>"No existe el '21 días mágicos'. Cada hábito tiene su tiempo."</p>
           </blockquote>
-        </main>
+        </div>
 
         <footer class="wizard-footer">
           <button class="btn btn--tertiary" id="wizard-prev-footer-btn">

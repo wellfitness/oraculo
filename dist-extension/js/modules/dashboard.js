@@ -5,7 +5,9 @@
 
 import { generateId, formatDate, showNotification, openCalmTimer, openSpontaneousModal, openEveningCheckIn, openWeeklyReview, recordDeletion } from '../app.js';
 import { needsWeeklyReview } from '../components/weekly-review-modal.js';
-import { escapeHTML } from '../utils/sanitizer.js';
+import { escapeHTML, colorSeguro, numeroSeguro } from '../utils/sanitizer.js';
+import { buscarProyectoPorHashtag } from '../utils/elementos.js';
+import { confirmDangerAsync } from '../utils/confirm-modal.js';
 import { isEveningTime, hasEveningCheckIn } from '../components/evening-check-in.js';
 import { getAchievementsStats, isHabitCompletedToday } from '../utils/achievements-calculator.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
@@ -197,9 +199,10 @@ export const render = (data) => {
               placeholder="¿Cuál es tu prioridad?"
               class="input input--primary"
               maxlength="100"
+              aria-label="Nueva prioridad"
             >
-            <button type="submit" class="btn btn--primary btn--icon">
-              <span class="material-symbols-outlined">add</span>
+            <button type="submit" class="btn btn--primary btn--icon" aria-label="Añadir prioridad">
+              <span class="material-symbols-outlined" aria-hidden="true">add</span>
             </button>
           </form>
         ` : `
@@ -220,7 +223,7 @@ export const render = (data) => {
           <ul class="events-list">
             ${todayEvents.map(event => `
               <li class="event-item">
-                <span class="event-time">${event.time}</span>
+                <span class="event-time">${escapeHTML(event.time)}</span>
                 <span class="event-name">${escapeHTML(event.name)}</span>
               </li>
             `).join('')}
@@ -459,8 +462,8 @@ const renderFocusTask = (task, projects = []) => {
         ${isRock ? '<span class="material-symbols-outlined icon-rock filled">diamond</span>' : ''}
         <span class="focus-text">${escapeHTML(task.text)}</span>
         ${project ? `
-          <span class="focus-project" style="--project-color: ${project.color}">
-            <span class="project-dot" style="background-color: ${project.color}"></span>
+          <span class="focus-project" style="--project-color: ${colorSeguro(project.color)}">
+            <span class="project-dot" style="background-color: ${colorSeguro(project.color)}"></span>
             ${escapeHTML(project.name)}
           </span>
         ` : ''}
@@ -471,10 +474,10 @@ const renderFocusTask = (task, projects = []) => {
           data-id="${task.id}"
           title="${isRock ? 'Quitar como Roca Principal' : 'Marcar como Roca Principal'}"
         >
-          <span class="material-symbols-outlined icon-sm">${isRock ? 'diamond' : 'workspaces'}</span>
+          <span class="material-symbols-outlined icon-sm" aria-hidden="true">${isRock ? 'diamond' : 'workspaces'}</span>
         </button>
         <button class="focus-delete btn--icon" data-id="${task.id}" title="Eliminar">
-          <span class="material-symbols-outlined icon-sm">close</span>
+          <span class="material-symbols-outlined icon-sm" aria-hidden="true">close</span>
         </button>
       </div>
     </li>
@@ -505,7 +508,7 @@ const renderMueveteCard = () => {
         <span class="material-symbols-outlined">directions_run</span>
         <div class="calm-trigger__content">
           <span class="calm-trigger__title">Muévete — ${formatTime(state.workBlockRemaining)}</span>
-          <span class="calm-trigger__subtitle">${state.blocksCompleted} vitamina${state.blocksCompleted !== 1 ? 's' : ''} M hoy</span>
+          <span class="calm-trigger__subtitle">${numeroSeguro(state.blocksCompleted)} vitamina${state.blocksCompleted !== 1 ? 's' : ''} M hoy</span>
         </div>
       </a>
     `;
@@ -640,7 +643,7 @@ const renderNextActions = (data) => {
       <ul class="next-actions-list">
         ${nextActions.map(({ project, task }) => `
           <li class="next-action-item">
-            <span class="project-dot" style="background-color: ${project.color}"></span>
+            <span class="project-dot" style="background-color: ${colorSeguro(project.color)}"></span>
             <div class="next-action-content">
               <span class="next-action-project">${escapeHTML(project.name)}</span>
               <span class="next-action-task">${escapeHTML(task.text)}</span>
@@ -764,10 +767,7 @@ const parseProjectHashtag = (rawText, projects) => {
   const hashtagName = hashtagMatch[1].toLowerCase();
 
   // Buscar proyecto que coincida (case-insensitive, parcial)
-  const matchedProject = projects.find(p =>
-    p.name.toLowerCase().includes(hashtagName) ||
-    hashtagName.includes(p.name.toLowerCase())
-  );
+  const matchedProject = buscarProyectoPorHashtag(projects, hashtagName);
 
   if (matchedProject) {
     // Quitar el hashtag del texto
@@ -861,8 +861,8 @@ const handleToggleTask = (taskId, completed, data) => {
  * Elimina una tarea del foco diario
  * Requiere confirmación para evitar borrados accidentales
  */
-const handleDeleteTask = (taskId, data) => {
-  if (!confirm('¿Eliminar esta prioridad?')) return;
+const handleDeleteTask = async (taskId, data) => {
+  if (!(await confirmDangerAsync({ title: '¿Eliminar esta prioridad?', message: '', confirmText: 'Sí, eliminar', cancelText: 'Cancelar', type: 'danger' }))) return;
 
   recordDeletion(data, 'objectives.daily', taskId);
   data.objectives.daily = data.objectives.daily.filter(t => t.id !== taskId);
@@ -911,8 +911,9 @@ const getLocalDateString = (date = new Date()) => {
  */
 const getDailyLimit = (data) => {
   const today = getLocalDateString();
-  if (data.dailySetup?.date === today && data.dailySetup?.dailyLimit) {
-    return data.dailySetup.dailyLimit;
+  const limite = numeroSeguro(data.dailySetup?.dailyLimit);
+  if (data.dailySetup?.date === today && Number.isInteger(limite) && limite >= 1 && limite <= 3) {
+    return limite;
   }
   return 3; // fallback
 };

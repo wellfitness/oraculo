@@ -4,6 +4,8 @@
  * Basado en filosofía Burkeman: priorizar lo esencial
  */
 
+import { escapeHTML } from '../utils/sanitizer.js';
+
 // Estado del evaluador
 let evaluatorState = {
   isOpen: false,
@@ -475,8 +477,8 @@ export const openObjectiveEvaluator = (objective, onComplete = null) => {
 
   if (nameEl) {
     nameEl.innerHTML = `
-      <span class="material-symbols-outlined">${objective.icon || 'flag'}</span>
-      <span>${objective.title || objective.text}</span>
+      <span class="material-symbols-outlined">${escapeHTML(objective.icon || 'flag')}</span>
+      <span>${escapeHTML(objective.title || objective.text)}</span>
     `;
   }
 

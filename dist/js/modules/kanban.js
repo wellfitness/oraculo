@@ -8,8 +8,12 @@
 
 import { generateId, showNotification, recordDeletion } from '../app.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
-import { escapeHTML } from '../utils/sanitizer.js';
+import { escapeHTML, colorSeguro } from '../utils/sanitizer.js';
 import { confirmDanger } from '../utils/confirm-modal.js';
+import {
+  LIMITS, IMPORTANT_TASK_TYPE, getLocalDateString, getDailyLimit,
+  countActive as getActiveTasksCount, isImportantTask, fechaDeCompletado
+} from '../utils/objectives.js';
 
 let updateDataCallback = null;
 let draggedItem = null;
@@ -18,47 +22,6 @@ let activeFilter = null; // null = todos, '' = sin proyecto, 'id' = proyecto esp
 let selectedHorizonItemId = null; // ID del item de horizonte seleccionado
 let selectedFocusItemId = null; // ID del item de Prioridades seleccionado
 let selectedBacklogItemId = null; // ID del item de Pendientes seleccionado
-
-// Tipos de tarea (simplificado a solo "importante")
-const TASK_TYPES = {
-  importante: { name: 'Importante', icon: 'priority_high', color: 'var(--rosa-600)' }
-};
-
-// Límites por columna (null = sin límite)
-const LIMITS = {
-  backlog: null,  // Sin límite - lista abierta
-  quarterly: 3,
-  monthly: 6,
-  weekly: 10,
-  daily: 3        // "Prioridades" - lista cerrada (pero dinámico según Volumen Fijo)
-};
-
-/**
- * Obtiene la fecha en formato YYYY-MM-DD usando la hora LOCAL del sistema
- */
-const getLocalDateString = (date = new Date()) => {
-  return date.toLocaleDateString('en-CA');
-};
-
-/**
- * Obtiene el límite diario dinámico según el Volumen Fijo configurado
- * Si no hay setup del día, usa el límite por defecto (3)
- */
-const getDailyLimit = (data) => {
-  const today = getLocalDateString();
-  if (data.dailySetup?.date === today && data.dailySetup?.dailyLimit) {
-    return data.dailySetup.dailyLimit;
-  }
-  return LIMITS.daily; // fallback a 3
-};
-
-/**
- * Cuenta las tareas ACTIVAS (no completadas) en una columna
- * El límite solo aplica a tareas pendientes, no al total
- */
-const getActiveTasksCount = (items) => {
-  return items.filter(item => !item.completed).length;
-};
 
 // Nombres para mostrar
 const COLUMN_NAMES = {
@@ -213,6 +176,20 @@ const renderFocusSection = (items, projects, data) => {
 };
 
 /**
+ * Distintivo de «importante» delante del texto de la tarea.
+ */
+const renderImportantMark = (item) => isImportantTask(item)
+  ? '<span class="material-symbols-outlined kanban-item__important" role="img" aria-label="Importante" title="Importante">priority_high</span>'
+  : '';
+
+/**
+ * Nota de la tarea, debajo del texto y en pequeño.
+ */
+const renderItemNotes = (item) => item.notes
+  ? `<p class="kanban-item__notes">${escapeHTML(item.notes)}</p>`
+  : '';
+
+/**
  * Renderiza un item en la sección Prioridades
  * (versión más prominente con checkboxes grandes)
  */
@@ -227,20 +204,21 @@ const renderFocusItem = (item, projects, isRoca = false) => {
       draggable="true"
     >
       <label class="focus-item__checkbox">
-        <input type="checkbox" ${item.completed ? 'checked' : ''} data-id="${item.id}">
+        <input type="checkbox" ${item.completed ? 'checked' : ''} data-id="${item.id}" aria-label="Completar: ${escapeHTML(item.text)}">
         <span class="focus-item__check-icon">
-          <span class="material-symbols-outlined">${item.completed ? 'check_circle' : 'radio_button_unchecked'}</span>
+          <span class="material-symbols-outlined" aria-hidden="true">${item.completed ? 'check_circle' : 'radio_button_unchecked'}</span>
         </span>
       </label>
 
       <div class="focus-item__content">
         <div class="focus-item__title-row">
-          <span class="focus-item__text ${item.completed ? 'text--completed' : ''}">${escapeHTML(item.text)}</span>
+          ${renderImportantMark(item)}
+          <span class="focus-item__text kanban-item__select ${item.completed ? 'text--completed' : ''}" role="button" tabindex="0" aria-pressed="false">${escapeHTML(item.text)}</span>
         </div>
         ${item.notes ? `<p class="focus-item__notes">${escapeHTML(item.notes)}</p>` : ''}
         ${project ? `
-          <span class="focus-item__project" style="--project-color: ${project.color}">
-            <span class="project-dot" style="background-color: ${project.color}"></span>
+          <span class="focus-item__project" style="--project-color: ${colorSeguro(project.color)}">
+            <span class="project-dot" style="background-color: ${colorSeguro(project.color)}"></span>
             ${escapeHTML(project.name)}
           </span>
         ` : ''}
@@ -461,11 +439,15 @@ const renderHorizonItem = (item, projects) => {
       draggable="true"
     >
       <label class="horizon-item__checkbox" title="Marcar como completada">
-        <input type="checkbox" ${item.completed ? 'checked' : ''} data-id="${item.id}">
+        <input type="checkbox" ${item.completed ? 'checked' : ''} data-id="${item.id}" aria-label="Completar: ${escapeHTML(item.text)}">
       </label>
-      <span class="horizon-item__text">${escapeHTML(item.text)}</span>
+      <div class="horizon-item__body">
+        ${renderImportantMark(item)}
+        <span class="horizon-item__text kanban-item__select" role="button" tabindex="0" aria-pressed="false">${escapeHTML(item.text)}</span>
+        ${renderItemNotes(item)}
+      </div>
       ${project ? `
-        <span class="horizon-item__project" style="background-color: ${project.color}15; color: ${project.color}">
+        <span class="horizon-item__project" style="background-color: ${colorSeguro(project.color)}15; color: ${colorSeguro(project.color)}">
           ${escapeHTML(project.name)}
         </span>
       ` : ''}
@@ -602,9 +584,13 @@ const renderBacklogItem = (item, projects) => {
       draggable="true"
     >
       <div class="backlog-item__content">
-        <span class="backlog-item__text">${escapeHTML(item.text)}</span>
+        <div class="backlog-item__body">
+          ${renderImportantMark(item)}
+          <span class="backlog-item__text kanban-item__select" role="button" tabindex="0" aria-pressed="false">${escapeHTML(item.text)}</span>
+          ${renderItemNotes(item)}
+        </div>
         ${project ? `
-          <span class="backlog-item__project" style="--project-color: ${project.color}">
+          <span class="backlog-item__project" style="--project-color: ${colorSeguro(project.color)}">
             ${escapeHTML(project.name)}
           </span>
         ` : ''}
@@ -615,10 +601,14 @@ const renderBacklogItem = (item, projects) => {
 
 /**
  * Agrupa items completados por semana
+ *
+ * Una tarea completada sin fecha (puede venir de un backup importado) se queda
+ * fuera de la agrupación en vez de romper la vista de la Agenda.
  */
 const groupByWeek = (items) => {
   return items.reduce((acc, item) => {
-    const date = new Date(item.completedAt);
+    const date = fechaDeCompletado(item);
+    if (!date) return acc;
     const weekStart = getWeekStart(date).toISOString().split('T')[0];
     if (!acc[weekStart]) acc[weekStart] = [];
     acc[weekStart].push(item);
@@ -664,8 +654,8 @@ const renderCompletedItem = (item) => {
   return `
     <li class="completed-item" data-id="${item.id}">
       <label class="completed-item__checkbox">
-        <input type="checkbox" checked data-id="${item.id}">
-        <span class="material-symbols-outlined completed-item__icon">check_circle</span>
+        <input type="checkbox" checked data-id="${item.id}" aria-label="Restaurar: ${escapeHTML(item.text)}">
+        <span class="material-symbols-outlined completed-item__icon" aria-hidden="true">check_circle</span>
       </label>
       <span class="completed-item__text">${escapeHTML(item.text)}</span>
       ${originLabel ? `<span class="completed-item__origin">${originLabel}</span>` : ''}
@@ -787,7 +777,7 @@ export const render = (data) => {
                   <option value="">Todas las tareas</option>
                   <option value="none">Sin proyecto</option>
                   ${projects.map(p => `
-                    <option value="${p.id}">${p.name}</option>
+                    <option value="${escapeHTML(p.id)}">${escapeHTML(p.name)}</option>
                   `).join('')}
                 </select>
               </div>
@@ -856,7 +846,7 @@ export const render = (data) => {
               <select id="item-project" class="input">
                 <option value="">Sin proyecto</option>
                 ${projects.map(p => `
-                  <option value="${p.id}">${p.name}</option>
+                  <option value="${escapeHTML(p.id)}">${escapeHTML(p.name)}</option>
                 `).join('')}
               </select>
             </div>
@@ -909,7 +899,7 @@ const setupHorizonSelection = (data) => {
 
         // Si ya está seleccionado, deseleccionar
         if (selectedHorizonItemId === itemId) {
-          item.classList.remove('horizon-item--selected');
+          setItemSelected(item, 'horizon-item', false);
           selectedHorizonItemId = null;
           actionsBar.hidden = true;
           return;
@@ -919,7 +909,7 @@ const setupHorizonSelection = (data) => {
         clearAllSelections();
 
         // Seleccionar este
-        item.classList.add('horizon-item--selected');
+        setItemSelected(item, 'horizon-item', true);
         selectedHorizonItemId = itemId;
         actionsBar.hidden = false;
       });
@@ -960,7 +950,7 @@ const setupFocusSelection = (data) => {
 
       // Si ya está seleccionado, deseleccionar
       if (selectedFocusItemId === itemId) {
-        item.classList.remove('focus-item--selected');
+        setItemSelected(item, 'focus-item', false);
         selectedFocusItemId = null;
         actionsBar.hidden = true;
         return;
@@ -970,7 +960,7 @@ const setupFocusSelection = (data) => {
       clearAllSelections();
 
       // Seleccionar este
-      item.classList.add('focus-item--selected');
+      setItemSelected(item, 'focus-item', true);
       selectedFocusItemId = itemId;
       actionsBar.hidden = false;
     });
@@ -1006,7 +996,7 @@ const setupBacklogSelection = (data) => {
 
       // Si ya está seleccionado, deseleccionar
       if (selectedBacklogItemId === itemId) {
-        item.classList.remove('backlog-item--selected');
+        setItemSelected(item, 'backlog-item', false);
         selectedBacklogItemId = null;
         actionsBar.hidden = true;
         return;
@@ -1016,7 +1006,7 @@ const setupBacklogSelection = (data) => {
       clearAllSelections();
 
       // Seleccionar este
-      item.classList.add('backlog-item--selected');
+      setItemSelected(item, 'backlog-item', true);
       selectedBacklogItemId = itemId;
       actionsBar.hidden = false;
     });
@@ -1039,11 +1029,19 @@ const setupBacklogSelection = (data) => {
 };
 
 /**
+ * Marca o desmarca la selección de un item y lo anuncia.
+ */
+const setItemSelected = (item, block, selected) => {
+  item.classList.toggle(`${block}--selected`, selected);
+  item.querySelector('.kanban-item__select')?.setAttribute('aria-pressed', String(selected));
+};
+
+/**
  * Limpia todas las selecciones de todas las secciones
  */
 const clearAllSelections = () => {
   // Limpiar Agenda (weekly, monthly, quarterly)
-  document.querySelectorAll('.horizon-item--selected').forEach(i => i.classList.remove('horizon-item--selected'));
+  document.querySelectorAll('.horizon-item--selected').forEach(i => setItemSelected(i, 'horizon-item', false));
   selectedHorizonItemId = null;
   // Ocultar barras de acciones de las 3 secciones de horizontes
   ['weekly-actions', 'monthly-actions', 'quarterly-actions', 'horizons-actions'].forEach(id => {
@@ -1051,12 +1049,12 @@ const clearAllSelections = () => {
   });
 
   // Limpiar Focus
-  document.querySelectorAll('.focus-item--selected').forEach(i => i.classList.remove('focus-item--selected'));
+  document.querySelectorAll('.focus-item--selected').forEach(i => setItemSelected(i, 'focus-item', false));
   selectedFocusItemId = null;
   document.getElementById('focus-actions')?.setAttribute('hidden', '');
 
   // Limpiar Backlog (sidebar)
-  document.querySelectorAll('.backlog-item--selected').forEach(i => i.classList.remove('backlog-item--selected'));
+  document.querySelectorAll('.backlog-item--selected').forEach(i => setItemSelected(i, 'backlog-item', false));
   selectedBacklogItemId = null;
   document.getElementById('backlog-actions')?.setAttribute('hidden', '');
 };
@@ -1133,9 +1131,26 @@ const setupCompletedSection = () => {
 };
 
 /**
+ * Enter y Espacio seleccionan la tarea, como si se hiciera clic.
+ * Se registra una sola vez, aunque la vista se abra muchas veces.
+ */
+let selectKeysBound = false;
+const bindSelectKeys = () => {
+  if (selectKeysBound) return;
+  selectKeysBound = true;
+  document.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList?.contains('kanban-item__select')) {
+      e.preventDefault();
+      e.target.click();
+    }
+  });
+};
+
+/**
  * Inicializa eventos del Kanban
  */
 export const init = (data, updateData) => {
+  bindSelectKeys();
   updateDataCallback = updateData;
   currentData = data;
 
@@ -1361,8 +1376,8 @@ const renderItem = (item, columnKey, projects = []) => {
         </label>
         ${item.notes ? `<p class="kanban-item__notes">${escapeHTML(item.notes)}</p>` : ''}
         ${project ? `
-          <span class="kanban-item__project" style="--project-color: ${project.color}">
-            <span class="project-dot" style="background-color: ${project.color}"></span>
+          <span class="kanban-item__project" style="--project-color: ${colorSeguro(project.color)}">
+            <span class="project-dot" style="background-color: ${colorSeguro(project.color)}"></span>
             ${escapeHTML(project.name)}
           </span>
         ` : ''}
@@ -1639,7 +1654,7 @@ const openItemModal = (item = null, column = 'weekly') => {
   }
 
   // Marcar como importante si lo era
-  importantCheckbox.checked = item?.taskType === 'importante';
+  importantCheckbox.checked = isImportantTask(item);
 
   const columnName = COLUMN_NAMES[column];
   title.textContent = item ? `Editar (${columnName})` : `Nuevo en ${columnName}`;
@@ -1661,7 +1676,7 @@ const saveItem = (data, keepOpen = false) => {
   const projectSelect = document.getElementById('item-project');
   const projectId = projectSelect ? projectSelect.value || null : null;
   const isImportant = document.getElementById('item-important').checked;
-  const taskType = isImportant ? 'importante' : null;
+  const taskType = isImportant ? IMPORTANT_TASK_TYPE : null;
 
   if (!text) {
     showNotification('La descripción es obligatoria', 'warning');

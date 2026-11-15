@@ -13,6 +13,7 @@
  */
 
 import { showNotification } from '../app.js';
+import { escapeHTML, colorSeguro } from '../utils/sanitizer.js';
 
 // Nombres de columnas para mostrar
 const COLUMN_NAMES = {
@@ -270,7 +271,7 @@ export const initDailySetupModal = (data, updateData) => {
       <li class="task-item task-item--in-daily ${isMarkedForRemoval ? 'task-item--removing' : ''}"
           data-id="${item.id}"
           data-column="daily"
-          data-moved-from="${item.movedFrom || 'weekly'}"
+          data-moved-from="${escapeHTML(item.movedFrom || 'weekly')}"
           style="animation-delay: ${animIndex * 0.03}s">
         <label class="task-item__checkbox">
           <input
@@ -278,7 +279,7 @@ export const initDailySetupModal = (data, updateData) => {
             data-id="${item.id}"
             data-column="daily"
             data-source="daily"
-            data-moved-from="${item.movedFrom || 'weekly'}"
+            data-moved-from="${escapeHTML(item.movedFrom || 'weekly')}"
             ${!isMarkedForRemoval ? 'checked' : ''}
           >
           <span class="task-item__check-visual">
@@ -286,7 +287,7 @@ export const initDailySetupModal = (data, updateData) => {
           </span>
         </label>
         <div class="task-item__content">
-          <p class="task-item__text">${item.text}</p>
+          <p class="task-item__text">${escapeHTML(item.text)}</p>
           <div class="task-item__meta">
             <span class="task-item__tag task-item__tag--in-daily">Prioridad</span>
             ${item.movedFrom ? `
@@ -295,8 +296,8 @@ export const initDailySetupModal = (data, updateData) => {
               </span>
             ` : ''}
             ${project ? `
-              <span class="task-item__tag task-item__tag--project" style="--project-color: ${project.color}">
-                ${project.name}
+              <span class="task-item__tag task-item__tag--project" style="--project-color: ${colorSeguro(project.color)}">
+                ${escapeHTML(project.name)}
               </span>
             ` : ''}
           </div>
@@ -327,12 +328,12 @@ export const initDailySetupModal = (data, updateData) => {
           </span>
         </label>
         <div class="task-item__content">
-          <p class="task-item__text">${item.text}</p>
+          <p class="task-item__text">${escapeHTML(item.text)}</p>
           <div class="task-item__meta">
             <span class="task-item__tag">Semana</span>
             ${project ? `
-              <span class="task-item__tag task-item__tag--project" style="--project-color: ${project.color}">
-                ${project.name}
+              <span class="task-item__tag task-item__tag--project" style="--project-color: ${colorSeguro(project.color)}">
+                ${escapeHTML(project.name)}
               </span>
             ` : ''}
           </div>

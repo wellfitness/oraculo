@@ -29,6 +29,8 @@
  *   - oraculo_gcal_settings (key separada de localStorage)
  */
 
+import { IMPORTANT_TASK_TYPE } from './objectives.js';
+
 const BRIDGE_SETTINGS_KEY = 'oraculo_mcp_bridge';
 const BRIDGE_VERSION = '1.0';
 
@@ -529,7 +531,7 @@ function addTask(data, params) {
     text: params.text,
     notes: null,
     projectId: params.projectId || null,
-    taskType: params.important ? 'important' : null,
+    taskType: params.important ? IMPORTANT_TASK_TYPE : null,
     completed: false,
     isRocaPrincipal: false,
     valueId: null,

@@ -5,7 +5,8 @@
  * Usado por la extensión Chrome y como fallback de la web.
  */
 
-import { validateDataStructure } from './utils/validator.js';
+import { validateDataStructure, sanearIdentificadores, descartarElementosInvalidos, normalizarHorizontes, normalizarContadores } from './utils/validator.js';
+import { normalizarNumeros } from './utils/numeros.js';
 
 const STORAGE_KEY = 'oraculo_data';
 const STORAGE_VERSION = '1.5';
@@ -156,17 +157,40 @@ const getDefaultData = () => ({
 // FUNCIONES DE LOCALSTORAGE
 // ============================================================
 
+// Incidencia de la última carga. La app la consulta una vez y la descarta.
+let loadIssue = null;
+
 const loadFromLocalStorage = () => {
+  let stored = null;
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) {
       return null;
     }
     return JSON.parse(stored);
   } catch (error) {
     console.error('[Storage] Error cargando de localStorage:', error);
+    // Conserva lo que había para que la usuaria no lo pierda del todo
+    if (stored) {
+      try {
+        localStorage.setItem('oraculo_data_corrupt', stored);
+      } catch { /* noop */ }
+      loadIssue = 'corrupt';
+    }
     return null;
   }
+};
+
+/**
+ * Devuelve la incidencia de la última carga y la borra, para que el aviso
+ * salga una sola vez.
+ *
+ * @returns {'corrupt'|null} Incidencia pendiente.
+ */
+export const consumeLoadIssue = () => {
+  const issue = loadIssue;
+  loadIssue = null;
+  return issue;
 };
 
 const saveToLocalStorage = (data) => {
@@ -200,6 +224,45 @@ const saveToLocalStorage = (data) => {
 // API PÚBLICA (compatible con storage-hybrid.js)
 // ============================================================
 
+const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+const fillFromDefaults = (target, defaults) => {
+  for (const key of Object.keys(defaults)) {
+    const def = defaults[key];
+    const cur = target[key];
+    if (Array.isArray(def)) {
+      if (!Array.isArray(cur)) target[key] = def;
+    } else if (isPlainObject(def)) {
+      if (!isPlainObject(cur)) target[key] = def;
+      else fillFromDefaults(cur, def);
+    } else if (cur === undefined) {
+      target[key] = def;
+    }
+  }
+  return target;
+};
+
+/**
+ * Deja los datos con la forma que espera la app.
+ *
+ * Rellena las secciones que falten, descarta de las listas del modelo los
+ * elementos que no son objetos y normaliza el horizonte de origen de las
+ * tareas. Los datos llegan por la importación y por la sincronización con
+ * Drive, que escribe directamente en `localStorage`, así que la limpieza se
+ * hace aquí y no solo en el importador.
+ *
+ * @param {Object} data - Datos a dejar en forma.
+ * @returns {Object} Los mismos datos, ya en forma.
+ */
+export const ensureDataShape = (data) => {
+  fillFromDefaults(data, getDefaultData());
+  descartarElementosInvalidos(data);
+  normalizarHorizontes(data);
+  normalizarContadores(data);
+  normalizarNumeros(data);
+  return data;
+};
+
 export const loadData = () => {
   let localData = loadFromLocalStorage();
 
@@ -210,6 +273,11 @@ export const loadData = () => {
     localData = migrateData(localData);
   }
 
+  ensureDataShape(localData);
+  // Los identificadores se normalizan al cargar, no solo al importar: los
+  // datos también llegan por la sincronización con Drive, que escribe
+  // directamente en localStorage.
+  sanearIdentificadores(localData);
   cleanupLegacyGcalSettings(localData);
 
   return localData;
@@ -243,6 +311,35 @@ const cleanupLegacyGcalSettings = (data) => {
 
 export const saveData = (data) => {
   return saveToLocalStorage(data);
+};
+
+/**
+ * Decide si la memoria de la app debe volcar a localStorage al cerrar.
+ *
+ * Si otra pestaña (o la sincronización con Drive) ha guardado algo más
+ * reciente, volcar la memoria dejaría los datos más nuevos fuera. Las
+ * fechas `updatedAt` se comparan como texto porque las fechas ISO se
+ * ordenan igual como texto que como fecha. Una fecha ausente cuenta como
+ * cadena vacía.
+ *
+ * @param {Object} memoryData - Datos que la app tiene en memoria.
+ * @param {string|null} storedRaw - Texto exacto que hay en localStorage.
+ * @returns {boolean} true si es seguro guardar.
+ */
+export const shouldPersistOnUnload = (memoryData, storedRaw) => {
+  if (storedRaw === null || storedRaw === undefined) return false;
+
+  let stored;
+  try {
+    stored = JSON.parse(storedRaw);
+  } catch {
+    return false;
+  }
+
+  const storedAt = typeof stored?.updatedAt === 'string' ? stored.updatedAt : '';
+  const memoryAt = typeof memoryData?.updatedAt === 'string' ? memoryData.updatedAt : '';
+
+  return !(storedAt > memoryAt);
 };
 
 /**
@@ -319,37 +416,89 @@ export const exportData = () => {
   URL.revokeObjectURL(url);
 };
 
-export const importData = (file) => {
+/**
+ * Convierte el texto de un backup en datos de Oráculo.
+ * Lanza un Error con un mensaje para la usuaria si el texto no es un
+ * backup válido.
+ *
+ * @param {string} text - Texto del archivo.
+ * @returns {Object} Datos validados, sin transformar.
+ */
+export const parseImportText = (text) => {
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error('No es un archivo JSON válido.');
+  }
+
+  const validation = validateDataStructure(parsed);
+  if (!validation.valid) {
+    throw new Error('Archivo no válido: ' + validation.error);
+  }
+
+  return parsed;
+};
+
+/**
+ * Lee un archivo de backup y devuelve sus datos validados.
+ *
+ * @param {File} file - Archivo elegido por la usuaria.
+ * @returns {Promise<Object>} Datos validados.
+ */
+export const parseImportFile = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
     reader.onload = (e) => {
       try {
-        const importedData = JSON.parse(e.target.result);
-
-        const validation = validateDataStructure(importedData);
-        if (!validation.valid) {
-          throw new Error('Archivo no válido: ' + validation.error);
-        }
-
-        // Backup antes de importar
-        const currentData = loadData();
-        localStorage.setItem(STORAGE_KEY + '_backup', JSON.stringify(currentData));
-
-        const saved = saveData(importedData);
-        if (saved) {
-          resolve(importedData);
-        } else {
-          throw new Error('No se pudieron guardar los datos');
-        }
+        resolve(parseImportText(e.target.result));
       } catch (error) {
-        reject(new Error('Error al importar: ' + error.message));
+        reject(error);
       }
     };
 
     reader.onerror = () => reject(new Error('Error leyendo archivo'));
     reader.readAsText(file);
   });
+};
+
+/**
+ * Cuenta lo que contiene un backup, para poder contarlo antes de
+ * reemplazar los datos.
+ *
+ * @param {Object} data - Datos de un backup.
+ * @returns {{ tasks: number, journalEntries: number }} Resumen.
+ */
+export const summarizeBackup = (data) => {
+  const objectives = data?.objectives || {};
+  const count = (key) => (Array.isArray(objectives[key]) ? objectives[key].length : 0);
+
+  return {
+    tasks: count('backlog') + count('quarterly') + count('monthly') + count('weekly') + count('daily'),
+    journalEntries: Array.isArray(data?.journal) ? data.journal.length : 0
+  };
+};
+
+/**
+ * Guarda los datos importados. Antes deja una copia de lo que había.
+ *
+ * @param {Object} data - Datos validados.
+ * @returns {boolean} true si se han guardado.
+ */
+export const applyImportedData = (data) => {
+  const current = localStorage.getItem(STORAGE_KEY);
+  if (current !== null) {
+    localStorage.setItem(STORAGE_KEY + '_backup', current);
+  }
+
+  return saveData(data);
+};
+
+export const importData = async (file) => {
+  const data = await parseImportFile(file);
+  if (!applyImportedData(data)) throw new Error('No se pudieron guardar los datos');
+  return data;
 };
 
 export const getStorageUsage = () => {
@@ -479,51 +628,35 @@ const migrateData = (oldData) => {
 // ============================================================
 
 export const clearAllData = () => {
-  if (confirm('¿Estás segura de que quieres borrar TODOS los datos? Esta acción no se puede deshacer.')) {
-    localStorage.removeItem(STORAGE_KEY);
-    return true;
-  }
-  return false;
+  localStorage.removeItem(STORAGE_KEY);
 };
 
 export const clearIdentityData = () => {
-  if (confirm('¿Borrar valores, hábitos y rueda de la vida?\n\nLas tareas, proyectos y diario se mantienen.')) {
-    const data = loadData();
-    data.values = [];
-    data.habits = {
-      active: null,
-      graduated: [],
-      history: [],
-      audit: { activities: [], lastAuditAt: null }
-    };
-    if (data.lifeWheel) data.lifeWheel = null;
-    saveData(data);
-    return true;
-  }
-  return false;
+  const data = loadData();
+  data.values = [];
+  data.habits = {
+    active: null,
+    graduated: [],
+    history: [],
+    audit: { activities: [], lastAuditAt: null }
+  };
+  if (data.lifeWheel) data.lifeWheel = null;
+  saveData(data);
 };
 
 export const clearProductivityData = () => {
-  if (confirm('¿Borrar tareas, proyectos y logros?\n\nValores, hábitos y diario se mantienen.')) {
-    const data = loadData();
-    data.objectives = { backlog: [], quarterly: [], monthly: [], weekly: [], daily: [], completed: [] };
-    data.projects = [];
-    data.spontaneousAchievements = [];
-    data.dailySetup = null;
-    saveData(data);
-    return true;
-  }
-  return false;
+  const data = loadData();
+  data.objectives = { backlog: [], quarterly: [], monthly: [], weekly: [], daily: [], completed: [] };
+  data.projects = [];
+  data.spontaneousAchievements = [];
+  data.dailySetup = null;
+  saveData(data);
 };
 
 export const clearJournalData = () => {
-  if (confirm('¿Borrar todas las entradas del diario?\n\nTodo lo demás se mantiene.')) {
-    const data = loadData();
-    data.journal = [];
-    saveData(data);
-    return true;
-  }
-  return false;
+  const data = loadData();
+  data.journal = [];
+  saveData(data);
 };
 
 export const generateYearSummary = (data) => {
@@ -534,7 +667,9 @@ export const generateYearSummary = (data) => {
       countCompleted(data.objectives.quarterly || []) +
       countCompleted(data.objectives.monthly || []) +
       countCompleted(data.objectives.weekly || []) +
-      countCompleted(data.objectives.daily || []),
+      countCompleted(data.objectives.daily || []) +
+      // Las tareas completadas se mueven a objectives.completed
+      (data.objectives.completed || []).length,
     habitsGraduated: (data.habits.graduated || []).length,
     habitDaysLogged: (data.habits.history || []).length,
     projectsCompleted: (data.projects || []).filter(p => p.status === 'completed').length,
@@ -578,14 +713,34 @@ export const archiveCurrentYear = () => {
   return { archiveData, archivedNotebooks };
 };
 
+/**
+ * Año del cuaderno nuevo. Es el mayor entre "año del cuaderno + 1" y el
+ * año en curso, para que archivar dos veces no retroceda el cuaderno.
+ * Un año que no sea entero cuenta como ausente.
+ *
+ * @param {Object} data - Datos actuales.
+ * @param {Date} now - Fecha de referencia.
+ * @returns {number} Año del cuaderno nuevo.
+ */
+export const getNextNotebookYear = (data, now = new Date()) => {
+  const currentYear = now.getFullYear();
+  const notebookYear = Number.isInteger(data?.notebook?.year) ? data.notebook.year : currentYear;
+  return Math.max(notebookYear + 1, currentYear);
+};
+
 export const startNewYear = (archivedNotebooks = []) => {
   const data = loadData();
-  const newYear = new Date().getFullYear();
+  const newYear = getNextNotebookYear(data);
 
   const newData = {
     ...getDefaultData(),
     values: data.values || [],
     settings: data.settings || getDefaultData().settings,
+    burkemanSettings: data.burkemanSettings || getDefaultData().burkemanSettings,
+    onboarding: data.onboarding || getDefaultData().onboarding,
+    lifeWheel: data.lifeWheel || getDefaultData().lifeWheel,
+    objectiveEvaluation: data.objectiveEvaluation || getDefaultData().objectiveEvaluation,
+    muevete: data.muevete || getDefaultData().muevete,
     archivedNotebooks: archivedNotebooks,
     habits: {
       active: null,

@@ -10,7 +10,9 @@
  */
 
 import { showNotification, generateId, recordDeletion } from '../app.js';
-import { escapeHTML } from '../utils/sanitizer.js';
+import { escapeHTML, colorSeguro } from '../utils/sanitizer.js';
+import { isHorizonFull, getHorizonLimit, countActive } from '../utils/objectives.js';
+import { getCompletedTasksInPeriod } from '../utils/achievements-calculator.js';
 
 let updateDataCallback = null;
 let currentData = null;
@@ -266,7 +268,7 @@ const renderProyectosStep = () => {
 
             return `
               <li class="review-project ${nextActionValid ? 'review-project--ok' : 'review-project--needs-action'}">
-                <span class="project-dot" style="background-color: ${project.color}"></span>
+                <span class="project-dot" style="background-color: ${colorSeguro(project.color)}"></span>
                 <span class="review-project__name">${escapeHTML(project.name)}</span>
                 <span class="review-project__status">
                   ${nextActionValid
@@ -349,15 +351,8 @@ const renderHabitosStep = () => {
 
 const renderCelebrarStep = () => {
   const objectives = currentData.objectives || {};
-  const completedThisWeek = ['daily', 'weekly', 'monthly', 'quarterly'].reduce((acc, h) => {
-    return acc + (objectives[h] || []).filter(t => {
-      if (!t.completed || !t.completedAt) return false;
-      const completedDate = new Date(t.completedAt);
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return completedDate >= weekAgo;
-    }).length;
-  }, 0);
+  // Mismo cálculo que la vista Logros: semana de lunes a domingo
+  const completedThisWeek = getCompletedTasksInPeriod(objectives, 'week').length;
 
   const spontaneous = (currentData.spontaneousAchievements || []).filter(a => {
     const created = new Date(a.createdAt);
@@ -581,6 +576,11 @@ const applyBacklogChanges = () => {
       changes++;
     } else if (['weekly', 'monthly', 'quarterly'].includes(action)) {
       // Mover a horizonte
+      if (isHorizonFull(currentData, action)) {
+        const nombres = { weekly: 'Semana', monthly: 'Mes', quarterly: 'Trimestre' };
+        showNotification(`${nombres[action]} ya está al completo (${countActive(currentData.objectives[action])}/${getHorizonLimit(currentData, action)}). La idea se queda en Pendientes.`, 'warning');
+        return;
+      }
       backlog.splice(taskIndex, 1);
       if (!currentData.objectives[action]) {
         currentData.objectives[action] = [];
@@ -640,6 +640,11 @@ const moveTask = (taskId, fromHorizon, toHorizon) => {
   const taskIndex = fromTasks.findIndex(t => t.id === taskId);
 
   if (taskIndex !== -1) {
+    if (isHorizonFull(currentData, toHorizon)) {
+      showNotification('Ese horizonte ya está al completo. La tarea se queda donde estaba.', 'warning');
+      renderCurrentStep();
+      return;
+    }
     const task = fromTasks.splice(taskIndex, 1)[0];
     if (!currentData.objectives[toHorizon]) {
       currentData.objectives[toHorizon] = [];

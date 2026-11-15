@@ -3,6 +3,9 @@
  * Renderiza un gráfico de líneas temporal con SVG puro
  */
 
+import { escapeHTML, numeroSeguro } from '../utils/sanitizer.js';
+import { nombreDe } from '../utils/elementos.js';
+
 // Colores por defecto para áreas
 const DEFAULT_COLORS = {
   health: '#10b981',
@@ -107,7 +110,7 @@ export const renderEvolutionChart = (evaluations = [], areas = [], options = {})
         font-size="11"
         font-weight="500"
         class="evolution-x-label"
-      >${ev.quarter}</text>
+      >${escapeHTML(ev.quarter)}</text>
       <line
         x1="${x.toFixed(2)}"
         y1="${padding.top}"
@@ -128,7 +131,7 @@ export const renderEvolutionChart = (evaluations = [], areas = [], options = {})
     // Generar puntos de la polyline
     const points = sortedEvals.map((ev, i) => {
       const x = padding.left + i * xStep;
-      const score = ev.scores?.[area.id]?.current || 5;
+      const score = numeroSeguro(ev.scores?.[area.id]?.current, 5);
       const y = padding.top + yScale(score);
       return `${x.toFixed(2)},${y.toFixed(2)}`;
     }).join(' ');
@@ -136,7 +139,7 @@ export const renderEvolutionChart = (evaluations = [], areas = [], options = {})
     // Puntos individuales con hover
     const pointCircles = showPoints ? sortedEvals.map((ev, i) => {
       const x = padding.left + i * xStep;
-      const score = ev.scores?.[area.id]?.current || 5;
+      const score = numeroSeguro(ev.scores?.[area.id]?.current, 5);
       const y = padding.top + yScale(score);
 
       return `
@@ -152,7 +155,7 @@ export const renderEvolutionChart = (evaluations = [], areas = [], options = {})
           data-eval="${ev.id}"
           data-score="${score}"
         >
-          <title>${area.name}: ${score}/10 (${ev.quarter})</title>
+          <title>${escapeHTML(area.name)}: ${score}/10 (${escapeHTML(ev.quarter)})</title>
         </circle>
       `;
     }).join('') : '';
@@ -197,7 +200,7 @@ export const renderEvolutionChart = (evaluations = [], areas = [], options = {})
               dominant-baseline="middle"
               fill="${labelColor}"
               font-size="10"
-            >${area.name.substring(0, 10)}${area.name.length > 10 ? '...' : ''}</text>
+            >${escapeHTML(nombreDe(area).substring(0, 10))}${nombreDe(area).length > 10 ? '...' : ''}</text>
           </g>
         `;
       }).join('')}
@@ -348,7 +351,7 @@ export const renderSparkline = (evaluations, areaId, options = {}) => {
   const yScale = (value) => height - ((value - 1) / 9) * (height - 4) - 2;
 
   const points = sortedEvals.map((ev, i) => {
-    const score = ev.scores?.[areaId]?.current || 5;
+    const score = numeroSeguro(ev.scores?.[areaId]?.current, 5);
     return `${(i * xStep).toFixed(2)},${yScale(score).toFixed(2)}`;
   }).join(' ');
 

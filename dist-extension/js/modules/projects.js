@@ -4,7 +4,8 @@
  */
 
 import { generateId, showNotification, recordDeletion } from '../app.js';
-import { escapeHTML } from '../utils/sanitizer.js';
+import { escapeHTML, colorSeguro } from '../utils/sanitizer.js';
+import { confirmDangerAsync } from '../utils/confirm-modal.js';
 const MAX_ACTIVE_PROJECTS = 4;
 import {
   renderObjectiveEvaluator,
@@ -14,6 +15,7 @@ import {
   getObjectiveEvaluation
 } from '../components/objective-evaluator.js';
 import { emptyStateFor } from '../components/empty-state.js';
+import { unlinkProjectTasks } from '../utils/objectives.js';
 
 let updateDataCallback = null;
 let currentData = null;
@@ -226,12 +228,12 @@ export const render = (data) => {
 
           <div class="form-group">
             <label for="project-name">Nombre del proyecto *</label>
-            <input type="text" id="project-name" class="input" placeholder="Ej: Viaje a Grecia" required>
+            <input type="text" id="project-name" class="input" placeholder="Ej: Viaje a Grecia" required maxlength="100">
           </div>
 
           <div class="form-group">
             <label for="project-description">Descripción (opcional)</label>
-            <textarea id="project-description" class="input textarea" rows="3"
+            <textarea id="project-description" class="input textarea" rows="3" maxlength="500"
               placeholder="¿De qué trata este proyecto?"></textarea>
           </div>
 
@@ -258,7 +260,7 @@ export const render = (data) => {
             <select id="project-value" class="input">
               <option value="">Sin vincular</option>
               ${(data.values || []).map(v => `
-                <option value="${v.id}">${v.name}</option>
+                <option value="${escapeHTML(v.id)}">${escapeHTML(v.name)}</option>
               `).join('')}
             </select>
           </div>
@@ -309,12 +311,12 @@ const renderProjectCard = (project, objectives, compact = false) => {
 
   return `
     <article class="project-card ${compact ? 'project-card--compact' : ''}"
-      data-id="${project.id}" style="--project-color: ${project.color}">
+      data-id="${project.id}" style="--project-color: ${colorSeguro(project.color)}">
       <header class="project-card__header">
-        <div class="project-card__color" style="background-color: ${project.color}"></div>
-        <h3 class="project-card__name">${escapeHTML(project.name)}</h3>
-        <button class="btn btn--icon btn--ghost project-card__menu" data-id="${project.id}" title="Evaluar proyecto">
-          <span class="material-symbols-outlined">balance</span>
+        <div class="project-card__color" style="background-color: ${colorSeguro(project.color)}"></div>
+        <h3 class="project-card__name"><button type="button" class="project-card__open">${escapeHTML(project.name)}</button></h3>
+        <button class="btn btn--icon btn--ghost project-card__menu" data-id="${project.id}" title="Evaluar proyecto" aria-label="Evaluar proyecto: ${escapeHTML(project.name)}">
+          <span class="material-symbols-outlined" aria-hidden="true">balance</span>
         </button>
       </header>
 
@@ -324,7 +326,7 @@ const renderProjectCard = (project, objectives, compact = false) => {
 
       <div class="project-card__progress">
         <div class="progress-bar">
-          <div class="progress-bar__fill" style="width: ${progress.percentage}%; background-color: ${project.color}"></div>
+          <div class="progress-bar__fill" style="width: ${progress.percentage}%; background-color: ${colorSeguro(project.color)}"></div>
         </div>
         <span class="progress-text">${progress.completed}/${progress.total} tareas</span>
       </div>
@@ -356,9 +358,9 @@ const renderProjectCard = (project, objectives, compact = false) => {
       ${!compact ? `
         <footer class="project-card__footer">
           ${linkedValue ? `
-            <span class="project-card__value" title="Vinculado a: ${linkedValue.name}">
+            <span class="project-card__value" title="Vinculado a: ${escapeHTML(linkedValue.name)}">
               <span class="material-symbols-outlined icon-xs">explore</span>
-              ${linkedValue.name}
+              ${escapeHTML(linkedValue.name)}
             </span>
           ` : ''}
           ${deadlineInfo ? `
@@ -420,9 +422,9 @@ const renderProjectDetail = (project) => {
       <button class="btn btn--icon btn--ghost" id="close-project-detail" title="Cerrar">
         <span class="material-symbols-outlined">close</span>
       </button>
-      <div class="project-detail__color" style="background-color: ${project.color}"></div>
+      <div class="project-detail__color" style="background-color: ${colorSeguro(project.color)}"></div>
       <h2 class="project-detail__name">${escapeHTML(project.name)}</h2>
-      <span class="status-badge status-badge--${project.status}" title="${statusInfo.description}">
+      <span class="status-badge status-badge--${escapeHTML(project.status)}" title="${statusInfo.description}">
         <span class="material-symbols-outlined icon-sm ${statusInfo.iconClass}">${statusInfo.icon}</span>
         ${statusInfo.name}
       </span>
@@ -436,7 +438,7 @@ const renderProjectDetail = (project) => {
       ${linkedValue ? `
         <div class="meta-item">
           <span class="material-symbols-outlined icon-sm">explore</span>
-          <span>Vinculado a: <strong>${linkedValue.name}</strong></span>
+          <span>Vinculado a: <strong>${escapeHTML(linkedValue.name)}</strong></span>
         </div>
       ` : ''}
       ${project.deadline ? `
@@ -453,7 +455,7 @@ const renderProjectDetail = (project) => {
         <span class="progress-count">${progress.completed} de ${progress.total} tareas</span>
       </div>
       <div class="progress-bar progress-bar--large">
-        <div class="progress-bar__fill" style="width: ${progress.percentage}%; background-color: ${project.color}"></div>
+        <div class="progress-bar__fill" style="width: ${progress.percentage}%; background-color: ${colorSeguro(project.color)}"></div>
       </div>
     </div>
 
@@ -819,8 +821,8 @@ const openProjectDetail = (project) => {
     modal.close();
   });
 
-  document.getElementById('delete-project-btn')?.addEventListener('click', () => {
-    if (confirm('¿Eliminar este proyecto? Las tareas no se eliminarán, solo se desvinculan.')) {
+  document.getElementById('delete-project-btn')?.addEventListener('click', async () => {
+    if (await confirmDangerAsync({ title: '¿Eliminar este proyecto?', message: 'Las tareas no se eliminarán, solo se desvinculan.', confirmText: 'Sí, eliminar', cancelText: 'Cancelar', type: 'danger' })) {
       deleteProject(project.id);
       modal.close();
     }
@@ -1088,13 +1090,7 @@ const addTaskFromProject = (projectId, text, isImportant) => {
  */
 const deleteProject = (projectId) => {
   // Desvincular tareas
-  ['quarterly', 'monthly', 'weekly', 'daily'].forEach(horizon => {
-    currentData.objectives[horizon].forEach(task => {
-      if (task.projectId === projectId) {
-        task.projectId = null;
-      }
-    });
-  });
+  unlinkProjectTasks(currentData.objectives, projectId);
 
   // Eliminar proyecto
   recordDeletion(currentData, 'projects', projectId);

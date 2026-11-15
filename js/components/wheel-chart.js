@@ -3,6 +3,8 @@
  * Renderiza un gráfico polar/radial con SVG puro
  */
 
+import { escapeHTML, numeroSeguro } from '../utils/sanitizer.js';
+
 // Colores por defecto para áreas
 const DEFAULT_COLORS = {
   health: '#10b981',
@@ -34,7 +36,7 @@ const createRadialPath = (scores, areas, maxRadius, center, startAngle) => {
   let pathD = '';
 
   areas.forEach((area, i) => {
-    const score = scores[area.id]?.current || 0;
+    const score = numeroSeguro(scores[area.id]?.current);
     const radius = (score / 10) * maxRadius;
     const angle = startAngle + i * angleStep;
     const { x, y } = getPointCoordinates(angle, radius, center);
@@ -60,7 +62,7 @@ const createDesiredPath = (scores, areas, maxRadius, center, startAngle) => {
   let pathD = '';
 
   areas.forEach((area, i) => {
-    const score = scores[area.id]?.desired || 0;
+    const score = numeroSeguro(scores[area.id]?.desired);
     const radius = (score / 10) * maxRadius;
     const angle = startAngle + i * angleStep;
     const { x, y } = getPointCoordinates(angle, radius, center);
@@ -161,7 +163,7 @@ export const renderWheelChart = (scores = {}, areas = [], options = {}) => {
 
   // Puntos interactivos (vértices del polígono actual)
   const interactivePoints = hasScores ? areas.map((area, i) => {
-    const score = scores[area.id]?.current || 0;
+    const score = numeroSeguro(scores[area.id]?.current);
     const radius = (score / 10) * maxRadius;
     const angle = startAngle + i * angleStep;
     const { x, y } = getPointCoordinates(angle, radius, center);
@@ -179,7 +181,7 @@ export const renderWheelChart = (scores = {}, areas = [], options = {}) => {
         data-area="${area.id}"
         data-score="${score}"
       >
-        <title>${area.name}: ${score}/10</title>
+        <title>${escapeHTML(area.name)}: ${score}/10</title>
       </circle>
     ` : `
       <circle
@@ -223,7 +225,7 @@ export const renderWheelChart = (scores = {}, areas = [], options = {}) => {
         class="wheel-label"
         data-area="${area.id}"
       >
-        <tspan dx="${dx}">${area.name}</tspan>
+        <tspan dx="${dx}">${escapeHTML(area.name)}</tspan>
       </text>
     `;
   }).join('') : '';
@@ -247,7 +249,7 @@ export const renderWheelChart = (scores = {}, areas = [], options = {}) => {
           xmlns="http://www.w3.org/1999/xhtml"
           class="material-symbols-outlined wheel-area-icon"
           style="color: ${color}; font-size: 20px;"
-        >${area.icon || 'circle'}</span>
+        >${escapeHTML(area.icon || 'circle')}</span>
       </foreignObject>
     `;
   }).join('') : '';

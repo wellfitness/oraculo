@@ -16,6 +16,7 @@
   --turquesa-500: #06b6d4;
   --turquesa-600: #00bec8;
   --turquesa-700: #088b96;
+  --turquesa-800: #006369;
 
   /* Colores - Rosa (secundario) */
   --rosa-50: #fff1f2;
@@ -256,7 +257,10 @@ a:hover {
 
 .app-main {
   flex: 1;
-  padding: var(--space-3) var(--space-4);
+  /* Relleno lateral. El header del dashboard sangra con este mismo valor,
+     por eso vive en una variable: si cambia uno, cambia el otro. */
+  --app-pad-x: var(--space-4);
+  padding: var(--space-3) var(--app-pad-x);
   max-width: 1000px;
   width: 100%;
   margin: 0 auto;
@@ -3626,7 +3630,8 @@ a.entry-type-btn {
   }
 
   .app-main {
-    padding: var(--space-2);
+    --app-pad-x: var(--space-2);
+    padding: var(--space-2) var(--app-pad-x);
   }
 
   .kanban-board {
@@ -3681,7 +3686,8 @@ a.entry-type-btn {
 
   /* Contenedor principal - padding lateral respirable */
   .app-main {
-    padding: var(--space-2) 12px; /* 16px arriba/abajo, 12px lados */
+    --app-pad-x: 12px;
+    padding: var(--space-2) var(--app-pad-x);
     overflow-x: hidden;
   }
 
@@ -10410,7 +10416,7 @@ body {
 .dashboard__header {
   position: relative;
   padding: var(--space-3);
-  margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-4)) var(--space-3);
+  margin: calc(-1 * var(--space-3)) calc(-1 * var(--app-pad-x, var(--space-4))) var(--space-3);
   background: linear-gradient(135deg, var(--turquesa-100) 0%, var(--gris-50) 100%);
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
@@ -17763,7 +17769,8 @@ select,
 @media (max-width: 360px) {
   /* Contenedor principal - mínimo indispensable */
   .app-main {
-    padding: 6px;
+    --app-pad-x: 6px;
+    padding: 6px var(--app-pad-x);
   }
 
   /* Header - compacto */
@@ -19182,7 +19189,10 @@ select,
    VISTA HOY - Todo lo esencial sin scroll
    ============================================================ */
 
-.today {
+/* Solo la vista "Hoy". Sin este alcance, cualquier otro elemento con
+   clase "today" (por ejemplo la celda de hoy del calendario de hábitos)
+   heredaba el relleno y el ancho máximo de la vista. */
+#app-content > .today {
   max-width: 480px;
   margin: 0 auto;
   padding: var(--space-3) var(--space-2);
@@ -19790,4 +19800,209 @@ body.capacitor-native .capture-banner {
   cursor: pointer;
   padding: 0 2px;
   font: inherit;
+}
+
+/* === Correcciones auditoría 2026-11 === */
+
+.event-item__open {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.kanban-item__select {
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.horizon-item__body,
+.backlog-item__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.horizon-item__body .kanban-item__select,
+.backlog-item__body .kanban-item__select {
+  flex: 1;
+  min-width: 0;
+}
+
+.horizon-item__body .kanban-item__notes,
+.backlog-item__body .kanban-item__notes {
+  flex-basis: 100%;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.kanban-item__important {
+  color: var(--rosa-600);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.project-card__open {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.focus-delete:focus-visible,
+.project-card__menu:focus-visible {
+  opacity: 1;
+}
+
+#app-content:focus {
+  outline: none;
+}
+
+@media (min-width: 901px) and (max-width: 1799px) {
+  .app-header {
+    flex-wrap: wrap;
+    row-gap: var(--space-1);
+  }
+
+  .app-nav {
+    order: 3;
+    flex: 1 0 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-nav {
+    max-height: calc(100dvh - 80px);
+    overflow-y: auto;
+  }
+}
+
+.habit-calendar .calendar-grid {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.habit-calendar .calendar-day {
+  min-width: 0;
+}
+
+/* Texto de la usuaria que nunca desborda */
+.focus-text,
+.focus-item__text,
+.focus-item__notes,
+.horizon-item__text,
+.backlog-item__text,
+.completed-item__text,
+.project-card__name,
+.project-card__description,
+.today__task-text,
+.today__roca-text,
+.entry-preview,
+.event-name,
+.value-name,
+.value-description,
+.habit-identity {
+  overflow-wrap: anywhere;
+}
+
+.focus-label,
+.project-card__name,
+.today__task-text {
+  min-width: 0;
+}
+
+/* Contraste */
+.capture-banner__btn,
+.app-footer a,
+.stat-value,
+.habit-identity {
+  color: var(--turquesa-800);
+}
+
+.nav-link.active,
+.step-number {
+  color: var(--gris-900);
+}
+
+.capture-banner__counter {
+  background: var(--rosa-600);
+}
+
+/* Contraste de los contadores */
+.law-item__number {
+  color: var(--turquesa-800);
+}
+
+.completed-toggle__count {
+  color: var(--turquesa-800);
+}
+
+.local-storage-notice strong {
+  color: var(--turquesa-800);
+}
+
+.horizon-count.count--full,
+.slots-indicator.slots--full {
+  color: var(--rosa-700);
+}
+
+.kanban-sidebar__count,
+.habit-heatmap__stats {
+  color: var(--gris-600);
+}
+
+.slots-indicator {
+  color: var(--turquesa-800);
+}
+
+.habit-suggestions .benefit-tag {
+  color: var(--turquesa-800);
+}
+
+.settings-legal {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--gris-500);
+  text-align: center;
+}
+
+.settings-legal a {
+  color: var(--turquesa-800);
+}
+
+/* Zonas táctiles en móvil */
+@media (max-width: 768px) {
+  .link-subtle,
+  .dashboard__reconfigure,
+  #journal-search-input,
+  #review-day-select {
+    min-height: 44px;
+  }
+
+  .link-subtle {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .today__task-check,
+  #clear-search {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 }

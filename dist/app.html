@@ -46,43 +46,43 @@
 
       <nav class="app-nav">
         <a href="#dashboard" data-view="dashboard" class="nav-link active" title="Dashboard">
-          <span class="nav-icon material-symbols-outlined">home</span>
+          <span class="nav-icon material-symbols-outlined" aria-hidden="true">home</span>
           <span class="nav-text">Inicio</span>
         </a>
         <a href="#kanban" data-view="kanban" class="nav-link" title="Agenda">
-          <span class="nav-icon material-symbols-outlined">view_kanban</span>
+          <span class="nav-icon material-symbols-outlined" aria-hidden="true">view_kanban</span>
           <span class="nav-text">Agenda</span>
         </a>
         <a href="#projects" data-view="projects" class="nav-link" title="Proyectos">
-          <span class="nav-icon material-symbols-outlined">folder_open</span>
+          <span class="nav-icon material-symbols-outlined" aria-hidden="true">folder_open</span>
           <span class="nav-text">Proyectos</span>
         </a>
         <a href="#habits" data-view="habits" class="nav-link" title="Laboratorio de Hábitos">
-          <span class="nav-icon material-symbols-outlined">science</span>
+          <span class="nav-icon material-symbols-outlined" aria-hidden="true">science</span>
           <span class="nav-text">Hábitos</span>
         </a>
         <a href="#muevete" data-view="muevete" class="nav-link" title="Muévete">
-          <span class="nav-icon material-symbols-outlined">directions_run</span>
+          <span class="nav-icon material-symbols-outlined" aria-hidden="true">directions_run</span>
           <span class="nav-text">Muévete</span>
         </a>
         <a href="#calendar" data-view="calendar" class="nav-link" title="Calendario">
-          <span class="nav-icon material-symbols-outlined">calendar_month</span>
+          <span class="nav-icon material-symbols-outlined" aria-hidden="true">calendar_month</span>
           <span class="nav-text">Calendario</span>
         </a>
         <a href="#life-wheel" data-view="life-wheel" class="nav-link" title="Rueda de la Vida">
-          <span class="nav-icon material-symbols-outlined">donut_large</span>
+          <span class="nav-icon material-symbols-outlined" aria-hidden="true">donut_large</span>
           <span class="nav-text">Rueda</span>
         </a>
         <a href="#values" data-view="values" class="nav-link" title="Brújula de Valores">
-          <span class="nav-icon material-symbols-outlined">explore</span>
+          <span class="nav-icon material-symbols-outlined" aria-hidden="true">explore</span>
           <span class="nav-text">Valores</span>
         </a>
         <a href="#journal" data-view="journal" class="nav-link" title="Diario">
-          <span class="nav-icon material-symbols-outlined">auto_stories</span>
+          <span class="nav-icon material-symbols-outlined" aria-hidden="true">auto_stories</span>
           <span class="nav-text">Diario</span>
         </a>
         <a href="#achievements" data-view="achievements" class="nav-link" title="Logros">
-          <span class="nav-icon material-symbols-outlined">emoji_events</span>
+          <span class="nav-icon material-symbols-outlined" aria-hidden="true">emoji_events</span>
           <span class="nav-text">Logros</span>
         </a>
       </nav>
@@ -90,25 +90,25 @@
       <div class="app-actions">
         <!-- Botón hamburguesa para tablets/móviles -->
         <button class="nav-toggle" aria-label="Menú" aria-expanded="false">
-          <span class="material-symbols-outlined">menu</span>
+          <span class="material-symbols-outlined" aria-hidden="true">menu</span>
         </button>
         <!-- Botón de dictado por voz -->
         <button type="button" id="global-voice-btn" class="btn btn--icon btn--voice" title="Dictar por voz">
-          <span class="material-symbols-outlined">mic</span>
+          <span class="material-symbols-outlined" aria-hidden="true">mic</span>
         </button>
         <!-- Botón de sync Google Drive -->
         <button type="button" id="global-sync-btn" class="btn btn--icon" title="Google Drive Sync" style="display:none;">
-          <span class="material-symbols-outlined" id="global-sync-icon">cloud_off</span>
+          <span class="material-symbols-outlined" id="global-sync-icon" aria-hidden="true">cloud_off</span>
         </button>
         <!-- Botón de guardar backup -->
         <button type="button" id="global-save-btn" class="btn btn--icon" title="Guardar backup">
-          <span class="material-symbols-outlined">save</span>
+          <span class="material-symbols-outlined" aria-hidden="true">save</span>
         </button>
         <a href="#help" data-view="help" class="btn btn--icon" title="Ayuda">
-          <span class="material-symbols-outlined">help</span>
+          <span class="material-symbols-outlined" aria-hidden="true">help</span>
         </a>
         <a href="#settings" data-view="settings" class="btn btn--icon" title="Configuración">
-          <span class="material-symbols-outlined">settings</span>
+          <span class="material-symbols-outlined" aria-hidden="true">settings</span>
         </a>
       </div>
     </header>
@@ -116,17 +116,18 @@
     <!-- Banner de Captura GTD -->
     <div class="capture-banner">
       <div class="capture-banner__content">
-        <span class="capture-banner__icon material-symbols-outlined">inbox</span>
+        <span class="capture-banner__icon material-symbols-outlined" aria-hidden="true">inbox</span>
         <input
           type="text"
           id="global-capture-input"
           class="capture-banner__input"
+          aria-label="Captura rápida"
           placeholder="¿Qué tienes en mente? Anota la cosa, no la acción..."
           maxlength="150"
           autocomplete="off"
         >
         <button type="button" id="global-capture-btn" class="capture-banner__btn" title="Capturar en Pendientes">
-          <span class="material-symbols-outlined">add</span>
+          <span class="material-symbols-outlined" aria-hidden="true">add</span>
           <span class="capture-banner__btn-text">Capturar</span>
         </button>
         <span class="capture-banner__counter" id="capture-counter" hidden>
@@ -152,7 +153,7 @@
       </p>
       <p class="footer-version" id="app-version">
         <a href="#changelog" class="footer-changelog-link" id="changelog-link" data-view="changelog">
-          <span class="material-symbols-outlined" style="font-size: 14px;">update</span>
+          <span class="material-symbols-outlined" style="font-size: 14px;" aria-hidden="true">update</span>
           v<span id="version-number">2.4.0</span>
           <span class="changelog-dot" id="changelog-dot" hidden></span>
         </a>
