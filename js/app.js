@@ -21,9 +21,11 @@ import { parseCapture } from './utils/captura.js';
 import { escapeHTML } from './utils/sanitizer.js';
 import { sanearIdentificadores } from './utils/validator.js';
 import {
+  AVISO_DATOS_OTRA_PESTAÑA,
   DECISION_APLICAR,
   DECISION_APLAZAR,
   DECISION_IGNORAR,
+  avisoDeDatosDePestana,
   decidirCambioDePestana
 } from './utils/sincronia-pestanas.js';
 import {
@@ -34,6 +36,7 @@ import {
   tieneBorradorPendiente
 } from './utils/journal-draft.js';
 import { fusionarDatos, copiarDatos } from './utils/fusionar-datos.js';
+import { elegirHashDeNavegacion, getBaseView } from './utils/ruta-hash.js';
 import { fusionarPendiente } from './utils/pendiente-sync.js';
 import { capturarTextoDeCampo, restaurarTextoEnCampo } from './utils/campos.js';
 import { haSalidoDelBloqueDeEdicion } from './utils/foco.js';
@@ -122,14 +125,9 @@ const VIEWS = {
   changelog: 'Novedades'
 };
 
-/**
- * Extrae la vista base de un hash (antes del primer /)
- * Ej: "journal/new/gratitude" -> "journal"
- */
-const getBaseView = (hash) => {
-  const cleanHash = hash.startsWith('#') ? hash.slice(1) : hash;
-  return cleanHash.split('/')[0] || 'dashboard';
-};
+// La lista de vistas se exporta para que otros módulos puedan comprobar si una
+// dirección corresponde a una vista que existe.
+export { VIEWS };
 
 // ============================================================
 // DATOS QUE LLEGAN DE FUERA DE ESTA PESTAÑA
@@ -180,6 +178,26 @@ const hayBorradorDelDiario = () => {
 const estaEditando = () => hayCampoConFoco() || hayBorradorDelDiario();
 
 /**
+ * Muestra un aviso, salvo que ya haya uno igual en pantalla.
+ *
+ * Los datos de otra pestaña llegan en ráfaga: cada guardado en la otra
+ * pestaña dispara un aviso. Si se apilaran, la usuaria vería el mismo aviso
+ * repetido varias veces seguidas.
+ *
+ * @param {string} message - El texto del aviso.
+ * @param {string} [type='info'] - El tipo de aviso.
+ * @returns {boolean} true si se ha mostrado el aviso.
+ */
+const mostrarAvisoSinRepetir = (message, type = 'info') => {
+  const repetido = Array.from(document.querySelectorAll('.notification'))
+    .some((aviso) => aviso.textContent === message);
+  if (repetido) return false;
+
+  showNotification(message, type);
+  return true;
+};
+
+/**
  * Aplica lo que quedó pendiente de fuera, si ya se puede.
  *
  * Lo que llega de la nube se funde con lo que hay en memoria: así no se
@@ -197,7 +215,9 @@ const estaEditando = () => hayCampoConFoco() || hayBorradorDelDiario();
 const aplicarPendingSync = () => {
   if (!state.pendingSync) return false;
 
-  if (state.pendingSyncOrigen === 'pestana') {
+  const origen = state.pendingSyncOrigen;
+
+  if (origen === 'pestana') {
     const decision = decidirCambioDePestana({
       updatedAtEnMemoria: state.data?.updatedAt,
       updatedAtRecibido: state.pendingSync?.updatedAt,
@@ -225,6 +245,13 @@ const aplicarPendingSync = () => {
   // pendiente queda vacío: si se quedara, la siguiente aplicación volvería a
   // fusionarlo y lo que la usuaria acaba de borrar reaparecería.
   fusionarPendiente(state);
+
+  // Los datos de otra pestaña ya están dentro: la usuaria tiene que saberlo,
+  // porque lo que ve en pantalla acaba de cambiar.
+  if (origen === 'pestana') {
+    mostrarAvisoSinRepetir(AVISO_DATOS_OTRA_PESTAÑA, 'info');
+  }
+
   return true;
 };
 
@@ -275,6 +302,10 @@ const prepararGuardado = () => {
   state.pendingSync = null;
   state.pendingSyncOrigen = null;
   state.pendingSyncBase = null;
+
+  // Lo de la otra pestaña acaba de entrar en el cuaderno: la usuaria tiene
+  // que saberlo, porque lo que ve en pantalla va a cambiar.
+  mostrarAvisoSinRepetir(AVISO_DATOS_OTRA_PESTAÑA, 'info');
 };
 
 /**
@@ -592,10 +623,11 @@ const setupGlobalEvents = () => {
     // otra vez desde memoria, así que se queda con lo que haya ahora.
     const fresh = loadData();
 
+    const conModal = hayModalAbierto();
     const decision = decidirCambioDePestana({
       updatedAtEnMemoria: state.data?.updatedAt,
       updatedAtRecibido: fresh?.updatedAt,
-      hayModalAbierto: hayModalAbierto(),
+      hayModalAbierto: conModal,
       estaEditando: estaEditando()
     });
 
@@ -610,6 +642,12 @@ const setupGlobalEvents = () => {
       // Copia de los datos como están ahora: sirve de base para saber qué ha
       // cambiado en local mientras lo de la otra pestaña espera.
       state.pendingSyncBase = copiarDatos(state.data);
+
+      // Si lo que lo aplaza es un modal, se avisa de que los datos se aplicarán
+      // al cerrarlo. Si lo único que hay es la usuaria escribiendo, no se avisa:
+      // no se le interrumpe mientras escribe.
+      const aviso = avisoDeDatosDePestana({ decision, hayModalAbierto: conModal });
+      if (aviso) mostrarAvisoSinRepetir(aviso, 'info');
       return;
     }
 
@@ -619,6 +657,10 @@ const setupGlobalEvents = () => {
       // guardan una referencia a ellas siguen viendo los mismos objetos.
       state.data = fusionarDatos(copiarDatos(state.data), state.data, fresh);
       renderView(state.currentView);
+
+      // La usuaria tiene que saber que lo que ve en pantalla acaba de cambiar.
+      const aviso = avisoDeDatosDePestana({ decision, hayModalAbierto: conModal });
+      if (aviso) mostrarAvisoSinRepetir(aviso, 'info');
     }
   });
 
@@ -1231,8 +1273,13 @@ const initAutoBackup = async () => {
 
 /**
  * Navega a una vista específica
+ *
+ * @param {string} viewName - La vista a la que se navega.
+ * @param {string} [hashCompleto] - La dirección de partida. Si su subruta
+ *   pertenece a esta vista, se conserva: `#journal/new/free` abre el editor
+ *   de escritura libre en lugar del listado del diario.
  */
-export const navigateTo = (viewName) => {
+export const navigateTo = (viewName, hashCompleto) => {
   if (!VIEWS[viewName]) {
     console.error('Vista no encontrada:', viewName);
     return;
@@ -1244,8 +1291,10 @@ export const navigateTo = (viewName) => {
 
   state.currentView = viewName;
 
-  // Actualizar URL sin recargar
-  history.pushState({ view: viewName }, '', `#${viewName}`);
+  // Actualizar URL sin recargar. La subruta solo se conserva si es de esta
+  // vista: si no, se va a la vista a secas.
+  const hash = elegirHashDeNavegacion(viewName, hashCompleto);
+  history.pushState({ view: viewName }, '', `#${hash}`);
 
   // Renderizar
   renderView(viewName);

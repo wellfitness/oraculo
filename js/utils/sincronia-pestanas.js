@@ -20,6 +20,12 @@ export const DECISION_APLAZAR = 'aplazar';
 /** Lo que llega de otra pestaña no es más nuevo y se descarta. */
 export const DECISION_IGNORAR = 'ignorar';
 
+/** Aviso que sale cuando los datos de otra pestaña se aplican. */
+export const AVISO_DATOS_OTRA_PESTAÑA = 'Datos actualizados desde otra pestaña.';
+
+/** Aviso que sale cuando los datos de otra pestaña esperan al cierre del modal. */
+export const AVISO_DATOS_EN_ESPERA = 'Datos actualizados. Se aplicarán al cerrar el modal.';
+
 /**
  * Decide qué hacer con los datos que llegan de otra pestaña.
  *
@@ -55,4 +61,30 @@ export const decidirCambioDePestana = (estado) => {
   if (hayModalAbierto || estaEditando) return DECISION_APLAZAR;
 
   return DECISION_APLICAR;
+};
+
+/**
+ * Elige el aviso que corresponde a los datos que llegan de otra pestaña.
+ *
+ * - Si los datos se aplican, se avisa de que se han actualizado.
+ * - Si quedan esperando a que cierre el modal, se avisa de que se aplicarán
+ *   después.
+ * - Si lo único que hay es la usuaria escribiendo, no se avisa: no se le
+ *   interrumpe mientras escribe.
+ * - Si lo que llega no es más nuevo y se descarta, no se avisa.
+ *
+ * @param {Object} estado - Estado en el momento de la decisión.
+ * @param {string} [estado.decision] - La decisión que se ha tomado.
+ * @param {boolean} [estado.hayModalAbierto] - true si hay un modal abierto.
+ * @returns {string|null} El texto del aviso, o null si no hay que avisar.
+ */
+export const avisoDeDatosDePestana = (estado) => {
+  const { decision, hayModalAbierto = false } = estado || {};
+
+  if (decision === DECISION_APLICAR) return AVISO_DATOS_OTRA_PESTAÑA;
+  if (decision === DECISION_APLAZAR) {
+    return hayModalAbierto ? AVISO_DATOS_EN_ESPERA : null;
+  }
+
+  return null;
 };

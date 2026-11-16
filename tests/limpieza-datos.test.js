@@ -67,6 +67,42 @@ const leerUltimoRespaldo = async () => {
   return autoBackup.restoreAutoBackup(lista[0].id);
 };
 
+/**
+ * Lee lo que hay guardado en un almacén de IndexedDB.
+ *
+ * @param {string} nombreAlmacen - Nombre del almacén.
+ * @returns {Promise<Array<object>>} Los registros que hay.
+ */
+const leerAlmacen = async (nombreAlmacen) => {
+  const almacen = globalThis.indexedDB.almacen('oraculo-backup-db', nombreAlmacen);
+  if (!almacen) return [];
+
+  return new Promise((resolve) => {
+    const peticion = almacen.getAll();
+    peticion.onsuccess = () => resolve(peticion.result || []);
+    peticion.onerror = () => resolve([]);
+  });
+};
+
+/**
+ * Deja la app como si la usuaria hubiera vinculado una carpeta de respaldos.
+ *
+ * En el navegador eso pasa con el selector de carpetas, que no existe en las
+ * pruebas: se escribe el handle guardado directamente, que es lo que hace
+ * falta para comprobar que «borrar todo» lo suelta.
+ */
+const sembrarCarpetaVinculada = async () => {
+  // Abrir la base crea los almacenes, como en el navegador.
+  await autoBackup.listAutoBackups();
+
+  const almacen = globalThis.indexedDB.almacen('oraculo-backup-db', 'handles');
+  await new Promise((resolve) => {
+    const peticion = almacen.put({ key: 'directory', handle: { name: 'Respaldos' } });
+    peticion.onsuccess = () => resolve();
+    peticion.onerror = () => resolve();
+  });
+};
+
 // --- Respaldos automáticos en IndexedDB --------------------------------------
 
 describe('respaldos automáticos', () => {
@@ -169,6 +205,36 @@ describe('borrar todo', () => {
 
     assert.strictEqual(localStorage.getItem(KEY), null);
     assert.strictEqual(localStorage.getItem(CLAVE_MARCA), null);
+  });
+
+  it('desvincula la carpeta de respaldos', async () => {
+    guardarEnLocalStorage(datosConContenido());
+    await sembrarCarpetaVinculada();
+    assert.strictEqual((await leerAlmacen('handles')).length, 1);
+
+    await storage.clearAllData();
+
+    // Sin handle guardado, al recargar la app no encuentra ninguna carpeta
+    // vinculada y no vuelve a guardar el cuaderno allí.
+    assert.deepStrictEqual(await leerAlmacen('handles'), []);
+  });
+
+  it('desvincula la carpeta de respaldos aunque no haya nada más que borrar', async () => {
+    await sembrarCarpetaVinculada();
+
+    await storage.clearAllData();
+
+    assert.deepStrictEqual(await leerAlmacen('handles'), []);
+  });
+
+  it('informa de qué se ha podido borrar y de qué no', async () => {
+    guardarEnLocalStorage(datosConContenido());
+
+    const resultado = await storage.clearAllData();
+
+    // Los dos resultados van por separado: si solo falla uno, el aviso tiene
+    // que decir cuál, porque no es lo mismo una cosa que la otra.
+    assert.deepStrictEqual(resultado, { respaldos: true, carpeta: true });
   });
 });
 

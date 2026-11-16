@@ -32,34 +32,51 @@ const crearPeticion = (resultado, error = null) => {
 };
 
 /**
- * Crea un almacén con clave 'id' autogenerada.
+ * Crea un almacén con la clave que indique el `keyPath`.
+ *
+ * En el navegador, un almacén con `keyPath` guarda cada registro por el valor
+ * de esa propiedad, así que borrar «directory» borra el registro «directory».
+ * El doble respeta esa regla: si no, el handle de la carpeta se borraría de
+ * un sitio y se escribiría en otro, y las pruebas no dirían la verdad.
  *
  * @param {string} nombre - Nombre del almacén.
+ * @param {string} [keyPath='id'] - Propiedad por la que se guarda cada registro.
  * @returns {object} Almacén con las operaciones que usa la app.
  */
-const crearAlmacen = (nombre) => {
+const crearAlmacen = (nombre, keyPath = 'id') => {
   const registros = new Map();
   let siguiente = 1;
 
+  const claveDe = (valor) => {
+    const clave = valor?.[keyPath];
+    if (clave !== undefined && clave !== null) return clave;
+    return siguiente++;
+  };
+
   return {
     nombre,
+    keyPath,
 
     add(valor) {
-      const id = siguiente++;
-      const guardado = { ...valor, id };
-      registros.set(id, guardado);
-      return crearPeticion(id);
+      const clave = claveDe(valor);
+      const guardado = keyPath === 'id'
+        ? { ...valor, id: clave }
+        : { ...valor };
+      registros.set(clave, guardado);
+      return crearPeticion(clave);
     },
 
     put(valor) {
-      const id = valor?.id ?? siguiente++;
-      const guardado = { ...valor, id };
-      registros.set(id, guardado);
-      return crearPeticion(id);
+      const clave = claveDe(valor);
+      const guardado = keyPath === 'id'
+        ? { ...valor, id: clave }
+        : { ...valor };
+      registros.set(clave, guardado);
+      return crearPeticion(clave);
     },
 
-    get(id) {
-      return crearPeticion(registros.get(id));
+    get(clave) {
+      return crearPeticion(registros.get(clave));
     },
 
     getAll() {
@@ -70,8 +87,8 @@ const crearAlmacen = (nombre) => {
       return crearPeticion([...registros.keys()]);
     },
 
-    delete(id) {
-      registros.delete(id);
+    delete(clave) {
+      registros.delete(clave);
       return crearPeticion(undefined);
     },
 
@@ -140,8 +157,8 @@ export const crearIndexedDBFalso = () => {
         objectStoreNames: {
           contains: (n) => base.almacenes.has(n)
         },
-        createObjectStore(nombreAlmacen) {
-          const almacen = crearAlmacen(nombreAlmacen);
+        createObjectStore(nombreAlmacen, opciones = {}) {
+          const almacen = crearAlmacen(nombreAlmacen, opciones.keyPath || 'id');
           base.almacenes.set(nombreAlmacen, almacen);
           return { createIndex: () => ({}) };
         },
@@ -167,6 +184,19 @@ export const crearIndexedDBFalso = () => {
     deleteDatabase(nombre) {
       bases.delete(nombre);
       return crearPeticion(undefined);
+    },
+
+    /**
+     * Devuelve el almacén pedido de una base de datos, para que las pruebas
+     * puedan comprobar lo que queda guardado dentro.
+     *
+     * @param {string} nombreDB - Nombre de la base de datos.
+     * @param {string} nombreAlmacen - Nombre del almacén.
+     * @returns {object|null} El almacén, o null si no existe.
+     */
+    almacen(nombreDB, nombreAlmacen) {
+      const base = bases.get(nombreDB);
+      return base?.almacenes.get(nombreAlmacen) || null;
     }
   };
 };

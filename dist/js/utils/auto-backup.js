@@ -454,12 +454,19 @@ export const linkFolder = async () => {
 
 /**
  * Desvincula la carpeta actual
+ *
+ * También cancela el auto-guardado que estuviera pendiente: si no, podría
+ * escribirse el cuaderno en una carpeta que la usuaria ya ha soltado.
+ *
+ * @returns {Promise<boolean>} true si se ha quitado el handle guardado.
  */
 export const unlinkFolder = async () => {
   directoryHandle = null;
   lastBackupTime = null;
-  await clearHandleFromIndexedDB();
+  cancelScheduledSave();
+  const quitado = await clearHandleFromIndexedDB();
   console.log('[AutoBackup] Carpeta desvinculada');
+  return quitado;
 };
 
 /**

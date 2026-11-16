@@ -27,6 +27,7 @@ import {
   borrarCopiaCorrupta
 } from '../storage-hybrid.js';
 import { escapeHTML, numeroSeguro } from '../utils/sanitizer.js';
+import { mensajeDeBorradoIncompleto } from '../utils/borrado-total.js';
 import { comprobarBackupCopiable } from '../utils/validator.js';
 import { confirmDangerAsync } from '../utils/confirm-modal.js';
 import * as gcalSettings from '../gcal/gcal-settings.js';
@@ -322,8 +323,8 @@ export const render = (data) => {
             Borrar TODO
           </button>
           <p class="text-muted text-center" style="margin-top: var(--space-2);">
-            Esto borra absolutamente todo y no se puede deshacer. Si tienes Oráculo conectado con Google Drive,
-            la copia de la nube no se toca, así que puedes borrarla desde tu Drive.
+            Esto borra absolutamente todo y no se puede deshacer. La copia de tu Google Drive y los archivos
+            de tu carpeta de respaldos no se tocan, así que si los tenías, bórralos también desde allí.
           </p>
         </div>
       </section>
@@ -603,11 +604,12 @@ export const init = (data, updateData) => {
       const borrado = await clearFn();
       reloadStateFromStorage();
 
-      if (borrado === false && avisaSiFalla) {
-        // El navegador no ha dejado tocar los respaldos automáticos del
-        // dispositivo. El cuaderno está borrado, pero no todo. Se avisa y no
-        // se recarga, para que el aviso se pueda leer.
-        showNotification('Se ha borrado el cuaderno, pero los respaldos automáticos del dispositivo no se han podido borrar. Revisa los permisos del navegador.', 'warning');
+      if (avisaSiFalla && borrado && (borrado.respaldos === false || borrado.carpeta === false)) {
+        // El navegador no ha dejado tocar todo. El cuaderno está borrado, pero
+        // no todo: se avisa de qué ha quedado, porque no es lo mismo que quede
+        // una copia del cuaderno en el dispositivo que que la carpeta siga
+        // vinculada. Se avisa y no se recarga, para que el aviso se pueda leer.
+        showNotification(mensajeDeBorradoIncompleto(borrado), 'warning');
         return;
       }
 
@@ -623,7 +625,7 @@ export const init = (data, updateData) => {
   wireClear('clear-journal-btn', '¿Borrar todas las entradas del diario?',
     'Todo lo demás se mantiene.', clearJournalData, 'Diario borrado');
   wireClear('clear-data-btn', '¿Estás segura de que quieres borrar TODOS los datos?',
-    'Esta acción no se puede deshacer. La copia de tu Google Drive no se toca, así que si la tenías conectada, bórrala también desde Drive.', clearAllData, 'Todos los datos borrados', true);
+    'Esta acción no se puede deshacer. La copia de tu Google Drive y los archivos de tu carpeta de respaldos no se tocan, así que si los tenías, bórralos también desde allí.', clearAllData, 'Todos los datos borrados', true);
 
   // Notificaciones
   document.getElementById('notifications-toggle')?.addEventListener('change', async (e) => {

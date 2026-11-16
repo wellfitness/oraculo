@@ -9,7 +9,7 @@ import { validateDataStructure, sanearIdentificadores, descartarElementosInvalid
 import { normalizarNumeros } from './utils/numeros.js';
 import { areasPorDefecto } from './utils/rueda-por-defecto.js';
 import { clearDraft } from './utils/journal-draft.js';
-import { borrarBackupsAutomaticos } from './utils/auto-backup.js';
+import { borrarBackupsAutomaticos, unlinkFolder } from './utils/auto-backup.js';
 import { mcpBridge } from './utils/mcp-bridge.js';
 import { copiarDatos } from './utils/fusionar-datos.js';
 
@@ -759,9 +759,16 @@ const migrateData = (oldData) => {
  * respaldos automáticos del cuaderno completo. Si alguno se queda, el texto
  * de la usuaria sigue en el equipo aunque la app diga que ya no está.
  *
- * @returns {Promise<boolean>} true si se ha borrado todo.
+ * @returns {Promise<{respaldos: boolean, carpeta: boolean}>} Qué se ha podido
+ *   borrar: los respaldos automáticos del dispositivo y la carpeta vinculada.
  */
 export const clearAllData = async () => {
+  // Primero se suelta la carpeta de respaldos. Si siguiera vinculada, un
+  // guardado automático posterior escribiría el cuaderno lleno en esa carpeta
+  // justo después de que la usuaria lo ha borrado. Los archivos que ya están
+  // en la carpeta no se tocan: son de la usuaria, igual que la copia de Drive.
+  const carpetaDesvinculada = await unlinkFolder();
+
   localStorage.removeItem(STORAGE_KEY);
 
   // "Borrar todo" tiene que borrar todo lo que la app guardó en este
@@ -811,7 +818,16 @@ export const clearAllData = async () => {
   // guardadas en IndexedDB. Viven en otro almacén, así que hay que ir a
   // buscarlos allí: si no, «borrar todo» dejaría el diario de la usuaria en
   // el dispositivo, a un clic de distancia.
-  return await borrarBackupsAutomaticos();
+  const respaldosBorrados = await borrarBackupsAutomaticos();
+
+  // Los dos resultados se devuelven por separado. Si solo falla uno de los
+  // dos, la usuaria tiene que saber cuál: no es lo mismo que quede una copia
+  // del cuaderno en el dispositivo que que la carpeta siga vinculada y el
+  // cuaderno vuelva a guardarse allí.
+  return {
+    respaldos: respaldosBorrados,
+    carpeta: carpetaDesvinculada
+  };
 };
 
 /**

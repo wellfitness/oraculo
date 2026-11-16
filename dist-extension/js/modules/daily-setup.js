@@ -10,8 +10,9 @@
  * - Derecha: Lista de tareas (daily + weekly)
  */
 
-import { showNotification, navigateTo } from '../app.js';
+import { showNotification, navigateTo, VIEWS } from '../app.js';
 import { escapeHTML, colorSeguro } from '../utils/sanitizer.js';
+import { getBaseView } from '../utils/ruta-hash.js';
 
 /**
  * Navega al destino correcto después del setup.
@@ -20,14 +21,21 @@ import { escapeHTML, colorSeguro } from '../utils/sanitizer.js';
  */
 const navigatePostSetup = () => {
   const postSetupView = sessionStorage.getItem('oraculo_postSetupView');
-  if (postSetupView) {
-    sessionStorage.removeItem('oraculo_postSetupView');
-    // El hash guardado puede ser "journal" o "kanban" etc.
-    const baseView = postSetupView.replace('#', '').split('#')[0];
-    navigateTo(baseView);
-  } else {
+
+  if (!postSetupView) {
     navigateTo('dashboard');
+    return;
   }
+
+  sessionStorage.removeItem('oraculo_postSetupView');
+
+  // El destino guardado puede traer subruta ("journal/new/free"): la vista es
+  // la parte de antes de la primera barra, y la subruta se conserva para no
+  // perder el editor de escritura. Si el destino no es una vista que exista,
+  // se va al inicio.
+  const baseView = getBaseView(postSetupView);
+  const vista = VIEWS[baseView] ? baseView : 'dashboard';
+  navigateTo(vista, postSetupView);
 };
 
 // Nombres de columnas para mostrar

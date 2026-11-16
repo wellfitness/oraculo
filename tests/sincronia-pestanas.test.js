@@ -10,9 +10,12 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert';
 
 import {
+  AVISO_DATOS_EN_ESPERA,
+  AVISO_DATOS_OTRA_PESTAÑA,
   DECISION_APLICAR,
   DECISION_APLAZAR,
   DECISION_IGNORAR,
+  avisoDeDatosDePestana,
   decidirCambioDePestana
 } from '../js/utils/sincronia-pestanas.js';
 
@@ -132,5 +135,54 @@ describe('decidirCambioDePestana', () => {
       }),
       DECISION_IGNORAR
     );
+  });
+});
+
+describe('avisoDeDatosDePestana', () => {
+  it('avisa cuando los datos de otra pestaña se aplican', () => {
+    assert.strictEqual(
+      avisoDeDatosDePestana({ decision: DECISION_APLICAR, hayModalAbierto: false }),
+      'Datos actualizados desde otra pestaña.'
+    );
+    assert.strictEqual(
+      avisoDeDatosDePestana({ decision: DECISION_APLICAR }),
+      AVISO_DATOS_OTRA_PESTAÑA
+    );
+  });
+
+  it('avisa de que los datos esperan al cierre del modal', () => {
+    assert.strictEqual(
+      avisoDeDatosDePestana({ decision: DECISION_APLAZAR, hayModalAbierto: true }),
+      'Datos actualizados. Se aplicarán al cerrar el modal.'
+    );
+    assert.strictEqual(
+      avisoDeDatosDePestana({ decision: DECISION_APLAZAR, hayModalAbierto: true }),
+      AVISO_DATOS_EN_ESPERA
+    );
+  });
+
+  it('no avisa si lo único que hay es la usuaria escribiendo', () => {
+    assert.strictEqual(
+      avisoDeDatosDePestana({ decision: DECISION_APLAZAR, hayModalAbierto: false }),
+      null
+    );
+  });
+
+  it('no avisa si lo que llega no es más nuevo', () => {
+    assert.strictEqual(
+      avisoDeDatosDePestana({ decision: DECISION_IGNORAR, hayModalAbierto: false }),
+      null
+    );
+    assert.strictEqual(
+      avisoDeDatosDePestana({ decision: DECISION_IGNORAR, hayModalAbierto: true }),
+      null
+    );
+  });
+
+  it('aguanta entradas que no son un objeto', () => {
+    assert.strictEqual(avisoDeDatosDePestana(null), null);
+    assert.strictEqual(avisoDeDatosDePestana(undefined), null);
+    assert.strictEqual(avisoDeDatosDePestana({}), null);
+    assert.strictEqual(avisoDeDatosDePestana({ decision: 'inventada' }), null);
   });
 });
