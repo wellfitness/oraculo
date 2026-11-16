@@ -7,7 +7,6 @@ import { showNotification, autoBackup, reloadStateFromStorage, USAGE_MODES, open
 import {
   exportData,
   saveData,
-  loadData,
   getStorageUsage,
   clearAllData,
   clearIdentityData,
@@ -21,7 +20,11 @@ import {
   parseImportFile,
   parseImportText,
   summarizeBackup,
-  applyImportedData
+  applyImportedData,
+  loadDataSinIncidencia,
+  tieneCopiaCorrupta,
+  leerCopiaCorrupta,
+  borrarCopiaCorrupta
 } from '../storage-hybrid.js';
 import { escapeHTML, numeroSeguro } from '../utils/sanitizer.js';
 import { comprobarBackupCopiable } from '../utils/validator.js';
@@ -49,6 +52,36 @@ const formatReviewDate = (isoString) => {
     month: 'long'
   });
 };
+
+/**
+ * Renderiza el bloque de la copia de los datos que no se pudieron leer.
+ *
+ * Solo se pinta cuando hay una copia guardada: si no hay nada que
+ * recuperar, el bloque no ocupa sitio ni distrae de lo que sí importa.
+ *
+ * @returns {string} El marcado del bloque.
+ */
+const renderCopiaCorrupta = () => `
+  <section class="corrupt-copy" id="corrupt-copy-block" aria-labelledby="corrupt-copy-title">
+    <div class="corrupt-copy__cabecera">
+      <span class="material-symbols-outlined">report</span>
+      <h3 class="corrupt-copy__title" id="corrupt-copy-title">Copia de datos que no se pudieron leer</h3>
+    </div>
+    <p class="corrupt-copy__texto">
+      Cuando tus datos no se pudieron leer, Oráculo guardó una copia tal como estaba. Puedes descargarla para intentar recuperarla.
+    </p>
+    <div class="corrupt-copy__acciones">
+      <button class="btn btn--secondary" id="download-corrupt-btn">
+        <span class="material-symbols-outlined">download</span>
+        Descargar copia
+      </button>
+      <button class="btn btn--warning" id="delete-corrupt-btn">
+        <span class="material-symbols-outlined">delete</span>
+        Borrar copia
+      </button>
+    </div>
+  </section>
+`;
 
 /**
  * Renderiza la página de configuración
@@ -178,6 +211,8 @@ export const render = (data) => {
           </div>
         </div>
 
+        ${tieneCopiaCorrupta() ? renderCopiaCorrupta() : ''}
+
         <div class="settings-actions">
           <button class="btn btn--secondary" id="export-data-btn">
             <span class="material-symbols-outlined">download</span>
@@ -287,7 +322,8 @@ export const render = (data) => {
             Borrar TODO
           </button>
           <p class="text-muted text-center" style="margin-top: var(--space-2);">
-            Esto borra absolutamente todo y no se puede deshacer.
+            Esto borra absolutamente todo y no se puede deshacer. Si tienes Oráculo conectado con Google Drive,
+            la copia de la nube no se toca, así que puedes borrarla desde tu Drive.
           </p>
         </div>
       </section>
@@ -472,7 +508,10 @@ export const init = (data, updateData) => {
     // sucio del almacenamiento, una carga reparada dejaría a la usuaria sin
     // poder pasar sus datos de una plataforma a otra.
     const raw = localStorage.getItem('oraculo_data');
-    const datos = loadData();
+    // La lectura no debe rearmar el aviso de reparación: si esta comprobación
+    // encuentra elementos sueltos, el aviso lo ha provocado ella misma y
+    // aparecería más tarde sin explicación.
+    const datos = loadDataSinIncidencia();
     const backup = comprobarBackupCopiable(raw, datos);
 
     if (!backup.ok) {
@@ -510,13 +549,68 @@ export const init = (data, updateData) => {
     }
   });
 
-  // Borrado parcial: identidad, productividad, diario y todo
-  const wireClear = (btnId, title, message, clearFn, doneMsg) => {
+  // === Copia de los datos que no se pudieron leer ===
+
+  // Descargar la copia tal cual, para que la usuaria pueda intentar
+  // recuperarla por su cuenta.
+  document.getElementById('download-corrupt-btn')?.addEventListener('click', () => {
+    const texto = leerCopiaCorrupta();
+
+    if (texto === null) {
+      showNotification('Ya no hay ninguna copia guardada.', 'info');
+      return;
+    }
+
+    const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = `oraculo-copia-danada-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
+    URL.revokeObjectURL(url);
+
+    showNotification('Copia descargada', 'success');
+  });
+
+  // Borrar la copia. Pide confirmación: si se borra, no hay vuelta atrás.
+  document.getElementById('delete-corrupt-btn')?.addEventListener('click', async () => {
+    const ok = await confirmDangerAsync({
+      title: '¿Borrar la copia dañada?',
+      message: 'No se podrá recuperar.',
+      confirmText: 'Sí, borrar',
+      cancelText: 'No, mantener'
+    });
+    if (!ok) return;
+
+    borrarCopiaCorrupta();
+    document.getElementById('corrupt-copy-block')?.remove();
+    showNotification('Copia borrada', 'info');
+  });
+
+  // Borrado parcial: identidad, productividad, diario y todo.
+  // clearFn es asíncrono porque los respaldos automáticos (IndexedDB) se
+  // borran en el mismo gesto de «borrar todo». Si se recargara antes de
+  // terminar, el contenido seguiría en el dispositivo.
+  // avisaSiFalla solo se usa en «borrar todo»: los borrados parciales no
+  // tocan los respaldos, así que no hay nada que pueda fallar ahí.
+  const wireClear = (btnId, title, message, clearFn, doneMsg, avisaSiFalla = false) => {
     document.getElementById(btnId)?.addEventListener('click', async () => {
       const ok = await confirmDangerAsync({ title, message, confirmText: 'Sí, borrar', cancelText: 'No, mantener' });
       if (!ok) return;
-      clearFn();
+      const borrado = await clearFn();
       reloadStateFromStorage();
+
+      if (borrado === false && avisaSiFalla) {
+        // El navegador no ha dejado tocar los respaldos automáticos del
+        // dispositivo. El cuaderno está borrado, pero no todo. Se avisa y no
+        // se recarga, para que el aviso se pueda leer.
+        showNotification('Se ha borrado el cuaderno, pero los respaldos automáticos del dispositivo no se han podido borrar. Revisa los permisos del navegador.', 'warning');
+        return;
+      }
+
       showNotification(doneMsg, 'info');
       location.reload();
     });
@@ -529,7 +623,7 @@ export const init = (data, updateData) => {
   wireClear('clear-journal-btn', '¿Borrar todas las entradas del diario?',
     'Todo lo demás se mantiene.', clearJournalData, 'Diario borrado');
   wireClear('clear-data-btn', '¿Estás segura de que quieres borrar TODOS los datos?',
-    'Esta acción no se puede deshacer.', clearAllData, 'Todos los datos borrados');
+    'Esta acción no se puede deshacer. La copia de tu Google Drive no se toca, así que si la tenías conectada, bórrala también desde Drive.', clearAllData, 'Todos los datos borrados', true);
 
   // Notificaciones
   document.getElementById('notifications-toggle')?.addEventListener('change', async (e) => {
@@ -741,10 +835,12 @@ const openArchivedViewer = (data) => {
 
   const notebook = data.notebook || {};
   const summary = data.summary || generateYearSummary(data);
-  // La lista de proyectos puede no ser una lista si el archivo está dañado:
-  // se comprueba antes de filtrarla.
+  // Las listas del archivo pueden no ser listas si el archivo está dañado:
+  // se comprueba antes de pintarlas.
   const proyectosCompletados = (Array.isArray(data.projects) ? data.projects : [])
     .filter(p => p?.status === 'completed');
+  const valores = Array.isArray(data.values) ? data.values : [];
+  const habitosGraduados = Array.isArray(data.habits?.graduated) ? data.habits.graduated : [];
 
   title.textContent = notebook.name || `Cuaderno ${notebook.year}`;
 
@@ -781,23 +877,23 @@ const openArchivedViewer = (data) => {
         </div>
       </div>
 
-      ${(data.values || []).length > 0 ? `
+      ${valores.length > 0 ? `
         <div class="viewer-section">
           <h3>Valores del año</h3>
           <ul class="viewer-list">
-            ${data.values.map(v => `<li>${escapeHTML(v.name)}</li>`).join('')}
+            ${valores.map(v => `<li>${escapeHTML(v?.name)}</li>`).join('')}
           </ul>
         </div>
       ` : ''}
 
-      ${(data.habits?.graduated || []).length > 0 ? `
+      ${habitosGraduados.length > 0 ? `
         <div class="viewer-section">
           <h3>Hábitos consolidados</h3>
           <ul class="viewer-list">
-            ${data.habits.graduated.map(h => `
+            ${habitosGraduados.map(h => `
               <li>
-                <strong>${escapeHTML(h.name)}</strong>
-                ${h.identity ? `<span class="viewer-subtitle">${escapeHTML(h.identity)}</span>` : ''}
+                <strong>${escapeHTML(h?.name)}</strong>
+                ${h?.identity ? `<span class="viewer-subtitle">${escapeHTML(h.identity)}</span>` : ''}
               </li>
             `).join('')}
           </ul>

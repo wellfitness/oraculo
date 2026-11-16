@@ -7,7 +7,8 @@ import {
   getAchievementsStats,
   generateRecapText,
   generateHeatmapGrid,
-  getCompletedCountByHorizon
+  getCompletedCountByHorizon,
+  columnasDeMesDelAnio
 } from '../utils/achievements-calculator.js';
 import { getReflexionDelDia } from '../data/burkeman.js';
 import {
@@ -270,11 +271,15 @@ const renderProgressBars = (objectives) => {
     { key: 'daily', name: 'Hoy' }
   ];
 
-  // Contar tareas completadas por horizonte desde objectives.completed
-  const completedFromPool = {};
+  // Contar tareas completadas por horizonte desde objectives.completed.
+  // El horizonte de origen llega de un archivo importado, así que solo se
+  // cuentan los que son claves propias del modelo.
+  const completedFromPool = Object.fromEntries(horizons.map(({ key }) => [key, 0]));
   (objectives.completed || []).forEach(task => {
     const origin = task.originalColumn || 'daily';
-    completedFromPool[origin] = (completedFromPool[origin] || 0) + 1;
+    if (Object.hasOwn(completedFromPool, origin)) {
+      completedFromPool[origin]++;
+    }
   });
 
   return horizons.map(({ key, name }) => {
@@ -309,27 +314,43 @@ const renderHeatmap = (data) => {
   const monthLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   const dayLabels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
+  // Cada rótulo de mes va sobre la columna de la semana en la que el mes
+  // empieza de verdad, no repartido en partes iguales: si no, el rótulo
+  // señala un día que no es el primero del mes.
+  const etiquetasPorColumna = new Array(grid.length).fill('');
+  columnasDeMesDelAnio(year).forEach((columna, mes) => {
+    if (columna < 0 || columna >= grid.length) return;
+    if (etiquetasPorColumna[columna]) return;
+    etiquetasPorColumna[columna] = monthLabels[mes];
+  });
+
   return `
     <div class="heatmap-wrapper">
-      <div class="heatmap-months">
-        ${monthLabels.map(m => `<span>${m}</span>`).join('')}
-      </div>
       <div class="heatmap-body">
         <div class="heatmap-days">
           ${dayLabels.map(d => `<span>${d}</span>`).join('')}
         </div>
-        <div class="heatmap-grid">
-          ${grid.map(week => `
-            <div class="heatmap-week">
-              ${week.map(day => `
-                <div
-                  class="heatmap-day level-${day.level} ${day.isToday ? 'today' : ''}"
-                  title="${day.date}: ${day.count} actividad${day.count !== 1 ? 'es' : ''}"
-                  data-date="${day.date}"
-                ></div>
-              `).join('')}
-            </div>
-          `).join('')}
+        <div class="heatmap-grid-wrap">
+          <div class="heatmap-months">
+            ${etiquetasPorColumna.map(etiqueta => `
+              <div class="heatmap-months__col">
+                ${etiqueta ? `<span class="heatmap-months__label">${etiqueta}</span>` : ''}
+              </div>
+            `).join('')}
+          </div>
+          <div class="heatmap-grid">
+            ${grid.map(week => `
+              <div class="heatmap-week">
+                ${week.map(day => `
+                  <div
+                    class="heatmap-day level-${day.level} ${day.isToday ? 'today' : ''}"
+                    title="${day.date}: ${day.count} actividad${day.count !== 1 ? 'es' : ''}"
+                    data-date="${day.date}"
+                  ></div>
+                `).join('')}
+              </div>
+            `).join('')}
+          </div>
         </div>
       </div>
     </div>

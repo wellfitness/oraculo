@@ -3,6 +3,8 @@
  * Utilidades para validar la integridad de los datos
  */
 
+import { nombrePorDefecto as nombrePorDefectoDeArea } from './rueda-por-defecto.js';
+
 // Los identificadores de Oráculo los genera la propia app (letras, números,
 // punto, guion y guion bajo) y se pintan en atributos como data-id o value.
 // Un identificador con comillas o ángulos rompería el marcado, así que un
@@ -79,6 +81,13 @@ export const sanearIdentificadores = (data, profundidad = 0) => {
     if (!Object.hasOwn(data, clave)) continue;
     const contenido = data[clave];
 
+    // El registro de borrados guarda la clave con la que la nube identifica
+    // cada elemento, y esa clave puede llevar los dos puntos del historial
+    // (`hábito:día`). Si se saneara, dejaría de coincidir con la que usa el
+    // motor de fusión y lo borrado volvería. Aquí no hay identificadores de
+    // la usuaria que sanear.
+    if (clave === '_deletions') continue;
+
     if (esClaveDeId(clave) && typeof contenido === 'string') {
       data[clave] = normalizarIdentificador(contenido);
     } else if (contenido && typeof contenido === 'object') {
@@ -110,6 +119,12 @@ const buscarIdInvalido = (valor, profundidad = 0) => {
   }
 
   for (const [clave, contenido] of Object.entries(valor)) {
+    // El registro de borrados guarda la clave con la que la nube identifica
+    // cada elemento, y esa clave puede llevar los dos puntos del historial
+    // (`hábito:día`). No va al marcado, así que no tiene por qué seguir las
+    // reglas de los identificadores de la usuaria.
+    if (clave === '_deletions') continue;
+
     if (esClaveDeId(clave) && typeof contenido === 'string' && !PATRON_ID_SEGURO.test(contenido)) {
       return clave;
     }
@@ -327,6 +342,46 @@ export const pareceBackupDeOraculo = (data) => {
 };
 
 /**
+ * Cuántos niveles se admiten como mucho en un archivo importado.
+ *
+ * Los datos de Oráculo no llegan a cuatro niveles. Un archivo con cientos no
+ * viene de la app, y guardarlo revienta la pila cuando se serializa.
+ */
+export const PROFUNDIDAD_MAXIMA_ARCHIVO = 20;
+
+/**
+ * Mide hasta dónde se anidan los datos.
+ *
+ * El recorrido es iterativo y no recursivo a propósito: un archivo con
+ * miles de niveles reventaría la pila al recorrerlo recursivamente, que es
+ * justo lo que se quiere evitar.
+ *
+ * @param {*} valor - Datos a medir.
+ * @param {number} [limite] - Nivel a partir del cual se deja de medir.
+ * @returns {number} Nivel más profundo encontrado.
+ */
+export const medirProfundidad = (valor, limite = PROFUNDIDAD_MAXIMA_ARCHIVO) => {
+  if (!valor || typeof valor !== 'object') return 0;
+
+  const pila = [{ valor, nivel: 0 }];
+  let maxima = 0;
+
+  while (pila.length > 0) {
+    const actual = pila.pop();
+    if (!actual.valor || typeof actual.valor !== 'object') continue;
+
+    if (actual.nivel > maxima) maxima = actual.nivel;
+    if (maxima > limite) return maxima;
+
+    for (const clave of Object.keys(actual.valor)) {
+      pila.push({ valor: actual.valor[clave], nivel: actual.nivel + 1 });
+    }
+  }
+
+  return maxima;
+};
+
+/**
  * Valida la estructura básica del archivo de backup.
  * Ahora es más permisivo para aceptar archivos de versiones anteriores.
  *
@@ -339,6 +394,15 @@ export const validateDataStructure = (data) => {
   // Validación básica: debe ser un objeto y no una lista
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
     return { valid: false, error: 'El archivo no contiene un objeto JSON válido.' };
+  }
+
+  // Un archivo demasiado hondo no se puede guardar: al serializarlo, la app
+  // se queda sin pila. Se rechaza antes, con un mensaje propio.
+  if (medirProfundidad(data) > PROFUNDIDAD_MAXIMA_ARCHIVO) {
+    return {
+      valid: false,
+      error: 'El archivo es demasiado profundo para importarlo. Prueba con una copia más reciente.'
+    };
   }
 
   // Validación mínima: al menos debe tener ALGO que parezca de Oráculo
@@ -481,6 +545,21 @@ export const tieneContenido = (data) => {
   for (const campo of ['potentialObstacle', 'contingencyPlan']) {
     const nota = data.dailySetup?.[campo];
     if (typeof nota === 'string' && nota.trim() !== '') return true;
+  }
+
+  // Las áreas de la rueda salen con un nombre y un icono. Cuentan como
+  // contenido si la usuaria las ha enlazado con un valor o si les ha
+  // cambiado el nombre. Un cuaderno nuevo trae las áreas tal como salen de
+  // fábrica y sigue estando vacío.
+  const areas = data.lifeWheel?.areas;
+  if (Array.isArray(areas)) {
+    for (const area of areas) {
+      if (!area || typeof area !== 'object') continue;
+      if (area.linkedValueId) return true;
+
+      const nombrePorDefecto = nombrePorDefectoDeArea(area.id);
+      if (nombrePorDefecto === undefined || area.name !== nombrePorDefecto) return true;
+    }
   }
 
   return false;

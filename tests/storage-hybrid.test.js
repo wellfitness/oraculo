@@ -13,7 +13,9 @@ globalThis.localStorage = {
   getItem: (k) => (k in store ? store[k] : null),
   setItem: (k, v) => { store[k] = String(v); },
   removeItem: (k) => { delete store[k]; },
-  clear: () => { Object.keys(store).forEach(k => delete store[k]); }
+  clear: () => { Object.keys(store).forEach(k => delete store[k]); },
+  get length() { return Object.keys(store).length; },
+  key: (i) => Object.keys(store)[i] ?? null
 };
 globalThis.window = { dispatchEvent: () => {} };
 globalThis.CustomEvent ??= class { constructor(type, init) { this.type = type; this.detail = init?.detail; } };
@@ -97,40 +99,174 @@ describe('borrado sin confirm', () => {
     version: '1.5', values: [{ id: 'v' }], journal: [{ id: 'j' }], projects: [{ id: 'p' }],
     objectives: { weekly: [{ id: 't' }] }, habits: { graduated: [{ id: 'g' }] }
   })));
-  it('clearProductivityData vacía tareas y proyectos y deja el resto', () => {
-    sembrar(); storage.clearProductivityData();
+  it('clearProductivityData vacía tareas y proyectos y deja el resto', async () => {
+    sembrar(); await storage.clearProductivityData();
     const d = storage.loadData();
     assert.strictEqual(d.objectives.weekly.length, 0);
     assert.strictEqual(d.projects.length, 0);
     assert.strictEqual(d.journal.length, 1);
     assert.strictEqual(d.values.length, 1);
   });
-  it('clearJournalData vacía solo el diario', () => {
-    sembrar(); storage.clearJournalData();
+  it('clearJournalData vacía solo el diario', async () => {
+    sembrar(); await storage.clearJournalData();
     const d = storage.loadData();
     assert.strictEqual(d.journal.length, 0);
     assert.strictEqual(d.objectives.weekly.length, 1);
   });
-  it('clearIdentityData vacía valores y hábitos y deja las tareas', () => {
-    sembrar(); storage.clearIdentityData();
+  it('clearIdentityData vacía valores y hábitos y deja las tareas', async () => {
+    sembrar(); await storage.clearIdentityData();
     const d = storage.loadData();
     assert.strictEqual(d.values.length, 0);
     assert.strictEqual(d.habits.graduated.length, 0);
     assert.strictEqual(d.objectives.weekly.length, 1);
   });
-  it('clearIdentityData borra la rueda de la vida', () => {
+  it('clearIdentityData borra la rueda de la vida', async () => {
     localStorage.setItem(KEY, JSON.stringify({
       version: '1.5',
       lifeWheel: { evaluations: [{ id: 'e1', scores: { health: { current: 8 } } }] }
     }));
-    storage.clearIdentityData();
+    await storage.clearIdentityData();
     const d = storage.loadData();
     assert.deepStrictEqual(d.lifeWheel.evaluations, []);
     assert.ok(d.lifeWheel.areas.length > 0, 'los áreas por defecto se mantienen');
   });
-  it('clearAllData elimina la clave', () => {
-    sembrar(); storage.clearAllData();
+  it('clearAllData elimina la clave', async () => {
+    sembrar(); await storage.clearAllData();
     assert.strictEqual(localStorage.getItem(KEY), null);
+  });
+
+  it('clearAllData elimina también la copia de lo que no se pudo leer', async () => {
+    sembrar();
+    localStorage.setItem('oraculo_data_corrupt', 'texto que no se pudo leer');
+
+    await storage.clearAllData();
+
+    assert.strictEqual(storage.tieneCopiaCorrupta(), false);
+    assert.strictEqual(localStorage.getItem('oraculo_data_corrupt'), null);
+  });
+
+  it('los borrados parciales no borran la copia de lo que no se pudo leer', async () => {
+    sembrar();
+    localStorage.setItem('oraculo_data_corrupt', 'texto que no se pudo leer');
+
+    await storage.clearJournalData();
+
+    assert.strictEqual(storage.tieneCopiaCorrupta(), true);
+  });
+
+  it('clearAllData borra las copias que la app guardó en el dispositivo', async () => {
+    sembrar();
+    localStorage.setItem('oraculo_data_corrupt', 'copia ilegible');
+    localStorage.setItem('oraculo_data_backup', 'copia previa a una importación');
+    localStorage.setItem('oraculo_data_pre_sync_backup', 'copia previa a una sincronización');
+    localStorage.setItem('oraculo_journal_draft', '{"id":"new:free","content":"sin guardar"}');
+    localStorage.setItem('oraculo_sync_conflicts', '{"entries":[{"keptVersion":{"content":"diario"}}]}');
+
+    await storage.clearAllData();
+
+    assert.strictEqual(localStorage.getItem('oraculo_data'), null);
+    assert.strictEqual(localStorage.getItem('oraculo_data_corrupt'), null);
+    assert.strictEqual(localStorage.getItem('oraculo_data_backup'), null);
+    assert.strictEqual(localStorage.getItem('oraculo_data_pre_sync_backup'), null);
+    assert.strictEqual(localStorage.getItem('oraculo_journal_draft'), null);
+    // El registro de conflictos guarda copias literales de las entradas en
+    // conflicto: si sobrevive, el texto sigue en el dispositivo.
+    assert.strictEqual(localStorage.getItem('oraculo_sync_conflicts'), null);
+  });
+
+  it('clearAllData desconecta el puente del Agente IA', async () => {
+    sembrar();
+    localStorage.setItem('oraculo_mcp_bridge', '{"enabled":true,"folderName":"Oráculo"}');
+
+    await storage.clearAllData();
+
+    assert.strictEqual(localStorage.getItem('oraculo_mcp_bridge'), null);
+  });
+
+  it('clearAllData corta la conexión con la nube', async () => {
+    sembrar();
+    localStorage.setItem('oraculo_gdrive_sync', '{"connected":true,"fileId":"abc"}');
+    localStorage.setItem('oraculo_gdrive_token', 'token-drive');
+    localStorage.setItem('oraculo_gdrive_token_expiry', '123');
+    localStorage.setItem('oraculo_gauth_token_scope_drive', 'token-web');
+    localStorage.setItem('oraculo_gauth_token_expiry_scope_drive', '123');
+    localStorage.setItem('oraculo_gcal_settings', '{"email":"correo@ejemplo.com"}');
+    localStorage.setItem('oraculo_habitWizardProgress', '{"name":"Caminar"}');
+    localStorage.setItem('oraculo_lastAutoBackupAt', '2026-11-01');
+
+    await storage.clearAllData();
+
+    // Si la conexión se queda, la nube devuelve el cuaderno que la usuaria
+    // acaba de borrar.
+    assert.strictEqual(localStorage.getItem('oraculo_gdrive_sync'), null);
+    assert.strictEqual(localStorage.getItem('oraculo_gdrive_token'), null);
+    assert.strictEqual(localStorage.getItem('oraculo_gdrive_token_expiry'), null);
+    assert.strictEqual(localStorage.getItem('oraculo_gauth_token_scope_drive'), null);
+    assert.strictEqual(localStorage.getItem('oraculo_gauth_token_expiry_scope_drive'), null);
+    assert.strictEqual(localStorage.getItem('oraculo_gcal_settings'), null);
+    assert.strictEqual(localStorage.getItem('oraculo_habitWizardProgress'), null);
+    assert.strictEqual(localStorage.getItem('oraculo_lastAutoBackupAt'), null);
+  });
+
+  it('los borrados parciales conservan las copias del dispositivo', async () => {
+    sembrar();
+    const copia = JSON.stringify({
+      version: '1.5',
+      journal: [{ id: 'j1', content: 'Texto del diario' }],
+      values: [{ id: 'v1', name: 'Salud' }],
+      objectives: { daily: [{ id: 't1', text: 'Tarea' }] }
+    });
+    localStorage.setItem('oraculo_data_backup', copia);
+    localStorage.setItem('oraculo_data_pre_sync_backup', copia);
+    localStorage.setItem('oraculo_sync_conflicts', '{"entries":[{"keptVersion":{"content":"conflicto"}}]}');
+    localStorage.setItem('oraculo_journal_draft', '{"id":"new:free","content":"sin guardar"}');
+
+    await storage.clearJournalData();
+
+    // Las copias son la red de la usuaria si borra sin querer: el borrado
+    // parcial no las toca.
+    assert.deepStrictEqual(JSON.parse(localStorage.getItem('oraculo_data_backup')).journal, [{ id: 'j1', content: 'Texto del diario' }]);
+    assert.deepStrictEqual(JSON.parse(localStorage.getItem('oraculo_data_pre_sync_backup')).journal, [{ id: 'j1', content: 'Texto del diario' }]);
+    assert.notStrictEqual(localStorage.getItem('oraculo_sync_conflicts'), null);
+
+    // El borrador sí se borra: es texto que está en pantalla.
+    assert.strictEqual(localStorage.getItem('oraculo_journal_draft'), null);
+  });
+
+  it('los borrados parciales conservan la sección que toca en las copias', async () => {
+    sembrar();
+    const copia = JSON.stringify({
+      version: '1.5',
+      values: [{ id: 'v1', name: 'Salud' }],
+      journal: [{ id: 'j1', content: 'Texto del diario' }]
+    });
+    localStorage.setItem('oraculo_data_backup', copia);
+
+    await storage.clearIdentityData();
+
+    const copiaRestante = JSON.parse(localStorage.getItem('oraculo_data_backup'));
+    assert.deepStrictEqual(copiaRestante.values, [{ id: 'v1', name: 'Salud' }]);
+    assert.strictEqual(copiaRestante.journal.length, 1);
+  });
+
+  it('borrar la identidad borra el progreso del asistente de hábitos', async () => {
+    sembrar();
+    localStorage.setItem('oraculo_habitWizardProgress', '{"step":3,"data":{"name":"Hábito privado"}}');
+
+    await storage.clearIdentityData();
+
+    // El progreso guarda el nombre, la identidad, el lugar y la hora del
+    // hábito: es contenido de la usuaria, igual que el hábito activo.
+    assert.strictEqual(localStorage.getItem('oraculo_habitWizardProgress'), null);
+  });
+
+  it('importar un archivo de otra versión deja el cuaderno en la versión actual', () => {
+    const datos = storage.parseImportText('{"version":"1.4","values":[{"id":"v1","name":"Salud ósea"}]}');
+
+    storage.applyImportedData(datos);
+
+    const guardado = JSON.parse(localStorage.getItem(KEY));
+    assert.strictEqual(guardado.version, '1.5');
   });
 });
 
@@ -194,6 +330,54 @@ describe('importación', () => {
   });
 });
 
+describe('importación de un archivo', () => {
+  it('no deja pasar claves que pueden romper el objeto de datos', () => {
+    const texto = '{"version":"1.5","values":[],"__proto__":{"polluted":true},"constructor":{"x":1},"toString":"666"}';
+
+    const datos = storage.parseImportText(texto);
+
+    assert.strictEqual(Object.hasOwn(datos, '__proto__'), false);
+    assert.strictEqual(Object.hasOwn(datos, 'constructor'), false);
+    assert.strictEqual(Object.hasOwn(datos, 'toString'), false);
+    assert.strictEqual({}.polluted, undefined);
+  });
+
+  it('rechaza un archivo demasiado profundo con un mensaje propio', () => {
+    const anidado = '['.repeat(300) + '1' + ']'.repeat(300);
+    const texto = `{"version":"1.5","values":[],"caja":${anidado}}`;
+
+    assert.throws(() => storage.parseImportText(texto), /profundo|complejo/i);
+  });
+
+  it('acepta un archivo con la forma normal', () => {
+    const texto = '{"version":"1.5","values":[{"id":"v1","name":"Salud ósea"}],"journal":[]}';
+
+    const datos = storage.parseImportText(texto);
+
+    assert.strictEqual(datos.values.length, 1);
+    assert.strictEqual(datos.values[0].name, 'Salud ósea');
+  });
+
+  it('acepta un cuaderno con el registro de borrados del historial', () => {
+    // La clave con la que la nube identifica cada elemento borrado del
+    // historial lleva dos puntos (`hábito:día`). El registro no va al
+    // marcado, así que no tiene por qué cumplir las reglas de los
+    // identificadores: si las cumpliera, un cuaderno exportado no se
+    // podría importar.
+    const texto = JSON.stringify({
+      version: '1.5',
+      values: [],
+      journal: [],
+      _deletions: [{ section: 'habits.history', itemId: 'h1:2026-11-09', deletedAt: '2026-11-16T09:00:00.000Z' }]
+    });
+
+    const datos = storage.parseImportText(texto);
+
+    assert.strictEqual(datos._deletions.length, 1);
+    assert.strictEqual(datos._deletions[0].itemId, 'h1:2026-11-09');
+  });
+});
+
 describe('datos corruptos', () => {
   it('conserva el original, arranca con datos por defecto y lo comunica una vez', () => {
     localStorage.setItem(KEY, '{"version":"1.5","objectives":{"backlog":[{"id":"a"');
@@ -207,6 +391,98 @@ describe('datos corruptos', () => {
     localStorage.setItem(KEY, JSON.stringify({ version: '1.5' }));
     storage.loadData();
     assert.strictEqual(storage.consumeLoadIssue(), null);
+  });
+});
+
+describe('copia de datos que no se pudieron leer', () => {
+  const COPIA = 'oraculo_data_corrupt';
+
+  it('no hay copia cuando no se ha guardado ninguna', () => {
+    assert.strictEqual(storage.tieneCopiaCorrupta(), false);
+    assert.strictEqual(storage.leerCopiaCorrupta(), null);
+  });
+
+  it('la copia se lee tal cual, sin transformarla', () => {
+    localStorage.setItem(COPIA, '{"version":"1.5","objectives":{"backlog":[{"id":"a"');
+
+    assert.strictEqual(storage.tieneCopiaCorrupta(), true);
+    assert.strictEqual(storage.leerCopiaCorrupta(), '{"version":"1.5","objectives":{"backlog":[{"id":"a"');
+  });
+
+  it('una copia vacía no cuenta como copia', () => {
+    localStorage.setItem(COPIA, '');
+    assert.strictEqual(storage.tieneCopiaCorrupta(), false);
+    assert.strictEqual(storage.leerCopiaCorrupta(), null);
+
+    localStorage.setItem(COPIA, '   ');
+    assert.strictEqual(storage.tieneCopiaCorrupta(), false);
+    assert.strictEqual(storage.leerCopiaCorrupta(), null);
+  });
+
+  it('borrarCopiaCorrupta quita la copia', () => {
+    localStorage.setItem(COPIA, 'texto roto');
+
+    storage.borrarCopiaCorrupta();
+
+    assert.strictEqual(storage.tieneCopiaCorrupta(), false);
+    assert.strictEqual(storage.leerCopiaCorrupta(), null);
+    assert.strictEqual(localStorage.getItem(COPIA), null);
+  });
+
+  it('borrarCopiaCorrupta no falla cuando no hay copia', () => {
+    assert.doesNotThrow(() => storage.borrarCopiaCorrupta());
+    assert.strictEqual(storage.tieneCopiaCorrupta(), false);
+  });
+
+  it('la copia que deja la carga se puede leer y borrar', () => {
+    localStorage.setItem(KEY, '{"version":"1.5","objectives":{"backlog":[{"id":"a"');
+
+    storage.loadData();
+
+    assert.strictEqual(storage.tieneCopiaCorrupta(), true);
+    assert.ok(storage.leerCopiaCorrupta().includes('backlog'));
+    // La carga deja avisada la incidencia: se consume aquí para no
+    // contaminar las pruebas siguientes.
+    storage.consumeLoadIssue();
+
+    storage.borrarCopiaCorrupta();
+    assert.strictEqual(storage.tieneCopiaCorrupta(), false);
+  });
+});
+
+describe('lectura que no debe rearmar el aviso', () => {
+  it('loadDataSinIncidencia no deja pendiente el aviso de reparación', () => {
+    localStorage.setItem(KEY, JSON.stringify({ version: '1.5', values: [null, { id: 'v1' }] }));
+
+    storage.loadDataSinIncidencia();
+
+    assert.strictEqual(storage.consumeLoadIssue(), null);
+  });
+
+  it('no se come una incidencia que ya estaba pendiente', () => {
+    localStorage.setItem(KEY, JSON.stringify({ version: '1.5', values: [null, { id: 'v1' }] }));
+
+    storage.loadData();
+    storage.loadDataSinIncidencia();
+
+    assert.strictEqual(storage.consumeLoadIssue(), 'repaired');
+  });
+
+  it('devuelve los datos de la lectura', () => {
+    localStorage.setItem(KEY, JSON.stringify({ version: '1.5', values: [{ id: 'v1', name: 'Salud' }] }));
+
+    const datos = storage.loadDataSinIncidencia();
+
+    assert.strictEqual(datos.values[0].name, 'Salud');
+  });
+
+  it('loadDataSinIncidencia no se come el aviso de datos ilegibles', () => {
+    localStorage.setItem(KEY, '{"version":"1.5","objectives":{"backlog":[{"id":"a"');
+
+    storage.loadDataSinIncidencia();
+
+    // La usuaria tiene que enterarse de que sus datos no se han podido leer.
+    assert.strictEqual(storage.consumeLoadIssue(), 'corrupt');
   });
 });
 

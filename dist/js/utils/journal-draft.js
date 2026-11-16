@@ -27,6 +27,42 @@ export const draftIdFor = (route) => {
 };
 
 /**
+ * Dice qué parte del diario se está viendo.
+ *
+ * Formatos de la dirección: `#journal` (listado), `#journal/new/TIPO` (entrada
+ * nueva) y `#journal/edit/ID` (editar una entrada).
+ *
+ * @param {string} [hash] - La dirección de la página.
+ * @returns {{mode: string, type?: string, id?: string}} La ruta del diario.
+ */
+export const parseRutaDiario = (hash) => {
+  const partes = String(hash || '').split('/');
+
+  if (partes.length >= 3 && partes[1] === 'new') {
+    return { mode: 'new', type: partes[2] || 'free' };
+  }
+  if (partes.length >= 3 && partes[1] === 'edit') {
+    return { mode: 'edit', id: partes[2] };
+  }
+  return { mode: 'list' };
+};
+
+/**
+ * Dice si el editor del diario está abierto de verdad.
+ *
+ * Solo lo están las rutas de entrada nueva y de edición. En el listado del
+ * diario no hay ningún editor en pantalla: un borrador viejo guardado ahí no
+ * significa que la usuaria esté escribiendo ahora mismo.
+ *
+ * @param {string} [hash] - La dirección de la página.
+ * @returns {boolean} true si hay un editor abierto.
+ */
+export const esEditorDeDiarioAbierto = (hash) => {
+  const ruta = parseRutaDiario(hash);
+  return ruta.mode === 'new' || ruta.mode === 'edit';
+};
+
+/**
  * Guarda el texto del borrador. Un contenido vacío (o solo espacios)
  * borra el borrador de esa entrada en lugar de guardarlo.
  */
@@ -67,6 +103,31 @@ export const loadDraft = (draftId) => {
   } catch (e) {
     // Un borrador ilegible cuenta como ausente
     return null;
+  }
+};
+
+/**
+ * Indica si hay un borrador del diario sin guardar.
+ *
+ * El editor guarda lo que se escribe en su propia clave. Si hay un borrador,
+ * lo que hay en pantalla todavía no está en los datos: aplicar datos de fuera
+ * ahora perdería lo que la usuaria está escribiendo.
+ *
+ * @returns {boolean} true si hay un borrador con contenido.
+ */
+export const tieneBorradorPendiente = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+
+    const draft = JSON.parse(raw);
+    if (!draft || typeof draft !== 'object') return false;
+    if (typeof draft.content !== 'string') return false;
+
+    return draft.content.trim() !== '';
+  } catch {
+    // Un borrador ilegible cuenta como ausente
+    return false;
   }
 };
 

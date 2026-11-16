@@ -126,7 +126,7 @@ export const renderEvolutionChart = (evaluations = [], areas = [], options = {})
 
   // Generar líneas por área
   const areaLines = displayAreas.map(area => {
-    const color = colors[area.id] || '#6b7280';
+    const color = Object.hasOwn(colors, area.id) ? colors[area.id] : '#6b7280';
 
     // Generar puntos de la polyline
     const points = sortedEvals.map((ev, i) => {
@@ -184,7 +184,7 @@ export const renderEvolutionChart = (evaluations = [], areas = [], options = {})
     <g class="evolution-legend" transform="translate(${padding.left}, ${height - 15})">
       ${displayAreas.map((area, i) => {
         const xOffset = i * 90;
-        const color = colors[area.id] || '#6b7280';
+        const color = Object.hasOwn(colors, area.id) ? colors[area.id] : '#6b7280';
 
         return `
           <g transform="translate(${xOffset}, 0)">

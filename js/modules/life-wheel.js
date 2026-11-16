@@ -10,6 +10,7 @@ import { renderWheelChart } from '../components/wheel-chart.js';
 import { renderEvolutionChart } from '../components/evolution-chart.js';
 import { escapeHTML, numeroSeguro } from '../utils/sanitizer.js';
 import { puntuacionDe } from '../utils/numeros.js';
+import { areasPorDefecto } from '../utils/rueda-por-defecto.js';
 
 let updateDataCallback = null;
 let currentData = null;
@@ -154,7 +155,7 @@ export const render = (data) => {
  */
 const renderMainPage = (data) => {
   const lifeWheel = data.lifeWheel || {};
-  const areas = lifeWheel.areas || getDefaultAreas();
+  const areas = lifeWheel.areas || areasPorDefecto();
   const evaluations = lifeWheel.evaluations || [];
   const lastEvaluation = evaluations[evaluations.length - 1] || null;
   const currentQuarter = getCurrentQuarter();
@@ -163,7 +164,7 @@ const renderMainPage = (data) => {
   const hasCurrentQuarterEval = evaluations.some(e => e.quarter === currentQuarter);
 
   return `
-    <div class="life-wheel-page life-wheel-page--layout">
+    <div class="life-wheel-page life-wheel-page--layout" data-bloque-edicion>
       <!-- Sidebar: Triángulo de la Felicidad (solo PC) -->
       <aside class="life-wheel-sidebar">
         ${renderTrianguloSidebar()}
@@ -277,7 +278,7 @@ const renderEmptyState = () => `
       podrás ver tu evolución y descubrir qué valores son más importantes para ti.
     </p>
     <div class="wheel-preview">
-      ${renderWheelChart({}, getDefaultAreas(), { size: 300, showLabels: true, interactive: false })}
+      ${renderWheelChart({}, areasPorDefecto(), { size: 300, showLabels: true, interactive: false })}
     </div>
     <p class="text-sm text-muted">
       Solo te llevará unos minutos. ¿Empezamos?
@@ -414,17 +415,12 @@ const renderEditAreaModal = () => `
 
 /**
  * Obtiene las áreas por defecto
+ *
+ * Las áreas por defecto viven en `utils/rueda-por-defecto.js`, no aquí: la
+ * carga, esta vista y la comprobación de contenido tienen que usar la misma
+ * referencia, o el nombre de fábrica de un área y el que se comprueba para
+ * saber si se ha tocado dejarían de coincidir.
  */
-const getDefaultAreas = () => [
-  { id: 'health', name: 'Salud física', icon: 'fitness_center', order: 0 },
-  { id: 'emotional', name: 'Estado emocional', icon: 'psychology', order: 1 },
-  { id: 'growth', name: 'Desarrollo personal', icon: 'school', order: 2 },
-  { id: 'family', name: 'Familia/Pareja', icon: 'favorite', order: 3 },
-  { id: 'social', name: 'Relaciones sociales', icon: 'groups', order: 4 },
-  { id: 'career', name: 'Profesión', icon: 'work', order: 5 },
-  { id: 'finances', name: 'Finanzas', icon: 'savings', order: 6 },
-  { id: 'leisure', name: 'Ocio/Tiempo libre', icon: 'spa', order: 7 }
-];
 
 // ============================================================
 // WIZARD DE EVALUACIÓN - PÁGINA COMPLETA
@@ -441,13 +437,13 @@ let wizardState = {
  * Navegacion en header, scroll natural del navegador
  */
 const renderEvaluationPage = (data) => {
-  const areas = data.lifeWheel?.areas || getDefaultAreas();
+  const areas = data.lifeWheel?.areas || areasPorDefecto();
   const totalSteps = areas.length + 1; // 8 áreas + 1 resumen
   const step = wizardState.currentStep;
   const progress = ((step + 1) / totalSteps) * 100;
 
   return `
-    <div class="wizard-page evaluation-page">
+    <div class="wizard-page evaluation-page" data-bloque-edicion>
       <!-- Header con progreso y navegacion -->
       <header class="wizard-header">
         <!-- Izquierda: Cerrar -->
@@ -744,7 +740,7 @@ const saveEvaluation = (areas) => {
     createdAt: new Date().toISOString()
   };
 
-  const lifeWheel = currentData.lifeWheel || { areas: getDefaultAreas(), evaluations: [], settings: {} };
+  const lifeWheel = currentData.lifeWheel || { areas: areasPorDefecto(), evaluations: [], settings: {} };
   lifeWheel.evaluations = [...(lifeWheel.evaluations || []), evaluation];
 
   updateDataCallback('lifeWheel', lifeWheel);
@@ -768,7 +764,7 @@ export const init = (data, updateData) => {
   updateDataCallback = updateData;
   currentData = data;
 
-  const areas = data.lifeWheel?.areas || getDefaultAreas();
+  const areas = data.lifeWheel?.areas || areasPorDefecto();
 
   // Si estamos en vista de evaluación, inicializar eventos del wizard
   if (currentView === 'evaluation') {
@@ -866,7 +862,7 @@ const initMainViewEvents = (data, areas) => {
  */
 const switchView = (view, data) => {
   const container = document.getElementById('wheel-content');
-  const areas = data.lifeWheel?.areas || getDefaultAreas();
+  const areas = data.lifeWheel?.areas || areasPorDefecto();
   const evaluations = data.lifeWheel?.evaluations || [];
   const lastEval = evaluations[evaluations.length - 1];
 
@@ -1051,7 +1047,7 @@ const saveAreaEdit = (data) => {
     return;
   }
 
-  const lifeWheel = data.lifeWheel || { areas: getDefaultAreas(), evaluations: [], settings: {} };
+  const lifeWheel = data.lifeWheel || { areas: areasPorDefecto(), evaluations: [], settings: {} };
   const areaIndex = lifeWheel.areas.findIndex(a => a.id === areaId);
 
   if (areaIndex !== -1) {
@@ -1115,7 +1111,7 @@ const updateCompareView = (data) => {
   const eval1Id = document.getElementById('compare-eval-1').value;
   const eval2Id = document.getElementById('compare-eval-2').value;
   const evaluations = data.lifeWheel?.evaluations || [];
-  const areas = data.lifeWheel?.areas || getDefaultAreas();
+  const areas = data.lifeWheel?.areas || areasPorDefecto();
 
   const eval1 = evaluations.find(e => e.id === eval1Id);
   const eval2 = evaluations.find(e => e.id === eval2Id);

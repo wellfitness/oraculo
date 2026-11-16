@@ -19,6 +19,24 @@ import { confirmDanger } from './utils/confirm-modal.js';
 import { getHorizonLimit, countActive, IMPORTANT_TASK_TYPE } from './utils/objectives.js';
 import { parseCapture } from './utils/captura.js';
 import { escapeHTML } from './utils/sanitizer.js';
+import { sanearIdentificadores } from './utils/validator.js';
+import {
+  DECISION_APLICAR,
+  DECISION_APLAZAR,
+  DECISION_IGNORAR,
+  decidirCambioDePestana
+} from './utils/sincronia-pestanas.js';
+import {
+  draftIdFor,
+  esEditorDeDiarioAbierto,
+  loadDraft,
+  parseRutaDiario,
+  tieneBorradorPendiente
+} from './utils/journal-draft.js';
+import { fusionarDatos, copiarDatos } from './utils/fusionar-datos.js';
+import { fusionarPendiente } from './utils/pendiente-sync.js';
+import { capturarTextoDeCampo, restaurarTextoEnCampo } from './utils/campos.js';
+import { haSalidoDelBloqueDeEdicion } from './utils/foco.js';
 import { needsDailySetup } from './components/daily-setup-modal.js';
 import {
   renderCalmTimerModal,
@@ -71,11 +89,19 @@ const state = {
   currentView: 'dashboard',
   data: null,
   initialized: false,
-  pendingSync: null // Datos pendientes de aplicar (cuando hay modal abierto)
+  pendingSync: null, // Datos pendientes de aplicar (cuando hay modal abierto)
+  pendingSyncOrigen: null, // De dónde vienen los datos pendientes: 'nube' o 'pestana'
+  pendingSyncBase: null // Copia de los datos como estaban cuando llegó lo pendiente
 };
 
 // Variable para rastrear último campo de texto activo (para dictado por voz)
 let lastActiveTextField = null;
+
+// Variable para rastrear el último elemento pulsado. Sirve para saber si el
+// clic va a un botón del mismo bloque de edición: algunos navegadores no
+// enfocan el botón al pulsarlo, y sin este dato el clic se perdería al
+// repintar la vista.
+let ultimoElementoPulsado = null;
 
 // Vistas disponibles
 const VIEWS = {
@@ -105,6 +131,176 @@ const getBaseView = (hash) => {
   return cleanHash.split('/')[0] || 'dashboard';
 };
 
+// ============================================================
+// DATOS QUE LLEGAN DE FUERA DE ESTA PESTAÑA
+// ============================================================
+
+/**
+ * Dice si hay un modal abierto en pantalla.
+ */
+const hayModalAbierto = () => !!document.querySelector('dialog[open]');
+
+/**
+ * Dice si la usuaria está escribiendo en un campo de la vista actual.
+ *
+ * Se mira el elemento que tiene el foco dentro del contenido principal: si
+ * es un campo de texto, lo que hay en pantalla todavía no está guardado y
+ * aplicarle datos de fuera perdería lo escrito.
+ */
+const hayCampoConFoco = () => {
+  const main = document.getElementById('app-content');
+  const activo = document.activeElement;
+  if (!main || !activo || !main.contains(activo)) return false;
+  return activo.matches('input, textarea, [contenteditable]');
+};
+
+/**
+ * Dice si el diario tiene algo escrito sin guardar.
+ *
+ * El editor del diario guarda un borrador aparte de los datos. Solo cuenta si
+ * el editor está abierto de verdad (una entrada nueva o una entrada que se
+ * está editando) y si el borrador es el de ese editor. Un borrador viejo
+ * guardado en el listado del diario no significa que la usuaria esté
+ * escribiendo ahora mismo: si contara, lo que llega de otra pestaña o de la
+ * nube no se aplicaría nunca.
+ */
+const hayBorradorDelDiario = () => {
+  if (state.currentView !== 'journal') return false;
+  if (!esEditorDeDiarioAbierto(window.location.hash)) return false;
+  if (!tieneBorradorPendiente()) return false;
+
+  const ruta = parseRutaDiario(window.location.hash);
+  return loadDraft(draftIdFor(ruta)) !== null;
+};
+
+/**
+ * Dice si la usuaria está en mitad de algo: con un modal abierto o
+ * escribiendo en un campo.
+ */
+const estaEditando = () => hayCampoConFoco() || hayBorradorDelDiario();
+
+/**
+ * Aplica lo que quedó pendiente de fuera, si ya se puede.
+ *
+ * Lo que llega de la nube se funde con lo que hay en memoria: así no se
+ * pierde lo que la usuaria haya guardado mientras esperaba. Lo que llega de
+ * otra pestaña depende de la decisión: si ya no es más nuevo que lo que hay
+ * en memoria, se descarta; si la usuaria sigue escribiendo, espera.
+ *
+ * En los dos casos la fusión se hace sobre el mismo objeto de datos, sin
+ * sustituir sus secciones: los módulos guardan referencias a ellas, y si se
+ * sustituyeran, el guardado de un módulo escribiría encima de lo que acaba
+ * de llegar.
+ *
+ * @returns {boolean} true si se han aplicado datos nuevos.
+ */
+const aplicarPendingSync = () => {
+  if (!state.pendingSync) return false;
+
+  if (state.pendingSyncOrigen === 'pestana') {
+    const decision = decidirCambioDePestana({
+      updatedAtEnMemoria: state.data?.updatedAt,
+      updatedAtRecibido: state.pendingSync?.updatedAt,
+      hayModalAbierto: hayModalAbierto(),
+      estaEditando: estaEditando()
+    });
+
+    if (decision === DECISION_IGNORAR) {
+      state.pendingSync = null;
+      state.pendingSyncOrigen = null;
+      state.pendingSyncBase = null;
+      return false;
+    }
+
+    if (decision === DECISION_APLAZAR) return false;
+  } else if (hayModalAbierto() || estaEditando()) {
+    // Lo que llega de la nube se funde con lo que hay, pero no mientras la
+    // usuaria tenga algo a medias: reaplicar los datos repinta la vista, y
+    // con ella se va el modal abierto y lo que la usuaria había escrito.
+    return false;
+  }
+
+  // La fusión deja lo que la usuaria haya guardado durante la espera y trae
+  // lo que vino de fuera en lo que no se haya tocado. Al fusionar, lo
+  // pendiente queda vacío: si se quedara, la siguiente aplicación volvería a
+  // fusionarlo y lo que la usuaria acaba de borrar reaparecería.
+  fusionarPendiente(state);
+  return true;
+};
+
+/**
+ * Deja los datos listos para guardar sin pisar lo más nuevo de otra pestaña.
+ *
+ * Si quedó algo pendiente de otra pestaña y es más nuevo que lo que hay en
+ * memoria, se funde con lo que hay: así este guardado deja dentro tanto lo
+ * que venía de la otra pestaña como lo que la usuaria acaba de escribir.
+ *
+ * Si lo pendiente viene de la nube, se funde también: el guardado no puede
+ * dejar fuera ni lo que venía de la nube ni lo que la usuaria acaba de
+ * guardar.
+ */
+const prepararGuardado = () => {
+  if (!state.data || !state.pendingSync) return;
+
+  if (state.pendingSyncOrigen === 'nube') {
+    // Lo que viene de la nube se funde con lo que hay y lo pendiente queda
+    // vacío: si se quedara, al aplicar lo pendiente otra vez se volvería a
+    // fusionar y lo que la usuaria acaba de borrar reaparecería.
+    fusionarPendiente(state);
+    return;
+  }
+
+  if (state.pendingSyncOrigen !== 'pestana') return;
+
+  const decision = decidirCambioDePestana({
+    updatedAtEnMemoria: state.data?.updatedAt,
+    updatedAtRecibido: state.pendingSync?.updatedAt,
+    hayModalAbierto: false,
+    estaEditando: false
+  });
+
+  if (decision === DECISION_IGNORAR) {
+    // Lo pendiente ya no es más nuevo que lo que hay aquí.
+    state.pendingSync = null;
+    state.pendingSyncOrigen = null;
+    state.pendingSyncBase = null;
+    return;
+  }
+
+  // Lo pendiente es más nuevo: se funde con lo que hay en memoria. La fusión
+  // respeta lo que la usuaria haya cambiado y deja dentro lo que vino de la
+  // otra pestaña, sin sustituir las secciones que los módulos tienen
+  // guardadas.
+  state.data = fusionarDatos(state.pendingSyncBase, state.data, state.pendingSync);
+  state.pendingSync = null;
+  state.pendingSyncOrigen = null;
+  state.pendingSyncBase = null;
+};
+
+/**
+ * Aplica lo pendiente y avisa de que se han aplicado datos nuevos.
+ *
+ * Si la usuaria estaba escribiendo en un campo, el texto se le devuelve
+ * después del repintado: la vista se repinta entera y con ella se iría lo
+ * que estaba escrito. Solo se devuelve si sigue en la misma vista.
+ *
+ * @param {{id: string, valor: string, vista: string}|null} [campo] - Texto del
+ *   campo que tenía el foco.
+ */
+const aplicarPendingSyncYAvisar = async (campo = null) => {
+  const origen = state.pendingSyncOrigen;
+  if (!aplicarPendingSync()) return;
+
+  await renderView(state.currentView);
+  if (campo && campo.vista === state.currentView) {
+    restaurarTextoEnCampo(campo, document);
+  }
+
+  if (origen === 'nube') {
+    showNotification('✓ Datos sincronizados desde la nube', 'success');
+  }
+};
+
 /**
  * Avisa de lo que pasó al cargar los datos.
  *
@@ -127,7 +323,7 @@ const mostrarAvisoDeCarga = (issue, enSincronizacion = false) => {
     }
     confirmDanger({
       title: 'No se han podido leer tus datos guardados',
-      message: 'Oráculo ha conservado una copia de lo que había y ha empezado un cuaderno vacío. Si tienes un backup, impórtalo desde Configuración.',
+      message: 'Oráculo ha conservado una copia de lo que había y ha empezado un cuaderno vacío. En Configuración puedes descargar esa copia o importar un backup si lo tienes.',
       confirmText: 'Ir a Configuración',
       cancelText: 'Cerrar',
       type: 'warning'
@@ -297,17 +493,24 @@ const setupGlobalEvents = () => {
     // datos después de sincronizar y no sabe por qué.
     const loadIssue = consumeLoadIssue();
 
-    // Verificar si hay algún modal abierto
-    const openModal = document.querySelector('dialog[open]');
+    // Copia de los datos como están ahora. Sirve de base para saber qué ha
+    // cambiado en local mientras lo de la nube espera.
+    const base = copiarDatos(state.data);
 
-    if (openModal) {
-      // Hay un modal abierto - guardar datos para aplicar después
-      console.log('[App] Modal abierto, difiriendo actualización');
+    if (hayModalAbierto() || estaEditando()) {
+      // Hay un modal abierto o la usuaria escribiendo: los datos se guardan
+      // para aplicar después, sin pisar lo que tiene a medias.
+      console.log('[App] Editando o con modal abierto, difiriendo actualización');
       state.pendingSync = fresh;
-      showNotification('Datos actualizados. Se aplicarán al cerrar el modal.', 'info');
+      state.pendingSyncOrigen = 'nube';
+      state.pendingSyncBase = base;
+      if (hayModalAbierto()) {
+        showNotification('Datos actualizados. Se aplicarán al cerrar el modal.', 'info');
+      }
     } else {
-      // No hay modal - aplicar inmediatamente
-      state.data = fresh;
+      // No hay nada a medias: se funde y se aplica. La fusión deja lo que la
+      // usuaria hubiera guardado justo antes y trae lo de la nube.
+      state.data = fusionarDatos(base, state.data, fresh);
       renderView(state.currentView);
       showNotification('✓ Datos sincronizados desde la nube', 'success');
     }
@@ -317,13 +520,46 @@ const setupGlobalEvents = () => {
 
   // Aplicar sync pendiente cuando se cierra un modal
   document.addEventListener('close', (e) => {
-    if (e.target.tagName === 'DIALOG' && state.pendingSync) {
-      console.log('[App] Modal cerrado, aplicando sync pendiente');
-      state.data = state.pendingSync;
-      state.pendingSync = null;
-      renderView(state.currentView);
-      showNotification('✓ Datos sincronizados desde la nube', 'success');
-    }
+    if (e.target.tagName !== 'DIALOG') return;
+    console.log('[App] Modal cerrado, aplicando sync pendiente');
+    aplicarPendingSyncYAvisar();
+  }, true);
+
+  // Al salir de un campo de edición se intenta aplicar lo pendiente, pero
+  // solo si el foco ha salido del bloque de edición: si la usuaria pasa de un
+  // campo a otro del mismo formulario, aplicar lo pendiente repinta la vista
+  // y con ella se va lo que había escrito en el resto de campos, además de
+  // perder el clic del botón.
+  document.addEventListener('focusout', (e) => {
+    const destino = e.target;
+    if (!destino || typeof destino.matches !== 'function') return;
+    if (!destino.matches('input, textarea, [contenteditable]')) return;
+
+    // Si el foco sigue dentro del bloque de edición, no se hace nada: la
+    // usuaria sigue escribiendo.
+    if (!haSalidoDelBloqueDeEdicion({
+      destino,
+      nuevoFoco: e.relatedTarget,
+      elementoPulsado: ultimoElementoPulsado
+    })) return;
+
+    // Se guarda lo que había escrito: al aplicar lo pendiente se repinta la
+    // vista, y con ella se iría el texto del campo.
+    const capturado = capturarTextoDeCampo(destino);
+    const campo = capturado ? { ...capturado, vista: state.currentView } : null;
+
+    // El elemento pulsado solo sirve para esta decisión: se suelta para que
+    // no se confunda con el siguiente cambio de foco.
+    ultimoElementoPulsado = null;
+
+    setTimeout(() => aplicarPendingSyncYAvisar(campo), 0);
+  });
+
+  // Se anota lo último que se ha pulsado: al decidir si el foco ha salido
+  // del bloque de edición, el clic en un botón del mismo bloque tiene que
+  // llegar, y hay navegadores que no enfocan ese botón.
+  document.addEventListener('mousedown', (e) => {
+    ultimoElementoPulsado = e.target;
   }, true);
 
   // Guardar en localStorage antes de cerrar (sin diálogo)
@@ -336,6 +572,11 @@ const setupGlobalEvents = () => {
         // pasa por el storage, así que es el único sitio donde se puede
         // colar un dato suelto que reviente la vista al cargarlo.
         ensureDataShape(state.data);
+        // Los identificadores también se normalizan aquí: este camino
+        // escribe en el almacenamiento sin pasar por la carga, y un
+        // identificador con comillas o ángulos rompería el marcado al
+        // pintarse.
+        sanearIdentificadores(state.data);
         localStorage.setItem('oraculo_data', JSON.stringify(state.data));
       } catch (e) {
         console.warn('[App] Error guardando en beforeunload:', e);
@@ -351,12 +592,34 @@ const setupGlobalEvents = () => {
     // otra vez desde memoria, así que se queda con lo que haya ahora.
     const fresh = loadData();
 
-    if (document.querySelector('dialog[open]')) {
+    const decision = decidirCambioDePestana({
+      updatedAtEnMemoria: state.data?.updatedAt,
+      updatedAtRecibido: fresh?.updatedAt,
+      hayModalAbierto: hayModalAbierto(),
+      estaEditando: estaEditando()
+    });
+
+    if (decision === DECISION_IGNORAR) return;
+
+    if (decision === DECISION_APLAZAR) {
+      // La usuaria está escribiendo o con un modal abierto: los datos esperan
+      // a que termine, para no perder lo que tiene a medias.
+      console.log('[App] Editando o con modal abierto, difiriendo datos de otra pestaña');
       state.pendingSync = fresh;
+      state.pendingSyncOrigen = 'pestana';
+      // Copia de los datos como están ahora: sirve de base para saber qué ha
+      // cambiado en local mientras lo de la otra pestaña espera.
+      state.pendingSyncBase = copiarDatos(state.data);
       return;
     }
-    state.data = fresh;
-    renderView(state.currentView);
+
+    if (decision === DECISION_APLICAR) {
+      // No hay nada a medias: se funde lo de la otra pestaña con lo que hay.
+      // La fusión no sustituye las secciones, así que los módulos que
+      // guardan una referencia a ellas siguen viendo los mismos objetos.
+      state.data = fusionarDatos(copiarDatos(state.data), state.data, fresh);
+      renderView(state.currentView);
+    }
   });
 
   // Escuchar cambios en el modo de uso para actualizar el menú
@@ -826,6 +1089,10 @@ const setupGlobalCapture = () => {
     }
 
     // Crear tarea
+    // Si hay algo más nuevo guardado en otra pestaña, se adopta como base
+    // antes de guardar: así esta captura no lo deja fuera.
+    prepararGuardado();
+
     const newTask = {
       id: generateId(),
       text: parsed.text,
@@ -994,8 +1261,21 @@ const renderView = async (viewName) => {
   const container = document.getElementById('app-content');
   if (!container) return;
 
+  // Al cambiar de vista se aplica lo pendiente de otra pestaña: la usuaria
+  // ya no está escribiendo en la vista que se cierra.
+  aplicarPendingSync();
+
   // Mostrar loading
   container.innerHTML = '<div class="loading">Cargando...</div>';
+
+  // El nombre de la vista decide el módulo que se carga. Solo se acepta un
+  // nombre que está en la lista de vistas: si no, se trata como una vista
+  // desconocida en vez de construir una ruta a partir de lo que venga.
+  if (!Object.hasOwn(VIEWS, viewName)) {
+    console.error('[App] Vista no conocida:', viewName);
+    renderViewError(container, viewName);
+    return;
+  }
 
   try {
     // Importar y renderizar el módulo correspondiente
@@ -1018,18 +1298,28 @@ const renderView = async (viewName) => {
     }
   } catch (error) {
     console.error(`[App] No se ha podido cargar la vista "${viewName}":`, error);
-    container.innerHTML = `
-      <div class="empty-state empty-state--large">
-        <span class="material-symbols-outlined icon-xl">error_outline</span>
-        <h3>No se pudo cargar "${escapeHTML(VIEWS[viewName] || viewName)}"</h3>
-        <p>Puede que haya un problema temporal. Intenta volver al inicio.</p>
-        <button class="btn btn--primary" onclick="window.location.hash='dashboard'">
-          <span class="material-symbols-outlined icon-sm">home</span>
-          Volver al inicio
-        </button>
-      </div>
-    `;
+    renderViewError(container, viewName);
   }
+};
+
+/**
+ * Pinta el aviso de que una vista no se ha podido cargar.
+ *
+ * @param {HTMLElement} container - Contenedor donde se pinta.
+ * @param {string} viewName - Nombre de la vista que no se pudo cargar.
+ */
+const renderViewError = (container, viewName) => {
+  container.innerHTML = `
+    <div class="empty-state empty-state--large">
+      <span class="material-symbols-outlined icon-xl">error_outline</span>
+      <h3>No se pudo cargar "${escapeHTML(VIEWS[viewName] || viewName)}"</h3>
+      <p>Puede que haya un problema temporal. Intenta volver al inicio.</p>
+      <button class="btn btn--primary" onclick="window.location.hash='dashboard'">
+        <span class="material-symbols-outlined icon-sm">home</span>
+        Volver al inicio
+      </button>
+    </div>
+  `;
 };
 
 /**
@@ -1052,6 +1342,10 @@ const updateActiveNav = (viewName) => {
  * Actualiza los datos y persiste
  */
 export const updateData = (section, newData) => {
+  // Si hay algo más nuevo guardado en otra pestaña, se adopta como base
+  // antes de guardar: así este guardado no lo deja fuera.
+  prepararGuardado();
+
   if (section.includes('.')) {
     const parts = section.split('.');
     let target = state.data;

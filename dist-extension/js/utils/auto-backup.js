@@ -179,11 +179,20 @@ export const saveAutoBackupToIndexedDB = async (data) => {
       }
     }
 
-    await new Promise((resolve) => {
-      tx.oncomplete = () => resolve();
+    // La transacción puede quedarse colgada si se aborta o falla: sin esto,
+    // la copia automática nunca terminaría y quedaría a medias.
+    const completada = await new Promise((resolve) => {
+      tx.oncomplete = () => resolve(true);
+      tx.onabort = () => resolve(false);
+      tx.onerror = () => resolve(false);
     });
 
     db.close();
+
+    if (!completada) {
+      console.error('[AutoBackup] La transacción del respaldo automático no se ha completado');
+      return false;
+    }
 
     // Registrar timestamp del último backup automático
     localStorage.setItem(LAST_AUTO_BACKUP_KEY, now);
@@ -252,6 +261,96 @@ export const restoreAutoBackup = async (id) => {
 };
 
 /**
+ * Dice si el cuaderno tiene algo de la usuaria que valga la pena respaldar.
+ *
+ * Un cuaderno recién borrado no tiene nada que perder. Si se guardara su
+ * copia, la promesa de «borrar todo» dejaría de cumplirse: quedaría una
+ * copia del cuaderno vacío en el dispositivo.
+ *
+ * @param {object} data - Datos del cuaderno.
+ * @returns {boolean} true si hay contenido de la usuaria.
+ */
+export const tieneContenidoParaRespaldar = (data) => {
+  if (!data || typeof data !== 'object') return false;
+
+  const conItems = (lista) => Array.isArray(lista) && lista.length > 0;
+
+  if (conItems(data.values)) return true;
+  if (conItems(data.journal)) return true;
+  if (conItems(data.projects)) return true;
+  if (conItems(data.spontaneousAchievements)) return true;
+  if (conItems(data.atelicActivities)) return true;
+
+  const objetivos = data.objectives;
+  if (objetivos && typeof objetivos === 'object' && Object.values(objetivos).some(conItems)) return true;
+
+  const habitos = data.habits;
+  if (habitos && typeof habitos === 'object') {
+    if (habitos.active) return true;
+    if (conItems(habitos.graduated)) return true;
+    if (conItems(habitos.history)) return true;
+  }
+
+  const calendario = data.calendar;
+  if (calendario && typeof calendario === 'object') {
+    if (conItems(calendario.events)) return true;
+    if (conItems(calendario.recurring)) return true;
+  }
+
+  const rueda = data.lifeWheel;
+  if (rueda && typeof rueda === 'object' && conItems(rueda.evaluations)) return true;
+
+  return false;
+};
+
+/**
+ * Borra todos los respaldos automáticos guardados en IndexedDB.
+ *
+ * Los respaldos automáticos son copias completas del cuaderno que la app
+ * guarda en este dispositivo. Si la usuaria borra su diario, esas copias no
+ * pueden seguir ahí: su texto seguiría en el equipo aunque la app dijera
+ * que ya no está.
+ *
+ * @returns {Promise<boolean>} true si se han borrado.
+ */
+export const borrarBackupsAutomaticos = async () => {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_BACKUPS, 'readwrite');
+    const store = tx.objectStore(STORE_BACKUPS);
+
+    await new Promise((resolve, reject) => {
+      const request = store.clear();
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+
+    // La transacción puede quedarse colgada si se aborta o falla: sin esto,
+    // el botón que espera al borrado se quedaría esperando para siempre.
+    const completada = await new Promise((resolve) => {
+      tx.oncomplete = () => resolve(true);
+      tx.onabort = () => resolve(false);
+      tx.onerror = () => resolve(false);
+    });
+
+    db.close();
+
+    if (!completada) {
+      console.error('[AutoBackup] La transacción de borrado no se ha completado');
+      return false;
+    }
+
+    // La marca de la última copia tampoco puede quedar: si no, la app
+    // crearía un respaldo nuevo en el siguiente arranque.
+    localStorage.removeItem(LAST_AUTO_BACKUP_KEY);
+    return true;
+  } catch (error) {
+    console.error('[AutoBackup] Error borrando los respaldos automáticos:', error);
+    return false;
+  }
+};
+
+/**
  * Verifica si es necesario hacer un backup automático
  * (si han pasado más de AUTO_BACKUP_INTERVAL_DAYS desde el último)
  * @returns {boolean}
@@ -276,6 +375,13 @@ export const needsAutoBackup = () => {
  */
 export const runAutoBackupIfNeeded = async (data) => {
   if (!needsAutoBackup()) {
+    return false;
+  }
+
+  // Un cuaderno sin contenido de la usuaria no tiene nada que perder. Si se
+  // guardara su copia, la promesa de «borrar todo» dejaría de cumplirse.
+  if (!tieneContenidoParaRespaldar(data)) {
+    console.log('[AutoBackup] No hay contenido que respaldar');
     return false;
   }
 

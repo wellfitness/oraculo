@@ -45,9 +45,13 @@ export const confirmDanger = ({
   document.body.appendChild(modal);
 
   // Handlers
+  let cerrado = false;
+
   const handleClose = (confirmed) => {
+    if (cerrado) return;
+    cerrado = true;
+
     modal.close();
-    modal.remove();
 
     if (confirmed && onConfirm) {
       onConfirm();
@@ -55,6 +59,14 @@ export const confirmDanger = ({
       onCancel();
     }
   };
+
+  // El modal se quita del documento cuando ya se ha cerrado. Quitarlo antes
+  // haría que el evento 'close' no llegara nunca al documento: el elemento
+  // deja de estar conectado cuando el evento se despacha, y quien escuche
+  // los cierres desde fuera no se enteraría de nada.
+  modal.addEventListener('close', () => {
+    modal.remove();
+  });
 
   // Event listeners
   modal.querySelector('[data-action="cancel"]').addEventListener('click', () => handleClose(false));

@@ -18,7 +18,10 @@ import {
   getHabitStatsInPeriod,
   generateRecapText,
   getAchievementsStats,
-  generateHeatmapData
+  generateHeatmapData,
+  generateHeatmapGrid,
+  columnasDeMesDelAnio,
+  getCompletedCountByHorizon
 } from '../js/utils/achievements-calculator.js';
 
 // ============================================================
@@ -361,6 +364,48 @@ describe('getAchievementsStats', () => {
   });
 });
 
+describe('getCompletedCountByHorizon', () => {
+  const hoy = () => new Date().toISOString();
+  const objetivos = (completed) => ({
+    quarterly: [], monthly: [], weekly: [], daily: [],
+    completed
+  });
+
+  it('cuenta las tareas completadas por su horizonte de origen', () => {
+    const counts = getCompletedCountByHorizon(
+      objetivos([{ id: 't1', completedAt: hoy(), originalColumn: 'weekly' }]),
+      'today'
+    );
+
+    assert.strictEqual(counts.weekly, 1);
+    assert.strictEqual(counts.daily, 0);
+  });
+
+  it('una tarea sin horizonte de origen cuenta como prioritaria', () => {
+    const counts = getCompletedCountByHorizon(
+      objetivos([{ id: 't1', completedAt: hoy() }]),
+      'today'
+    );
+
+    assert.strictEqual(counts.daily, 1);
+  });
+
+  it('no cuenta un origen que no es un horizonte del modelo', () => {
+    const counts = getCompletedCountByHorizon(
+      objetivos([
+        { id: 't1', completedAt: hoy(), originalColumn: 'constructor' },
+        { id: 't2', completedAt: hoy(), originalColumn: 'toString' },
+        { id: 't3', completedAt: hoy(), originalColumn: 'weekly' }
+      ]),
+      'today'
+    );
+
+    assert.strictEqual(counts.weekly, 1);
+    assert.strictEqual(Object.hasOwn(counts, 'constructor'), false);
+    assert.strictEqual(Object.hasOwn(counts, 'toString'), false);
+  });
+});
+
 describe('generateHeatmapData', () => {
   it('cuenta la actividad del año', () => {
     const data = {
@@ -384,5 +429,59 @@ describe('generateHeatmapData', () => {
     const heatmap = generateHeatmapData(data, 2026);
 
     assert.deepStrictEqual(heatmap, {});
+  });
+});
+
+describe('columnasDeMesDelAnio', () => {
+  it('devuelve una columna por mes', () => {
+    assert.strictEqual(columnasDeMesDelAnio(2026).length, 12);
+  });
+
+  it('el primer mes empieza en la primera columna', () => {
+    assert.strictEqual(columnasDeMesDelAnio(2026)[0], 0);
+    assert.strictEqual(columnasDeMesDelAnio(2024)[0], 0);
+  });
+
+  it('las columnas van en orden y nunca se repiten', () => {
+    for (const year of [2024, 2025, 2026, 2027, 2028]) {
+      const columnas = columnasDeMesDelAnio(year);
+
+      for (let i = 1; i < columnas.length; i++) {
+        assert.ok(columnas[i] > columnas[i - 1], `columnas de ${year}: ${columnas.join(',')}`);
+      }
+    }
+  });
+
+  it('cada mes cae en la semana en la que empieza de verdad', () => {
+    for (const year of [2024, 2026, 2027]) {
+      const grid = generateHeatmapGrid({}, year);
+      const columnas = columnasDeMesDelAnio(year);
+
+      columnas.forEach((columna, mes) => {
+        const lunes = grid[columna][0].date;
+        const domingo = grid[columna][6].date;
+        const primero = new Date(year, mes, 1).toLocaleDateString('en-CA');
+
+        assert.ok(
+          primero >= lunes && primero <= domingo,
+          `mes ${mes} de ${year}: ${primero} fuera de la semana ${lunes}-${domingo}`
+        );
+      });
+    }
+  });
+
+  it('un año que empieza en lunes no deja días sueltos en la primera columna', () => {
+    // 2024 empieza en lunes: el 1 de enero es el primer día del mapa.
+    const grid = generateHeatmapGrid({}, 2024);
+
+    assert.strictEqual(grid[0][0].date, '2024-01-01');
+  });
+
+  it('un año que empieza en jueves deja los tres días anteriores en la primera columna', () => {
+    // 2026 empieza en jueves: la primera columna empieza el lunes anterior.
+    const grid = generateHeatmapGrid({}, 2026);
+
+    assert.strictEqual(grid[0][0].date, '2025-12-29');
+    assert.strictEqual(grid[0][3].date, '2026-01-01');
   });
 });

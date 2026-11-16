@@ -8,7 +8,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 
-import { validateDataStructure, sanearIdentificadores, descartarElementosInvalidos, normalizarHorizontes, normalizarContadores, comprobarBackupCopiable } from '../js/utils/validator.js';
+import { validateDataStructure, sanearIdentificadores, descartarElementosInvalidos, normalizarHorizontes, normalizarContadores, comprobarBackupCopiable, tieneContenido } from '../js/utils/validator.js';
+import { areasPorDefecto } from '../js/utils/rueda-por-defecto.js';
 
 // ============================================================
 // Tests para validateDataStructure
@@ -612,5 +613,69 @@ describe('comprobarBackupCopiable', () => {
 
     assert.strictEqual(resultado.ok, false);
     assert.strictEqual(resultado.motivo, 'vacio');
+  });
+});
+
+// ============================================================
+// Tests para tieneContenido
+// ============================================================
+
+describe('tieneContenido', () => {
+  const cuadernoNuevo = () => ({
+    version: '1.5',
+    values: [],
+    projects: [],
+    journal: [],
+    objectives: { backlog: [], quarterly: [], monthly: [], weekly: [], daily: [], completed: [] },
+    habits: { active: null, graduated: [], history: [], audit: { activities: [] } },
+    calendar: { events: [], recurring: [] },
+    spontaneousAchievements: [],
+    atelicActivities: [],
+    archivedNotebooks: [],
+    dailySetup: { date: null },
+    lifeWheel: { areas: areasPorDefecto(), evaluations: [] },
+    objectiveEvaluation: { evaluations: [] },
+    muevete: { activityLog: { entries: [] } }
+  });
+
+  it('un cuaderno con la rueda tal como sale de fábrica está vacío', () => {
+    assert.strictEqual(tieneContenido(cuadernoNuevo()), false);
+  });
+
+  it('un área enlazada con un valor cuenta como contenido', () => {
+    const cuaderno = cuadernoNuevo();
+    cuaderno.lifeWheel.areas[0].linkedValueId = 'v1';
+
+    assert.strictEqual(tieneContenido(cuaderno), true);
+  });
+
+  it('un área con el nombre cambiado cuenta como contenido', () => {
+    const cuaderno = cuadernoNuevo();
+    cuaderno.lifeWheel.areas[2].name = 'Mi desarrollo';
+
+    assert.strictEqual(tieneContenido(cuaderno), true);
+  });
+
+  it('un área que no es del modelo cuenta como contenido', () => {
+    const cuaderno = cuadernoNuevo();
+    cuaderno.lifeWheel.areas.push({ id: 'nueva', name: 'Mi área', icon: 'star', order: 8, linkedValueId: null });
+
+    assert.strictEqual(tieneContenido(cuaderno), true);
+  });
+
+  it('un área con un identificador que no es del modelo cuenta como contenido', () => {
+    const cuaderno = cuadernoNuevo();
+    cuaderno.lifeWheel.areas = [{ id: 'constructor', name: 'Constructor', icon: 'star', order: 0, linkedValueId: null }];
+
+    // El identificador no es un área del modelo, así que cuenta como
+    // contenido. Lo importante es que no se confunda con un nombre por
+    // defecto: las claves heredadas del objeto no son áreas.
+    assert.strictEqual(tieneContenido(cuaderno), true);
+  });
+
+  it('aguanta datos que no son un objeto', () => {
+    assert.strictEqual(tieneContenido(null), false);
+    assert.strictEqual(tieneContenido('texto'), false);
+    assert.strictEqual(tieneContenido({}), false);
   });
 });

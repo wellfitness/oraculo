@@ -1565,7 +1565,7 @@ const renderAuditSection = (data) => {
   // Paso 1: Listar actividades
   if (auditStep === 1) {
     return `
-      <div class="audit-page">
+      <div class="audit-page" data-bloque-edicion>
         <header class="wizard-header">
           <button class="btn btn--icon" id="audit-back-to-lab">
             <span class="material-symbols-outlined">arrow_back</span>
@@ -1628,7 +1628,7 @@ const renderAuditSection = (data) => {
   // Paso 2: Evaluar actividades
   if (auditStep === 2) {
     return `
-      <div class="audit-page">
+      <div class="audit-page" data-bloque-edicion>
         <header class="wizard-header">
           <button class="btn btn--icon" id="audit-prev-btn">
             <span class="material-symbols-outlined">arrow_back</span>
@@ -1690,7 +1690,7 @@ const renderAuditSection = (data) => {
   // Paso 3: Elegir una para transformar
   if (auditStep === 3) {
     return `
-      <div class="audit-page">
+      <div class="audit-page" data-bloque-edicion>
         <header class="wizard-header">
           <button class="btn btn--icon" id="audit-prev-btn">
             <span class="material-symbols-outlined">arrow_back</span>
@@ -1759,7 +1759,7 @@ const renderHabitWizard = () => {
   // Paso 1: Área de vida
   if (wizardStep === 1) {
     return `
-      <div class="wizard-page">
+      <div class="wizard-page" data-bloque-edicion>
         <header class="wizard-header">
           <button class="btn btn--icon" id="wizard-cancel-btn">
             <span class="material-symbols-outlined">close</span>
@@ -1803,7 +1803,7 @@ const renderHabitWizard = () => {
   // Paso 2: Identidad
   if (wizardStep === 2) {
     return `
-      <div class="wizard-page">
+      <div class="wizard-page" data-bloque-edicion>
         <header class="wizard-header">
           <button class="btn btn--icon" id="wizard-prev-btn">
             <span class="material-symbols-outlined">arrow_back</span>
@@ -1855,7 +1855,7 @@ const renderHabitWizard = () => {
   // Paso 3: El Hábito + Micro-versión
   if (wizardStep === 3) {
     return `
-      <div class="wizard-page">
+      <div class="wizard-page" data-bloque-edicion>
         <header class="wizard-header">
           <button class="btn btn--icon" id="wizard-prev-btn">
             <span class="material-symbols-outlined">arrow_back</span>
@@ -1915,7 +1915,7 @@ const renderHabitWizard = () => {
   // Paso 4: Cuándo y Dónde
   if (wizardStep === 4) {
     return `
-      <div class="wizard-page">
+      <div class="wizard-page" data-bloque-edicion>
         <header class="wizard-header">
           <button class="btn btn--icon" id="wizard-prev-btn">
             <span class="material-symbols-outlined">arrow_back</span>
@@ -1980,7 +1980,7 @@ const renderHabitWizard = () => {
   // Paso 5: Habit Stack (Ley 1)
   if (wizardStep === 5) {
     return `
-      <div class="wizard-page">
+      <div class="wizard-page" data-bloque-edicion>
         <header class="wizard-header">
           <button class="btn btn--icon" id="wizard-prev-btn">
             <span class="material-symbols-outlined">arrow_back</span>
@@ -2046,7 +2046,7 @@ const renderHabitWizard = () => {
   // Paso 6: Las 3 Leyes Restantes
   if (wizardStep === 6) {
     return `
-      <div class="wizard-page">
+      <div class="wizard-page" data-bloque-edicion>
         <header class="wizard-header">
           <button class="btn btn--icon" id="wizard-prev-btn">
             <span class="material-symbols-outlined">arrow_back</span>
@@ -2161,7 +2161,7 @@ const renderHabitWizard = () => {
     const currentObstacles = wizardData.obstacles || [{ obstacle: '', plan: '' }];
 
     return `
-      <div class="wizard-page">
+      <div class="wizard-page" data-bloque-edicion>
         <header class="wizard-header">
           <button class="btn btn--icon" id="wizard-prev-btn">
             <span class="material-symbols-outlined">arrow_back</span>
@@ -2243,7 +2243,7 @@ const renderHabitWizard = () => {
     const areaInfo = LIFE_AREAS.find(a => a.id === wizardData.area);
 
     return `
-      <div class="wizard-page">
+      <div class="wizard-page" data-bloque-edicion>
         <header class="wizard-header">
           <button class="btn btn--icon" id="wizard-prev-btn">
             <span class="material-symbols-outlined">arrow_back</span>

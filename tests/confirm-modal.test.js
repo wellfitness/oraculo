@@ -10,17 +10,61 @@ import assert from 'node:assert/strict';
 
 const dialogosCreados = [];
 
-const crearDialogo = () => ({
-  className: '',
-  innerHTML: '',
-  cerrado: false,
-  addEventListener() {},
-  focus() {},
-  showModal() {},
-  close() { this.cerrado = true; },
-  remove() {},
-  querySelector() { return { addEventListener() {}, focus() {} }; }
-});
+// Oyentes del "documento" de mentira: simulan a quien escucha los cierres
+// desde el documento (la app lo hace para aplicar lo que quedó pendiente).
+const oyentesDocumento = [];
+
+const crearBoton = () => {
+  const oyentes = {};
+  return {
+    oyentes,
+    addEventListener(tipo, fn) {
+      (oyentes[tipo] ||= []).push(fn);
+    },
+    disparar(tipo) {
+      for (const fn of oyentes[tipo] || []) fn({ type: tipo });
+    },
+    focus() {}
+  };
+};
+
+const crearDialogo = () => {
+  const oyentes = {};
+  const botones = {
+    '[data-action="cancel"]': crearBoton(),
+    '[data-action="confirm"]': crearBoton()
+  };
+
+  return {
+    className: '',
+    innerHTML: '',
+    cerrado: false,
+    quitado: false,
+    oyentes,
+    botones,
+    addEventListener(tipo, fn) {
+      (oyentes[tipo] ||= []).push(fn);
+    },
+    /**
+     * En el navegador el evento 'close' se despacha de forma asíncrona y
+     * cuando el elemento todavía está en el documento. El "documento" recibe
+     * el evento antes que el propio diálogo, como en la fase de captura.
+     */
+    close() {
+      this.cerrado = true;
+      setTimeout(() => {
+        for (const fn of oyentesDocumento) {
+          fn({ type: 'close', target: this });
+        }
+        for (const fn of oyentes.close || []) fn({ type: 'close', target: this });
+      }, 0);
+    },
+    remove() { this.quitado = true; },
+    focus() {},
+    showModal() {},
+    querySelector(selector) { return botones[selector]; }
+  };
+};
 
 globalThis.document = {
   createElement() {
@@ -28,7 +72,10 @@ globalThis.document = {
     dialogosCreados.push(dialogo);
     return dialogo;
   },
-  body: { appendChild() {} }
+  body: { appendChild() {} },
+  addEventListener(tipo, fn) {
+    if (tipo === 'close') oyentesDocumento.push(fn);
+  }
 };
 
 const { confirmDanger, confirmDeleteData } = await import('../js/utils/confirm-modal.js');
@@ -85,4 +132,41 @@ test('confirmDeleteData escapa el nombre del dato que se va a eliminar', () => {
   const html = dialogosCreados[0].innerHTML;
   assert.ok(!html.includes('<b>'), 'el nombre no debe inyectar etiquetas');
   assert.ok(html.includes('&lt;b&gt;'), 'el nombre debe mostrarse escapado');
+});
+
+test('el cierre del modal llega al documento antes de quitarlo', async () => {
+  dialogosCreados.length = 0;
+  oyentesDocumento.length = 0;
+
+  const recibido = [];
+  oyentesDocumento.push((evento) => {
+    recibido.push({ enDocumento: !evento.target.quitado });
+  });
+
+  confirmDanger({ title: '¿Eliminar?' }, () => {});
+  const modal = dialogosCreados[0];
+
+  modal.botones['[data-action="confirm"]'].disparar('click');
+  await new Promise((resolver) => setTimeout(resolver, 5));
+
+  assert.strictEqual(recibido.length, 1, 'el documento debe recibir el evento de cierre');
+  assert.strictEqual(recibido[0].enDocumento, true, 'el modal debe seguir en el documento cuando se avisa del cierre');
+  assert.strictEqual(modal.quitado, true, 'el modal debe quitarse del documento al terminar');
+});
+
+test('el cierre por cancelación también llega al documento', async () => {
+  dialogosCreados.length = 0;
+  oyentesDocumento.length = 0;
+
+  let recibido = false;
+  oyentesDocumento.push(() => { recibido = true; });
+
+  confirmDanger({ title: '¿Eliminar?' }, () => {});
+  const modal = dialogosCreados[0];
+
+  modal.botones['[data-action="cancel"]'].disparar('click');
+  await new Promise((resolver) => setTimeout(resolver, 5));
+
+  assert.strictEqual(recibido, true, 'el documento debe recibir el evento de cierre');
+  assert.strictEqual(modal.quitado, true, 'el modal debe quitarse del documento al terminar');
 });

@@ -16,11 +16,12 @@ import { getHerramienta } from '../data/markmanson.js';
 import { getSpeechHandler, isSpeechSupported } from '../utils/speech-handler.js';
 import { confirmDanger } from '../utils/confirm-modal.js';
 import { emptyStateFor } from '../components/empty-state.js';
-import { draftIdFor, saveDraft, loadDraft, clearDraft } from '../utils/journal-draft.js';
+import { draftIdFor, saveDraft, loadDraft, clearDraft, parseRutaDiario } from '../utils/journal-draft.js';
 
 let updateDataCallback = null;
 let currentData = null;
 let searchTimeout = null;
+let draftTimer = null;
 
 // Tipos de entrada
 const ENTRY_TYPES = {
@@ -83,18 +84,7 @@ const PROMPTS = {
  * Parsea la subruta del diario
  * Formatos: #journal, #journal/new/daily, #journal/edit/abc123
  */
-const parseJournalRoute = () => {
-  const hash = window.location.hash;
-  const parts = hash.split('/');
-
-  if (parts.length >= 3 && parts[1] === 'new') {
-    return { mode: 'new', type: parts[2] || 'free' };
-  }
-  if (parts.length >= 3 && parts[1] === 'edit') {
-    return { mode: 'edit', id: parts[2] };
-  }
-  return { mode: 'list' };
-};
+const parseJournalRoute = () => parseRutaDiario(window.location.hash);
 
 /**
  * Renderiza el diario (detecta si mostrar lista o editor)
@@ -365,10 +355,33 @@ const setupEditor = (data) => {
   if (loadDraft(draftId) !== null) {
     showNotification('Hemos recuperado el texto que no llegaste a guardar.', 'info');
   }
-  let draftTimer = null;
   textarea?.addEventListener('input', () => {
     clearTimeout(draftTimer);
-    draftTimer = setTimeout(() => saveDraft(draftId, textarea.value), 400);
+    draftTimer = setTimeout(() => {
+      draftTimer = null;
+      saveDraft(draftId, textarea.value);
+    }, 400);
+  });
+
+  // Al salir del campo, el borrador se guarda en el momento. El editor se
+  // reconstruye desde el borrador, así que si la vista se repinta mientras
+  // la usuaria escribe (por ejemplo, al aplicar datos que llegan de otra
+  // pestaña), el texto escrito tiene que estar ya guardado.
+  textarea?.addEventListener('blur', () => {
+    // El temporizador se cancela siempre: si no, guardaría el borrador
+    // después de que la entrada se haya guardado, y el texto volvería a
+    // aparecer en la siguiente entrada.
+    clearTimeout(draftTimer);
+    draftTimer = null;
+
+    // Si el editor ya no está en pantalla, su borrador ya se ha borrado a
+    // propósito (la entrada se acaba de guardar) y no debe volver: si
+    // volviera, la siguiente entrada aparecería rellenada con el texto
+    // recién guardado.
+    const ruta = parseJournalRoute();
+    if (ruta.mode !== 'new' && ruta.mode !== 'edit') return;
+
+    saveDraft(draftId, textarea.value);
   });
   // Los dos enlaces de vuelta ("Volver al diario" de la cabecera y
   // "Cancelar") se comportan igual: al salir sin guardar, el borrador se
@@ -473,6 +486,13 @@ const saveEntry = (data) => {
   }
 
   updateDataCallback('journal', data.journal);
+  // El temporizador del borrador se cancela antes de borrarlo. Si no, el
+  // borrador volvería a guardarse unos milisegundos después y el texto
+  // recién guardado aparecería en la siguiente entrada.
+  if (draftTimer) {
+    clearTimeout(draftTimer);
+    draftTimer = null;
+  }
   clearDraft(draftIdFor(parseJournalRoute()));
   showNotification('Entrada guardada', 'success');
   window.location.hash = '#journal';

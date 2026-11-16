@@ -168,7 +168,7 @@ export const renderWheelChart = (scores = {}, areas = [], options = {}) => {
     const radius = (score / 10) * maxRadius;
     const angle = startAngle + i * angleStep;
     const { x, y } = getPointCoordinates(angle, radius, center);
-    const color = colors[area.id] || '#6b7280';
+    const color = Object.hasOwn(colors, area.id) ? colors[area.id] : '#6b7280';
 
     return interactive ? `
       <circle
@@ -212,7 +212,7 @@ export const renderWheelChart = (scores = {}, areas = [], options = {}) => {
       dx = x > center ? 5 : -5;
     }
 
-    const color = colors[area.id] || '#6b7280';
+    const color = Object.hasOwn(colors, area.id) ? colors[area.id] : '#6b7280';
 
     return `
       <text
@@ -236,7 +236,7 @@ export const renderWheelChart = (scores = {}, areas = [], options = {}) => {
     const angle = startAngle + i * angleStep;
     const iconRadius = maxRadius + 45;
     const { x, y } = getPointCoordinates(angle, iconRadius, center);
-    const color = colors[area.id] || '#6b7280';
+    const color = Object.hasOwn(colors, area.id) ? colors[area.id] : '#6b7280';
 
     return `
       <foreignObject

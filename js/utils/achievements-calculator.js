@@ -106,10 +106,13 @@ export const getCompletedCountByHorizon = (objectives, period) => {
     daily: filterByDateRange(objectives.daily || [], start, end).length
   };
 
-  // Sumar las que están en objectives.completed por su horizonte original
+  // Sumar las que están en objectives.completed por su horizonte original.
+  // Solo cuentan las que vienen de un horizonte del modelo: el campo llega
+  // de un archivo importado y puede traer cualquier texto, y una clave que no
+  // es del modelo no es un horizonte.
   filterByDateRange(objectives.completed || [], start, end).forEach(task => {
     const origin = task.originalColumn || 'daily';
-    if (counts[origin] !== undefined) {
+    if (Object.hasOwn(counts, origin)) {
       counts[origin]++;
     }
   });
@@ -267,6 +270,32 @@ export const getActivityLevel = (count) => {
   if (count <= 4) return 2;
   if (count <= 6) return 3;
   return 4;
+};
+
+/**
+ * Calcula en qué columna del mapa de actividad empieza cada mes del año.
+ *
+ * El mapa se pinta por semanas y la primera columna no es el 1 de enero, sino
+ * el lunes de la semana en la que cae. Por eso el rótulo de un mes no va en
+ * la columna del mes, sino en la de la semana que lo contiene.
+ *
+ * @param {number} year - Año del mapa.
+ * @returns {number[]} Columna (empezando por 0) en la que empieza cada mes.
+ */
+export const columnasDeMesDelAnio = (year) => {
+  // El día de la semana del 1 de enero. Domingo es 7, como en el mapa.
+  const diaDeSemana = new Date(year, 0, 1).getDay() || 7;
+  // Días de la semana anterior que ocupan las primeras casillas del mapa.
+  const diasAntes = diaDeSemana - 1;
+  const inicioDelAnio = Date.UTC(year, 0, 1);
+
+  const columnas = [];
+  for (let mes = 0; mes < 12; mes++) {
+    const diasDesdeInicio = (Date.UTC(year, mes, 1) - inicioDelAnio) / 86400000;
+    columnas.push(Math.floor((diasAntes + diasDesdeInicio) / 7));
+  }
+
+  return columnas;
 };
 
 /**

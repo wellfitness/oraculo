@@ -105,7 +105,7 @@ export const render = (data) => {
   const dailyTasks = (objectives.daily || []).filter(i => !i.completed);
 
   return `
-    <div class="daily-setup-page setup-2col-page">
+    <div class="daily-setup-page setup-2col-page" data-bloque-edicion>
       <!-- BODY: 2 Columnas -->
       <div class="setup-2col__body">
 

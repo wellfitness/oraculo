@@ -7,10 +7,19 @@
 
 import { validateDataStructure, sanearIdentificadores, descartarElementosInvalidos, normalizarHorizontes, normalizarContadores } from './utils/validator.js';
 import { normalizarNumeros } from './utils/numeros.js';
+import { areasPorDefecto } from './utils/rueda-por-defecto.js';
+import { clearDraft } from './utils/journal-draft.js';
+import { borrarBackupsAutomaticos } from './utils/auto-backup.js';
+import { mcpBridge } from './utils/mcp-bridge.js';
+import { copiarDatos } from './utils/fusionar-datos.js';
 
 const STORAGE_KEY = 'oraculo_data';
 const STORAGE_VERSION = '1.5';
 const MAX_ACTIVE_PROJECTS = 4;
+
+// Clave donde se guarda el texto que no se pudo leer, tal como estaba, para
+// que la usuaria no lo pierda del todo.
+const CORRUPT_KEY = 'oraculo_data_corrupt';
 
 // Estructura inicial de datos
 const getDefaultData = () => ({
@@ -94,16 +103,7 @@ const getDefaultData = () => ({
   },
 
   lifeWheel: {
-    areas: [
-      { id: 'health', name: 'Salud física', icon: 'fitness_center', order: 0, linkedValueId: null },
-      { id: 'emotional', name: 'Estado emocional', icon: 'psychology', order: 1, linkedValueId: null },
-      { id: 'growth', name: 'Desarrollo personal', icon: 'school', order: 2, linkedValueId: null },
-      { id: 'family', name: 'Familia/Pareja', icon: 'favorite', order: 3, linkedValueId: null },
-      { id: 'social', name: 'Relaciones sociales', icon: 'groups', order: 4, linkedValueId: null },
-      { id: 'career', name: 'Profesión', icon: 'work', order: 5, linkedValueId: null },
-      { id: 'finances', name: 'Finanzas', icon: 'savings', order: 6, linkedValueId: null },
-      { id: 'leisure', name: 'Ocio/Tiempo libre', icon: 'spa', order: 7, linkedValueId: null }
-    ],
+    areas: areasPorDefecto(),
     evaluations: [],
     settings: {
       reminderEnabled: true,
@@ -186,11 +186,54 @@ const loadFromLocalStorage = () => {
     // Conserva lo que había para que la usuaria no lo pierda del todo
     if (stored) {
       try {
-        localStorage.setItem('oraculo_data_corrupt', stored);
+        localStorage.setItem(CORRUPT_KEY, stored);
       } catch { /* noop */ }
       loadIssue = LOAD_ISSUE_CORRUPT;
     }
     return null;
+  }
+};
+
+/**
+ * Indica si hay una copia de los datos que no se pudieron leer.
+ *
+ * La copia se guarda cuando el contenido del almacenamiento no se puede
+ * interpretar. Hasta ahora no había forma de llegar a ella desde la app, así
+ * que la usuaria no podía ni verla ni recuperarla.
+ *
+ * @returns {boolean} true si hay una copia con contenido.
+ */
+export const tieneCopiaCorrupta = () => leerCopiaCorrupta() !== null;
+
+/**
+ * Devuelve el texto de la copia de los datos que no se pudieron leer.
+ *
+ * El texto se devuelve tal cual, sin transformarlo: la idea es que la
+ * usuaria pueda intentar recuperarlo por su cuenta.
+ *
+ * @returns {string|null} El texto de la copia, o null si no hay copia.
+ */
+export const leerCopiaCorrupta = () => {
+  try {
+    const texto = localStorage.getItem(CORRUPT_KEY);
+    if (typeof texto !== 'string' || texto.trim() === '') return null;
+    return texto;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Borra la copia de los datos que no se pudieron leer.
+ *
+ * @returns {boolean} true si se ha borrado.
+ */
+export const borrarCopiaCorrupta = () => {
+  try {
+    localStorage.removeItem(CORRUPT_KEY);
+    return true;
+  } catch {
+    return false;
   }
 };
 
@@ -312,6 +355,30 @@ export const loadData = () => {
   }
 
   return localData;
+};
+
+/**
+ * Lee los datos del almacenamiento sin dejar pendiente el aviso de carga.
+ *
+ * "Copiar datos" relee lo guardado para comprobar lo que va a copiar. Si esa
+ * lectura encuentra elementos sueltos, arma el aviso de reparación. Como el
+ * aviso lo ha provocado la propia lectura, se consume aquí: si no, saldría
+ * más tarde, cuando otra parte de la app preguntara por la incidencia, y la
+ * usuaria vería un aviso que no explica lo que acaba de pasar.
+ *
+ * Una incidencia que ya estaba pendiente antes de la lectura no se toca: esa
+ * no la ha provocado esta llamada.
+ *
+ * @returns {Object} Los mismos datos que devuelve `loadData()`.
+ */
+export const loadDataSinIncidencia = () => {
+  const antes = loadIssue;
+  const datos = loadData();
+  // La incidencia que ha producido esta lectura se consume, salvo la de
+  // datos ilegibles: esa dice que no se han podido leer los datos de la
+  // usuaria y tiene que salir aunque la lectura sea la nuestra.
+  if (loadIssue !== antes && loadIssue !== LOAD_ISSUE_CORRUPT) loadIssue = null;
+  return datos;
 };
 
 /**
@@ -468,7 +535,11 @@ export const parseImportText = (text) => {
     throw new Error('Archivo no válido: ' + validation.error);
   }
 
-  return parsed;
+  // El archivo viene de fuera, así que se copia antes de guardarlo. Al
+  // copiar se quitan las claves que pueden romper el objeto de datos
+  // (`__proto__` y las de Object.prototype) y se corta lo que sea demasiado
+  // hondo, que al guardarlo dejaría la app sin poder escribir.
+  return copiarDatos(parsed);
 };
 
 /**
@@ -528,6 +599,11 @@ export const applyImportedData = (data) => {
       console.warn('[Storage] No se ha podido guardar la copia de seguridad:', error);
     }
   }
+
+  // El archivo puede venir de una versión anterior. Al guardarlo con la
+  // versión actual no hace falta migrarlo, y así no se pierde el registro
+  // de borrados que trae el cuaderno importado.
+  data.version = STORAGE_VERSION;
 
   return saveData(data);
 };
@@ -648,6 +724,15 @@ const migrateData = (oldData) => {
     newData.settings.weeklyReviewReminder = true;
   }
 
+  // El registro de borrados y los sellos de sección no son contenido del
+  // cuaderno, pero son lo que hace que lo borrado no vuelva desde la nube.
+  // Si la migración los pierde, todo lo que la usuaria había borrado
+  // reaparece en la siguiente sincronización.
+  if (Array.isArray(oldData._deletions)) newData._deletions = oldData._deletions;
+  if (oldData._sectionMeta && typeof oldData._sectionMeta === 'object') {
+    newData._sectionMeta = oldData._sectionMeta;
+  }
+
   // Migración Muévete
   if (oldData.muevete) {
     newData.muevete = {
@@ -667,12 +752,155 @@ const migrateData = (oldData) => {
 // FUNCIONES DE LIMPIEZA
 // ============================================================
 
-export const clearAllData = () => {
+/**
+ * Borra todo lo que la app guardó en este dispositivo.
+ *
+ * No basta con vaciar el cuaderno: la app guarda copias de sus datos y
+ * respaldos automáticos del cuaderno completo. Si alguno se queda, el texto
+ * de la usuaria sigue en el equipo aunque la app diga que ya no está.
+ *
+ * @returns {Promise<boolean>} true si se ha borrado todo.
+ */
+export const clearAllData = async () => {
   localStorage.removeItem(STORAGE_KEY);
+
+  // "Borrar todo" tiene que borrar todo lo que la app guardó en este
+  // dispositivo, no solo el cuaderno. Si se queda alguna copia, la usuaria
+  // cree que lo ha borrado y los datos siguen ahí:
+  //   - la copia de lo que no se pudo leer,
+  //   - la copia previa a una importación,
+  //   - la copia previa a una sincronización con la nube,
+  //   - el registro de conflictos de la sincronización, que guarda copias
+  //     literales de las entradas en conflicto,
+  //   - el borrador sin guardar del diario.
+  localStorage.removeItem(CORRUPT_KEY);
+  localStorage.removeItem(`${STORAGE_KEY}_backup`);
+  localStorage.removeItem('oraculo_data_pre_sync_backup');
+  localStorage.removeItem('oraculo_sync_conflicts');
+  clearDraft();
+
+  // También se corta la conexión con la nube. Si la conexión se queda, la
+  // siguiente sincronización se baja el cuaderno que la usuaria acaba de
+  // borrar y todo vuelve a aparecer en la siguiente apertura, como si el
+  // borrado no hubiera pasado. La copia que hay en Google Drive no se
+  // toca: esa es la usuaria, y hay un botón para desconectar y otro para
+  // volver a conectar.
+  localStorage.removeItem('oraculo_gdrive_sync');
+  localStorage.removeItem('oraculo_gdrive_token');
+  localStorage.removeItem('oraculo_gdrive_token_expiry');
+  borrarClavesQueEmpiecenPor('oraculo_gauth_token');
+  localStorage.removeItem('oraculo_gcal_settings');
+
+  // El progreso del asistente de hábitos guarda el nombre del hábito, la
+  // identidad, el lugar y la hora: es contenido de la usuaria.
+  localStorage.removeItem('oraculo_habitWizardProgress');
+  localStorage.removeItem('oraculo_lastAutoBackupAt');
+
+  // El puente del Agente IA guarda si está conectado y en qué carpeta. Si se
+  // queda, el agente seguiría hablando con una carpeta que la usuaria ya no
+  // quiere. El archivo que hay en esa carpeta no se borra: es el de la
+  // usuaria, igual que la copia de Drive.
+  localStorage.removeItem('oraculo_mcp_bridge');
+  try {
+    if (mcpBridge?.isEnabled) mcpBridge.forget();
+  } catch (e) {
+    console.warn('[Storage] No se ha podido desconectar el puente del Agente IA:', e);
+  }
+
+  // Y los respaldos automáticos, que son copias completas del cuaderno
+  // guardadas en IndexedDB. Viven en otro almacén, así que hay que ir a
+  // buscarlos allí: si no, «borrar todo» dejaría el diario de la usuaria en
+  // el dispositivo, a un clic de distancia.
+  return await borrarBackupsAutomaticos();
 };
 
-export const clearIdentityData = () => {
+/**
+ * Borra del almacenamiento todas las claves que empiezan por el prefijo.
+ *
+ * @param {string} prefijo - Prefijo de las claves a borrar.
+ */
+const borrarClavesQueEmpiecenPor = (prefijo) => {
+  const claves = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const clave = localStorage.key(i);
+    if (clave && clave.startsWith(prefijo)) claves.push(clave);
+  }
+  claves.forEach((clave) => localStorage.removeItem(clave));
+};
+
+/**
+ * Registra los elementos que se han borrado.
+ *
+ * La sincronización con la nube une lo local y lo remoto. Si la usuaria
+ * borra su diario y no queda rastro, la siguiente sincronización le
+ * devuelve lo que acababa de borrar. Con el registro de borrados, la nube
+ * sabe que esos elementos ya no están y no los resucita.
+ *
+ * @param {Object} data - Datos de la usuaria, que se modifican.
+ * @param {string} seccion - Sección de la que se han borrado.
+ * @param {Array} elementos - Elementos borrados.
+ * @param {Function} [claveDe] - Cómo se calcula la clave de un elemento. Por
+ *   defecto, su identificador. Algunas secciones no tienen identificador: el
+ *   historial del hábito se identifica por hábito y día.
+ */
+const registrarBorrados = (data, seccion, elementos, claveDe) => {
+  if (!Array.isArray(elementos) || elementos.length === 0) return;
+  if (!Array.isArray(data._deletions)) data._deletions = [];
+
+  const ahora = new Date().toISOString();
+  for (const elemento of elementos) {
+    const id = claveDe ? claveDe(elemento) : elemento?.id;
+    if (!id) continue;
+    const yaEsta = data._deletions.some((d) => d.section === seccion && d.itemId === id);
+    if (yaEsta) continue;
+    data._deletions.push({ section: seccion, itemId: id, deletedAt: ahora });
+  }
+};
+
+/**
+ * Sella una sección como recién modificada.
+ *
+ * Las secciones que guardan un solo valor (el hábito activo, el setup del
+ * día) no se unen elemento a elemento: gana la más reciente. Sin un sello
+ * propio, la nube sigue teniendo la fecha de antes del borrado y, al fusionar,
+ * lo borrado vuelve. Sellar la sección es la forma de decir que aquí ya no
+ * está lo que la nube tiene.
+ *
+ * @param {Object} data - Datos de la usuaria, que se modifican.
+ * @param {string} seccion - Sección a sellar.
+ */
+const sellarSeccion = (data, seccion) => {
+  if (!data._sectionMeta || typeof data._sectionMeta !== 'object') data._sectionMeta = {};
+  data._sectionMeta[seccion] = { updatedAt: new Date().toISOString() };
+};
+
+/**
+ * Borra valores, hábitos y rueda de la vida.
+ *
+ * Los respaldos del dispositivo no se tocan: son la red de la usuaria si
+ * borra sin querer. Lo que se vacía es el cuaderno, y las marcas de borrado
+ * y los sellos de sección que impiden que lo borrado vuelva desde la nube.
+ *
+ * @returns {Promise<boolean>} true si se ha borrado.
+ */
+export const clearIdentityData = async () => {
   const data = loadData();
+  // La rueda de la vida vuelve a su estado de fábrica: los ocho áreas son
+  // las de la app, pero se borran las evaluaciones de la usuaria. Ponerla a
+  // null no servía, porque al rellenar la forma por defecto volvía a salir
+  // igual, y el dato guardado no decía la verdad.
+  registrarBorrados(data, 'values', data.values);
+  registrarBorrados(data, 'habits.graduated', data.habits?.graduated);
+  registrarBorrados(data, 'habits.audit.activities', data.habits?.audit?.activities);
+  // El historial del hábito no tiene identificador: se identifica por
+  // hábito y día, que es como la nube lo distingue.
+  registrarBorrados(
+    data,
+    'habits.history',
+    data.habits?.history,
+    (dia) => `${dia?.habitId || ''}:${dia?.date || ''}`
+  );
+  registrarBorrados(data, 'lifeWheel.evaluations', data.lifeWheel?.evaluations);
   data.values = [];
   data.habits = {
     active: null,
@@ -680,27 +908,65 @@ export const clearIdentityData = () => {
     history: [],
     audit: { activities: [], lastAuditAt: null }
   };
-  // La rueda de la vida vuelve a su estado de fábrica: los ocho áreas son
-  // las de la app, pero se borran las evaluaciones de la usuaria. Ponerla a
-  // null no servía, porque al rellenar la forma por defecto volvía a salir
-  // igual, y el dato guardado no decía la verdad.
   data.lifeWheel = getDefaultData().lifeWheel;
+  // El progreso del asistente de hábitos guarda el nombre del hábito, la
+  // identidad, el lugar y la hora. Al borrar la identidad, ese texto se va
+  // también: es lo mismo que el hábito que se está borrando.
+  localStorage.removeItem('oraculo_habitWizardProgress');
+  // Estas secciones guardan un solo valor, así que la nube no las une
+  // elemento a elemento: sin sellarlas, al fusionar volvería lo borrado.
+  sellarSeccion(data, 'habits.active');
+  sellarSeccion(data, 'habits.audit.lastAuditAt');
+  sellarSeccion(data, 'lifeWheel.areas');
+  sellarSeccion(data, 'lifeWheel.settings');
   saveData(data);
+  return true;
 };
 
-export const clearProductivityData = () => {
+/**
+ * Borra tareas, proyectos y logros espontáneos.
+ *
+ * Los respaldos del dispositivo no se tocan: son la red de la usuaria si
+ * borra sin querer.
+ *
+ * @returns {Promise<boolean>} true si se ha borrado.
+ */
+export const clearProductivityData = async () => {
   const data = loadData();
+  registrarBorrados(data, 'projects', data.projects);
+  registrarBorrados(data, 'spontaneousAchievements', data.spontaneousAchievements);
+  for (const horizonte of ['backlog', 'quarterly', 'monthly', 'weekly', 'daily', 'completed']) {
+    registrarBorrados(data, `objectives.${horizonte}`, data.objectives?.[horizonte]);
+  }
   data.objectives = { backlog: [], quarterly: [], monthly: [], weekly: [], daily: [], completed: [] };
   data.projects = [];
   data.spontaneousAchievements = [];
   data.dailySetup = null;
+  // El setup del día es una sección de un solo valor: sin sellarla, la nube
+  // volvería a traer las notas que la usuaria había escrito.
+  sellarSeccion(data, 'dailySetup');
   saveData(data);
+  return true;
 };
 
-export const clearJournalData = () => {
+/**
+ * Borra todas las entradas del diario.
+ *
+ * Los respaldos del dispositivo no se tocan: son la red de la usuaria si
+ * borra sin querer. El borrador sin guardar sí se borra, porque es texto
+ * que está en pantalla y que la usuaria acaba de vaciar del diario.
+ *
+ * @returns {Promise<boolean>} true si se ha borrado.
+ */
+export const clearJournalData = async () => {
   const data = loadData();
+  registrarBorrados(data, 'journal', data.journal);
   data.journal = [];
   saveData(data);
+  // El borrador del diario es el texto que la usuaria escribió y no llegó a
+  // guardar: también es diario.
+  clearDraft();
+  return true;
 };
 
 export const generateYearSummary = (data) => {

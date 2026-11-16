@@ -3303,6 +3303,47 @@ a.entry-type-btn {
   transition: width var(--transition-normal);
 }
 
+/* Copia de los datos que no se pudieron leer */
+.corrupt-copy {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--rosa-200);
+  border-radius: var(--radius-md);
+  background: var(--rosa-50);
+}
+
+.corrupt-copy__cabecera {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--rosa-700);
+}
+
+.corrupt-copy__cabecera .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.corrupt-copy__title {
+  margin: 0;
+  font-family: var(--font-family-headings);
+  font-size: var(--font-size-base);
+  color: var(--rosa-700);
+}
+
+.corrupt-copy__texto {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--gris-700);
+  text-align: left;
+}
+
+.corrupt-copy__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
 .toggle-label {
   display: flex;
   align-items: center;
@@ -3326,6 +3367,11 @@ a.entry-type-btn {
   opacity: 0;
   transition: all var(--transition-normal);
   z-index: 1000;
+  /* El aviso se dibuja encima del contenido, así que no puede quedarse con
+     los clics de lo que hay debajo: si aparece mientras la usuaria está a
+     punto de pulsar «Guardar» en el diario, el primer toque se perdía y el
+     diario no se guardaba. El aviso solo informa, no se pulsa. */
+  pointer-events: none;
 }
 
 .notification--visible {
@@ -3352,12 +3398,13 @@ a.entry-type-btn {
   align-items: center;
   gap: var(--space-3);
   background: var(--turquesa-600);
+  color: var(--gris-900);
   padding: var(--space-3) var(--space-4);
 }
 
 .notification__btn {
   background: white;
-  color: var(--turquesa-700);
+  color: var(--turquesa-800);
   border: none;
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-sm);
@@ -3366,6 +3413,10 @@ a.entry-type-btn {
   transition: background var(--transition-fast);
   font-family: inherit;
   font-size: var(--text-sm);
+  /* El aviso no captura clics, pero este botón sí es pulsable (es el que
+     ofrece instalar la versión nueva). Un descendiente puede rehabilitar la
+     captura aunque el contenedor no la tenga. */
+  pointer-events: auto;
 }
 
 .notification__btn:hover {
@@ -5041,17 +5092,36 @@ a.entry-type-btn {
   min-width: 700px;
 }
 
-.heatmap-months {
+/* La rejilla de semanas y la fila de rótulos de mes van en la misma
+   columna, así que los rótulos caen justo encima de la semana en la que
+   empieza su mes sin calcular nada a mano. Las dos filas usan el mismo
+   ancho de columna y la misma separación. */
+.heatmap-grid-wrap {
   display: flex;
-  padding-left: 30px;
-  gap: 0;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 
-.heatmap-months span {
-  flex: 1;
+.heatmap-months {
+  display: flex;
+  gap: 2px;
+  height: 1em;
+}
+
+.heatmap-months__col {
+  position: relative;
+  flex: 0 0 12px;
+  width: 12px;
+}
+
+.heatmap-months__label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
   font-size: var(--font-size-xs);
   color: var(--gris-500);
-  text-align: center;
+  text-align: left;
 }
 
 .heatmap-body {
@@ -5064,6 +5134,9 @@ a.entry-type-btn {
   flex-direction: column;
   gap: 2px;
   width: 20px;
+  /* La columna de los días no encoge: si encogiera, el mapa se desplazaría
+     de sitio respecto a los rótulos de mes. */
+  flex: 0 0 20px;
 }
 
 .heatmap-days span {
@@ -5875,9 +5948,8 @@ a.entry-type-btn {
     min-width: 100%;
   }
 
-  .heatmap-months {
-    display: none;
-  }
+  /* Los rótulos de mes no se esconden en móvil: van sobre la columna de la
+     semana en la que empieza el mes y el mapa se desplaza con ellos. */
 
   .period-selector {
     flex-wrap: wrap;
@@ -14463,6 +14535,18 @@ select,
 
   .heatmap-days {
     width: 18px;
+    flex: 0 0 18px;
+  }
+
+  /* La fila de meses tiene que seguir a la rejilla: mismo ancho de columna
+     y misma separación. */
+  .heatmap-months {
+    gap: 1px;
+  }
+
+  .heatmap-months__col {
+    flex: 0 0 9px;
+    width: 9px;
   }
 
   /* Las etiquetas de los días tienen la misma altura que las celdas, o los
@@ -14479,7 +14563,7 @@ select,
   margin: var(--space-1) 0 0;
   font-size: var(--font-size-xs);
   color: var(--gris-600);
-  text-align: center;
+  text-align: left;
 }
 
 /* El mapa del ano necesita 783px. Medido en el navegador, la columna de
@@ -14490,13 +14574,6 @@ select,
     display: block;
   }
 }
-
-/* Estilos de intensidad del heatmap */
-.heatmap-day--level-0 { background: var(--gris-100); }
-.heatmap-day--level-1 { background: var(--turquesa-200); }
-.heatmap-day--level-2 { background: var(--turquesa-400); }
-.heatmap-day--level-3 { background: var(--turquesa-600); }
-.heatmap-day--level-4 { background: var(--turquesa-600); }
 
 /* Seccion de logros espontaneos */
 .achievements-spontaneous {
