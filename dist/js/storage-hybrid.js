@@ -12,6 +12,7 @@ import { clearDraft } from './utils/journal-draft.js';
 import { borrarBackupsAutomaticos, unlinkFolder } from './utils/auto-backup.js';
 import { mcpBridge } from './utils/mcp-bridge.js';
 import { copiarDatos } from './utils/fusionar-datos.js';
+import { emitirSenalBorrado, TIPO_BORRADO } from './utils/borrado-senal.js';
 
 const STORAGE_KEY = 'oraculo_data';
 const STORAGE_VERSION = '1.5';
@@ -820,6 +821,13 @@ export const clearAllData = async () => {
   // el dispositivo, a un clic de distancia.
   const respaldosBorrados = await borrarBackupsAutomaticos();
 
+  // Las otras pestañas tienen que enterarse del borrado. Sin esta señal, una
+  // pestaña que tenga el diario abierto (o un modal) aplaza lo que llega y,
+  // al guardar, vuelve a escribir el cuaderno entero: lo borrado aparece
+  // otra vez. La señal sale después de que el borrado esté guardado, para
+  // que la otra pestaña lea del almacenamiento una versión ya vacía.
+  emitirSenalBorrado(TIPO_BORRADO.TODO);
+
   // Los dos resultados se devuelven por separado. Si solo falla uno de los
   // dos, la usuaria tiene que saber cuál: no es lo mismo que quede una copia
   // del cuaderno en el dispositivo que que la carpeta siga vinculada y el
@@ -936,6 +944,9 @@ export const clearIdentityData = async () => {
   sellarSeccion(data, 'lifeWheel.areas');
   sellarSeccion(data, 'lifeWheel.settings');
   saveData(data);
+  // Las otras pestañas tienen que enterarse: si no, una de ellas con el
+  // diario abierto aplaza el borrado y lo vuelve a escribir al guardar.
+  emitirSenalBorrado(TIPO_BORRADO.IDENTIDAD);
   return true;
 };
 
@@ -962,6 +973,9 @@ export const clearProductivityData = async () => {
   // volvería a traer las notas que la usuaria había escrito.
   sellarSeccion(data, 'dailySetup');
   saveData(data);
+  // Las otras pestañas tienen que enterarse: si no, una de ellas con un
+  // modal abierto aplaza el borrado y lo vuelve a escribir al guardar.
+  emitirSenalBorrado(TIPO_BORRADO.PRODUCTIVIDAD);
   return true;
 };
 
@@ -982,6 +996,10 @@ export const clearJournalData = async () => {
   // El borrador del diario es el texto que la usuaria escribió y no llegó a
   // guardar: también es diario.
   clearDraft();
+  // Las otras pestañas tienen que enterarse: si no, una de ellas con el
+  // editor del diario abierto aplaza el borrado y lo vuelve a escribir al
+  // guardar.
+  emitirSenalBorrado(TIPO_BORRADO.DIARIO);
   return true;
 };
 

@@ -22,6 +22,30 @@ const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (relativo) => fs.readFileSync(path.join(raiz, relativo), 'utf8');
 
 describe('higiene de los datos pintados', () => {
+  it('las vistas se comprueban con Object.hasOwn, no con una búsqueda suelta', () => {
+    const app = leer('js/app.js');
+    const dailySetup = leer('js/modules/daily-setup.js');
+
+    // Una búsqueda suelta ('VIEWS[x]') encuentra lo que hereda el prototipo,
+    // como 'constructor': una dirección así se colaría como si fuera una
+    // vista válida.
+    for (const busqueda of ['VIEWS[baseView]', 'VIEWS[candidate]', '!VIEWS[']) {
+      assert.ok(!app.includes(busqueda), `la app no debe buscar vistas con "${busqueda}"`);
+      assert.ok(!dailySetup.includes(busqueda), `el setup diario tampoco: "${busqueda}"`);
+    }
+
+    assert.ok(app.includes('Object.hasOwn(VIEWS, baseView)'), 'la app comprueba la vista');
+    assert.ok(app.includes('Object.hasOwn(VIEWS, viewName)'), 'la app comprueba la vista');
+    assert.ok(app.includes('Object.hasOwn(VIEWS, candidate)'), 'la app comprueba la vista');
+    assert.ok(dailySetup.includes('Object.hasOwn(VIEWS, baseView)'), 'el setup comprueba la vista');
+
+    // El único sitio donde se busca el nombre de la vista es el mensaje de
+    // error, y solo después de comprobar que la vista existe.
+    assert.ok(
+      app.includes('Object.hasOwn(VIEWS, viewName) ? VIEWS[viewName] : viewName'),
+      'el nombre de la vista sale solo si la vista existe'
+    );
+  });
   it('la captura global busca el proyecto con la función probada', () => {
     const captura = leer('js/utils/captura.js');
     const app = leer('js/app.js');

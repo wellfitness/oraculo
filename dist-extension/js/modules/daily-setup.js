@@ -34,7 +34,7 @@ const navigatePostSetup = () => {
   // perder el editor de escritura. Si el destino no es una vista que exista,
   // se va al inicio.
   const baseView = getBaseView(postSetupView);
-  const vista = VIEWS[baseView] ? baseView : 'dashboard';
+  const vista = Object.hasOwn(VIEWS, baseView) ? baseView : 'dashboard';
   navigateTo(vista, postSetupView);
 };
 

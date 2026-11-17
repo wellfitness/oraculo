@@ -6,7 +6,13 @@
 // Storage: se resuelve dinámicamente en bootstrap() según el contexto (web vs extensión)
 let _storage = {};
 const loadData = (...args) => _storage.loadData(...args);
-const saveData = (...args) => _storage.saveData(...args);
+const saveData = (...args) => {
+  // Si otra pestaña ha borrado el cuaderno entero, esta no vuelve a
+  // escribir nada: el cuaderno borrado aparecería otra vez en el
+  // almacenamiento. La página se recarga y se parte del cuaderno vacío.
+  if (state.cuadernoBorrado) return false;
+  return _storage.saveData(...args);
+};
 const getStorageUsage = (...args) => _storage.getStorageUsage(...args);
 const shouldPersistOnUnload = (...args) => _storage.shouldPersistOnUnload(...args);
 const consumeLoadIssue = (...args) => _storage.consumeLoadIssue(...args);
@@ -33,11 +39,20 @@ import {
   esEditorDeDiarioAbierto,
   loadDraft,
   parseRutaDiario,
-  tieneBorradorPendiente
+  tieneBorradorPendiente,
+  clearDraft,
+  bloquearBorradores,
+  desbloquearBorradores
 } from './utils/journal-draft.js';
 import { fusionarDatos, copiarDatos } from './utils/fusionar-datos.js';
 import { elegirHashDeNavegacion, getBaseView } from './utils/ruta-hash.js';
-import { fusionarPendiente } from './utils/pendiente-sync.js';
+import { fusionarPendiente, prepararGuardado as prepararGuardadoUtil, PREPARADO_PESTANA } from './utils/pendiente-sync.js';
+import {
+  CLAVE_SENAL_BORRADO,
+  TIPO_BORRADO,
+  leerSenalBorrado,
+  recibirSenalBorrado
+} from './utils/borrado-senal.js';
 import { capturarTextoDeCampo, restaurarTextoEnCampo } from './utils/campos.js';
 import { haSalidoDelBloqueDeEdicion } from './utils/foco.js';
 import { needsDailySetup } from './components/daily-setup-modal.js';
@@ -94,7 +109,11 @@ const state = {
   initialized: false,
   pendingSync: null, // Datos pendientes de aplicar (cuando hay modal abierto)
   pendingSyncOrigen: null, // De dónde vienen los datos pendientes: 'nube' o 'pestana'
-  pendingSyncBase: null // Copia de los datos como estaban cuando llegó lo pendiente
+  pendingSyncBase: null, // Copia de los datos como estaban cuando llegó lo pendiente
+  // true cuando otra pestaña ha borrado el cuaderno entero. Con esta marca
+  // esta pestaña no vuelve a escribir nada: si lo hiciera, el cuaderno
+  // borrado aparecería otra vez.
+  cuadernoBorrado: false
 };
 
 // Variable para rastrear último campo de texto activo (para dictado por voz)
@@ -267,41 +286,8 @@ const aplicarPendingSync = () => {
  * guardar.
  */
 const prepararGuardado = () => {
-  if (!state.data || !state.pendingSync) return;
-
-  if (state.pendingSyncOrigen === 'nube') {
-    // Lo que viene de la nube se funde con lo que hay y lo pendiente queda
-    // vacío: si se quedara, al aplicar lo pendiente otra vez se volvería a
-    // fusionar y lo que la usuaria acaba de borrar reaparecería.
-    fusionarPendiente(state);
-    return;
-  }
-
-  if (state.pendingSyncOrigen !== 'pestana') return;
-
-  const decision = decidirCambioDePestana({
-    updatedAtEnMemoria: state.data?.updatedAt,
-    updatedAtRecibido: state.pendingSync?.updatedAt,
-    hayModalAbierto: false,
-    estaEditando: false
-  });
-
-  if (decision === DECISION_IGNORAR) {
-    // Lo pendiente ya no es más nuevo que lo que hay aquí.
-    state.pendingSync = null;
-    state.pendingSyncOrigen = null;
-    state.pendingSyncBase = null;
-    return;
-  }
-
-  // Lo pendiente es más nuevo: se funde con lo que hay en memoria. La fusión
-  // respeta lo que la usuaria haya cambiado y deja dentro lo que vino de la
-  // otra pestaña, sin sustituir las secciones que los módulos tienen
-  // guardadas.
-  state.data = fusionarDatos(state.pendingSyncBase, state.data, state.pendingSync);
-  state.pendingSync = null;
-  state.pendingSyncOrigen = null;
-  state.pendingSyncBase = null;
+  const resultado = prepararGuardadoUtil(state);
+  if (resultado !== PREPARADO_PESTANA) return;
 
   // Lo de la otra pestaña acaba de entrar en el cuaderno: la usuaria tiene
   // que saberlo, porque lo que ve en pantalla va a cambiar.
@@ -329,6 +315,77 @@ const aplicarPendingSyncYAvisar = async (campo = null) => {
 
   if (origen === 'nube') {
     showNotification('✓ Datos sincronizados desde la nube', 'success');
+  }
+};
+
+/**
+ * Reacciona a un borrado hecho en otra pestaña.
+ *
+ * Lo que la otra pestaña borró manda: lo que esta tenía a medias (un modal
+ * abierto, una entrada a medio escribir) se pierde, y lo pendiente se
+ * descarta, porque si se quedara, el siguiente guardado volvería a escribir
+ * lo que se ha borrado.
+ *
+ * @param {string|null} texto - El texto de la señal que ha llegado.
+ */
+const aplicarSenalDeBorrado = async (texto) => {
+  // El borrado total ya está en marcha: no se repite, que recargar dos veces
+  // la página no aporta nada.
+  if (state.cuadernoBorrado) return;
+
+  const senal = leerSenalBorrado(texto);
+  if (!senal) return;
+
+  const esBorradoTotal = senal.tipo === TIPO_BORRADO.TODO;
+
+  // Con un borrado total no hace falta releer los datos: la página se
+  // recarga y los vuelve a leer del almacenamiento, que ya está vacío.
+  const frescos = esBorradoTotal ? null : loadData();
+
+  const tipo = recibirSenalBorrado(state, senal, frescos);
+  if (!tipo) return;
+
+  if (tipo === TIPO_BORRADO.TODO) {
+    // El cuaderno entero se ha borrado. Esta pestaña no puede escribir
+    // nada: ni sus datos en memoria (volverían al almacenamiento) ni el
+    // cuaderno en la carpeta de respaldos (que puede seguir vinculada aquí,
+    // con el auto-guardado pendiente).
+    state.cuadernoBorrado = true;
+    autoBackup.cancelScheduledSave();
+
+    // El borrador sin guardar del diario también se va: es texto de la
+    // usuaria que estaba en pantalla. Y el editor deja de guardar borradores,
+    // para que su temporizador no lo vuelva a escribir después del borrado.
+    clearDraft();
+    bloquearBorradores();
+
+    Promise.resolve(autoBackup.unlinkFolder()).catch((e) => {
+      console.warn('[App] No se ha podido soltar la carpeta de respaldos:', e);
+    });
+
+    // La página se recarga para partir del cuaderno vacío.
+    location.reload();
+    return;
+  }
+
+  // Si se ha borrado el diario, el texto que la usuaria estaba escribiendo en
+  // el editor se va con él: el borrador se borra y el editor deja de guardar
+  // mientras se repinta, porque al perder el foco el editor viejo guardaría
+  // su borrador y el texto volvería a aparecer.
+  const esBorradoDelDiario = tipo === TIPO_BORRADO.DIARIO;
+  if (esBorradoDelDiario) {
+    clearDraft();
+    bloquearBorradores();
+  }
+
+  // Borrado parcial: el cuaderno se relee del almacenamiento y se repinta.
+  try {
+    await renderView(state.currentView);
+  } finally {
+    if (esBorradoDelDiario) {
+      clearDraft();
+      desbloquearBorradores();
+    }
   }
 };
 
@@ -439,11 +496,11 @@ export const init = () => {
   // El usuario debe configurar su día ANTES de ir a cualquier otra vista
   if (needsSetup) {
     // Guardar destino original para después del setup (si hay uno válido)
-    if (fullHash && VIEWS[baseView] && baseView !== 'daily-setup') {
+    if (fullHash && Object.hasOwn(VIEWS, baseView) && baseView !== 'daily-setup') {
       sessionStorage.setItem('oraculo_postSetupView', fullHash);
     }
     navigateTo('daily-setup');
-  } else if (fullHash && VIEWS[baseView]) {
+  } else if (fullHash && Object.hasOwn(VIEWS, baseView)) {
     navigateTo(baseView, fullHash);
   } else {
     navigateTo('dashboard');
@@ -475,7 +532,7 @@ const setupNavigation = () => {
     // Manejar navegación atrás/adelante del navegador
     // e.state puede ser null si el usuario navegó a un estado sin history.pushState
     const candidate = e.state?.view || getBaseView(location.hash.slice(1));
-    const view = VIEWS[candidate] ? candidate : 'dashboard';
+    const view = Object.hasOwn(VIEWS, candidate) ? candidate : 'dashboard';
     renderView(view);
     updateActiveNav(view);
   });
@@ -486,7 +543,7 @@ const setupNavigation = () => {
     const baseView = getBaseView(fullHash);
 
     // Solo re-renderizar si es una vista válida
-    if (VIEWS[baseView]) {
+    if (Object.hasOwn(VIEWS, baseView)) {
       state.currentView = baseView;
       renderView(baseView);
       updateActiveNav(baseView);
@@ -595,6 +652,11 @@ const setupGlobalEvents = () => {
 
   // Guardar en localStorage antes de cerrar (sin diálogo)
   window.addEventListener('beforeunload', () => {
+    // Si otra pestaña ha borrado el cuaderno entero, esta no vuelve a
+    // escribir lo que tiene en memoria: el cuaderno borrado aparecería otra
+    // vez en cuanto se cerrara la página.
+    if (state.cuadernoBorrado) return;
+
     if (state.data && shouldPersistOnUnload(state.data, localStorage.getItem('oraculo_data'))) {
       // Guardar directamente en localStorage
       try {
@@ -617,10 +679,32 @@ const setupGlobalEvents = () => {
 
   // Otra pestaña ha guardado: esta deja de tener la última versión
   window.addEventListener('storage', (e) => {
+    // Otra pestaña ha borrado algo: esta suelta lo que tiene a medias y se
+    // queda con lo que hay en el almacenamiento. Sin esto, una pestaña con el
+    // diario abierto aplaza el borrado y lo vuelve a escribir al guardar.
+    if (e.key === CLAVE_SENAL_BORRADO) {
+      aplicarSenalDeBorrado(e.newValue).catch((error) => {
+        console.warn('[App] No se ha podido aplicar el borrado de otra pestaña:', error);
+      });
+      return;
+    }
+
     if (e.key !== 'oraculo_data') return;
 
-    // Otra pestaña ha borrado todos los datos. Esta tampoco debe guardarlos
-    // otra vez desde memoria, así que se queda con lo que haya ahora.
+    // Respaldo: si la clave del cuaderno desaparece del almacenamiento, es que
+    // lo han borrado entero. Esta pestaña no puede seguir guardando lo que
+    // tiene en memoria, o el cuaderno volvería.
+    if (e.newValue === null) {
+      aplicarSenalDeBorrado(JSON.stringify({ tipo: TIPO_BORRADO.TODO, at: Date.now() })).catch((error) => {
+        console.warn('[App] No se ha podido aplicar el borrado de otra pestaña:', error);
+      });
+      return;
+    }
+
+    // Otra pestaña ha guardado algo. Esta relee el almacenamiento y decide
+    // si lo aplica ahora o si espera a que la usuaria termine lo que tiene a
+    // medias. Si lo aplica, lo funde con lo que hay en memoria, para no
+    // perder lo que la usuaria haya guardado mientras esperaba.
     const fresh = loadData();
 
     const conModal = hayModalAbierto();
@@ -1280,7 +1364,7 @@ const initAutoBackup = async () => {
  *   de escritura libre en lugar del listado del diario.
  */
 export const navigateTo = (viewName, hashCompleto) => {
-  if (!VIEWS[viewName]) {
+  if (!Object.hasOwn(VIEWS, viewName)) {
     console.error('Vista no encontrada:', viewName);
     return;
   }
@@ -1361,7 +1445,7 @@ const renderViewError = (container, viewName) => {
   container.innerHTML = `
     <div class="empty-state empty-state--large">
       <span class="material-symbols-outlined icon-xl">error_outline</span>
-      <h3>No se pudo cargar "${escapeHTML(VIEWS[viewName] || viewName)}"</h3>
+      <h3>No se pudo cargar "${escapeHTML(Object.hasOwn(VIEWS, viewName) ? VIEWS[viewName] : viewName)}"</h3>
       <p>Puede que haya un problema temporal. Intenta volver al inicio.</p>
       <button class="btn btn--primary" onclick="window.location.hash='dashboard'">
         <span class="material-symbols-outlined icon-sm">home</span>

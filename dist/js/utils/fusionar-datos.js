@@ -47,6 +47,15 @@ const CLAVES_PROHIBIDAS = [
 ];
 
 /**
+ * Claves que no se copian nunca.
+ *
+ * Se exportan porque otros módulos que copian datos de fuera (la señal de
+ * borrado entre pestañas) tienen que apartar las mismas claves: asignar
+ * '__proto__' con corchetes cambia el prototipo del objeto al que se asigna.
+ */
+export { CLAVES_PROHIBIDAS };
+
+/**
  * Cuántos niveles se bajan como mucho.
  *
  * Los datos llegan como texto y guardarlos ya rompe con estructuras
@@ -201,6 +210,38 @@ const fusionarObjeto = (base, local, remoto, profundidad = 0) => {
 };
 
 /**
+ * Quita de la lista local lo que lo de fuera borró de la lista entera.
+ *
+ * Cuando lo de fuera llega con la lista vacía y en la base había elementos
+ * con identificador, lo que ha pasado es que la lista se ha borrado entera.
+ * Se quitan de la lista local los elementos que estaban en la base y que la
+ * usuaria no ha tocado desde entonces, y se conservan los que la usuaria ha
+ * creado o cambiado: su trabajo no se pierde.
+ *
+ * Los elementos sin identificador se conservan: sin identificador no hay
+ * forma de saber si estaban en la base, y es preferible dejar un elemento
+ * de más que borrar algo que la usuaria acaba de escribir.
+ *
+ * @param {Array} base - Lista en la base.
+ * @param {Array} local - Lista local, que se modifica.
+ */
+const fusionarListaBorrada = (base, local) => {
+  const basePorId = new Map(base.filter(tieneIdentificador).map((e) => [e.id, e]));
+
+  for (let i = local.length - 1; i >= 0; i--) {
+    const elemento = local[i];
+    if (!tieneIdentificador(elemento)) continue;
+
+    const enBase = basePorId.get(elemento.id);
+    // Lo que no estaba en la base es nuevo: lo ha hecho la usuaria ahora.
+    if (!enBase) continue;
+
+    // Lo que estaba en la base y no ha cambiado se ha borrado fuera.
+    if (esIgual(elemento, enBase)) local.splice(i, 1);
+  }
+};
+
+/**
  * Fusiona dos listas, emparejando los elementos por identificador.
  *
  * @param {Array} base - Lista en la base.
@@ -210,6 +251,17 @@ const fusionarObjeto = (base, local, remoto, profundidad = 0) => {
  */
 const fusionarLista = (base, local, remoto, profundidad = 0) => {
   if (profundidad > PROFUNDIDAD_MAXIMA) return;
+
+  // Una lista remota vacía, cuando en la base había elementos con
+  // identificador, significa que lo de fuera borró la lista entera. No se
+  // puede tratar como una lista sin identificadores (que se resuelve como una
+  // unidad): si lo hiciera, la lista local entera ganaría y lo borrado
+  // volvería. Solo se conservan los elementos que la usuaria ha creado o
+  // cambiado en local respecto a la base.
+  if (remoto.length === 0 && todosConIdentificador(base)) {
+    fusionarListaBorrada(base, local);
+    return;
+  }
 
   if (!todosConIdentificador(local) || !todosConIdentificador(remoto)) {
     // Sin identificadores no hay forma de emparejar: la lista es una unidad.

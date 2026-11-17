@@ -14,11 +14,29 @@ const {
   clearDraft,
   tieneBorradorPendiente,
   parseRutaDiario,
-  esEditorDeDiarioAbierto
+  esEditorDeDiarioAbierto,
+  bloquearBorradores,
+  desbloquearBorradores
 } = await import('../js/utils/journal-draft.js');
 beforeEach(() => { Object.keys(store).forEach(k => delete store[k]); });
 
 describe('borrador del diario', () => {
+  it('bloquear los borradores los deja de guardar', () => {
+    bloquearBorradores();
+    saveDraft('new:daily', 'esto no se guarda');
+    assert.strictEqual(loadDraft('new:daily'), null);
+    desbloquearBorradores();
+  });
+
+  it('desbloquear los vuelve a dejar guardar', () => {
+    // El bloqueo se usa mientras se repinta el diario tras un borrado: al
+    // terminar, la usuaria tiene que poder seguir escribiendo.
+    bloquearBorradores();
+    desbloquearBorradores();
+    saveDraft('new:daily', 'esto sí se guarda');
+    assert.strictEqual(loadDraft('new:daily'), 'esto sí se guarda');
+  });
+
   it('draftIdFor', () => {
     assert.strictEqual(draftIdFor({ mode: 'new', type: 'daily' }), 'new:daily');
     assert.strictEqual(draftIdFor({ mode: 'edit', id: 'abc' }), 'edit:abc');

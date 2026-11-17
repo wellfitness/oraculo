@@ -9,6 +9,33 @@
 
 const STORAGE_KEY = 'oraculo_journal_draft';
 
+// Cuando otra pestaña borra el cuaderno entero, esta deja de guardar
+// borradores: si no, el temporizador del editor volvería a escribir el texto
+// que la usuaria tenía a medias justo después del borrado.
+let borradoresBloqueados = false;
+
+/**
+ * Deja de guardar borradores.
+ *
+ * Se usa cuando el cuaderno se ha borrado entero en otra pestaña: el texto
+ * que la usuaria tenía a medias se pierde, y el borrador tampoco puede
+ * volver a aparecer.
+ */
+export const bloquearBorradores = () => {
+  borradoresBloqueados = true;
+};
+
+/**
+ * Vuelve a permitir guardar borradores.
+ *
+ * Se usa después de repintar el diario tras un borrado parcial: durante el
+ * repintado el editor viejo guarda su borrador al perder el foco, y ese
+ * borrador es justo lo que no debe volver.
+ */
+export const desbloquearBorradores = () => {
+  borradoresBloqueados = false;
+};
+
 /**
  * Devuelve el identificador del borrador de una ruta del diario.
  * `new:TIPO` para una entrada nueva, `edit:ID` para editar una entrada
@@ -68,6 +95,7 @@ export const esEditorDeDiarioAbierto = (hash) => {
  */
 export const saveDraft = (draftId, content) => {
   if (!draftId) return;
+  if (borradoresBloqueados) return;
 
   try {
     if (typeof content !== 'string' || content.trim() === '') {
